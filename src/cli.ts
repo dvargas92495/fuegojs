@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import build from "./build";
+import deploy from "./deploy";
 
 const run = async (command: string, args: string[]): Promise<number> => {
   const opts = Object.fromEntries(
