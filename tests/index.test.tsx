@@ -1,8 +1,6 @@
-import React from 'react';
-import Package from '../src';
-import { render } from '@testing-library/react';
+import { build } from '../src';
 
-test('Renders Package', () => {
-  const { container } = render(<Package/>);
-  expect(container).toBeInTheDocument();
+test('Runs build', () => {
+  // TODO - write test
+  expect(build).toBeTruthy();
 });
