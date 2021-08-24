@@ -96,7 +96,7 @@ const deploy = ({
             })
             .promise()
             .then((i) => ({
-              Id: i.Invalidation?.Id || '',
+              Id: i.Invalidation?.Id || "",
               DistributionId,
             }))
         : Promise.reject(

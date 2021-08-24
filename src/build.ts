@@ -8,81 +8,68 @@ import { appPath, readDir } from "./common";
 const promiseRimraf = (s: string) =>
   new Promise((resolve) => rimraf(s, resolve));
 
-const buildDir = (dir: string): Promise<number[]> =>
-  esbuild
+const HTML_REGEX = /_html\.js$/;
+
+const buildDir = (dir: string): Promise<number[]> => {
+  const entryPoints = readDir(dir);
+  return esbuild
     .build({
-      entryPoints: [appPath("pages/_html.tsx")],
-      bundle: true,
+      entryPoints,
       target: "node12",
       platform: "node",
-      outfile: path.join("tmp", "_html.js"),
+      bundle: true,
+      outdir: "tmp",
       external: ["react", "react-dom"],
     })
-    .then(() => fs.mkdirSync("out"))
-    .then(() =>
-      Promise.all(
-        readDir(dir)
-          .filter((name) => !/_html\.tsx$/.test(name))
+    .then((result) => {
+      if (result.errors.length) {
+        throw new Error(JSON.stringify(result.errors));
+      }
+      console.log("result", JSON.stringify(result));
+      return Promise.all(
+        entryPoints
+          .filter((t) => !HTML_REGEX.test(t))
           .map((file) =>
-            esbuild
-              .build({
-                entryPoints: [appPath(path.join(dir, file))],
-                target: "node12",
-                platform: "node",
-                bundle: true,
-                outfile: path.join(
-                  "tmp",
-                  dir.replace(/^pages/, ""),
-                  file.replace(/\.tsx/, ".js")
-                ),
-                external: ["react", "react-dom"],
-              })
-              .then((result) => {
-                if (result.errors.length) {
-                  throw new Error(JSON.stringify(result.errors));
-                }
-                const ls = childProcess.spawn("node", [
-                  path.join("tmp", "_html.js").replace(/\\/g, "/"),
-                  path
-                    .join(
-                      dir.replace(/^pages/, ""),
-                      file.replace(/\.tsx/, ".js")
-                    )
-                    .replace(/\\/g, "/"),
-                ]);
-                return new Promise<number>((resolve) => {
-                  let loggedErrors = false;
-                  ls.stdout.on("data", (data) => {
-                    console.log(`stdout: ${data}`);
-                  });
+            new Promise<number>((resolve) => {
+              const ls = childProcess.spawn("node", [
+                path.join("tmp", "_html.js").replace(/\\/g, "/"),
+                file.replace(/^pages/, ""),
+                file.replace(/\.tsx/, ".js").replace(/\\/g, "/"),
+              ]);
+              let loggedErrors = false;
+              ls.stdout.on("data", (data) => {
+                console.log(`stdout: ${data}`);
+              });
 
-                  ls.stderr.on("data", (data) => {
-                    console.error(`stderr: ${data}`);
-                    loggedErrors = true;
-                  });
+              ls.stderr.on("data", (data) => {
+                console.error(`stderr: ${data}`);
+                loggedErrors = true;
+              });
 
-                  ls.on("close", (code) => {
-                    code || loggedErrors ? process.exit(code || 1) : resolve(0);
-                  });
-                });
-              })
-              .catch(() => {
-                return 0;
-              })
+              ls.on("close", (code) => {
+                code || loggedErrors ? process.exit(code || 1) : resolve(0);
+              });
+            }).catch((e) => {
+              console.error(e.message);
+              return 1;
+            })
           )
-      )
-    );
+      );
+    });
+};
 
 const build = (): Promise<number> =>
   Promise.all([promiseRimraf("tmp"), promiseRimraf("out")])
     .then(() => {
       fs.mkdirSync("tmp");
-      return buildDir("pages");
+      fs.cpSync("./_html.js", "tmp");
+      fs.mkdirSync("out");
+      return buildDir(appPath("pages"));
     })
     .then((codes) => {
-        promiseRimraf("tmp");
-        console.log("Finished!");
-        return codes.some(c => c > 0) ? 1 : 0;
+      promiseRimraf("tmp");
+      console.log("Finished!");
+      return codes.some((c) => c > 0) ? 1 : 0;
     });
 
 export default build;

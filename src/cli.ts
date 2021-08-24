@@ -24,7 +24,7 @@ const run = async (command: string, args: string[]): Promise<number> => {
      * - build lambdas
      * - publish lambdas
      * - start - FE-only, BE-only, both
-     * - init - create a new app, utilize create-vargas-npm, 
+     * - init - create a new app, utilize create-vargas-npm,
      */
     default:
       console.error("Command", command, "is unsupported");
