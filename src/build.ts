@@ -31,12 +31,12 @@ const buildDir = (dir: string): Promise<number[]> => {
           .map((file) =>
             new Promise<number>((resolve, reject) => {
               const page = file
-                .replace(/^pages/, "_fuego")
+                .replace(/^pages/, "")
                 .replace(/\.tsx$/, ".js")
                 .replace(/\\/g, "/");
               const ls = childProcess.spawn("node", [
                 path.join("_fuego", "_html.js").replace(/\\/g, "/"),
-                appPath(page),
+                page,
               ]);
               let loggedErrors = false;
               ls.stdout.on("data", (data) => {
