@@ -65,7 +65,7 @@ const build = (): Promise<number> =>
       return new Promise((resolve, reject) =>
         fs
           .createReadStream(appPath("node_modules/fuegojs/dist/_html.js"))
-          .pipe(fs.createWriteStream(path.join("_fuego", "html.js")))
+          .pipe(fs.createWriteStream(path.join("_fuego", "_html.js")))
           .once("error", reject)
           .once("finish", resolve)
       );
