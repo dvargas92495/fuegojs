@@ -18,21 +18,21 @@ const buildDir = (dir: string): Promise<number[]> => {
       target: "node12",
       platform: "node",
       bundle: true,
-      outdir: "/tmp",
+      outdir: "_fuego",
       external: ["react", "react-dom"],
     })
     .then((result) => {
       if (result.errors.length) {
         throw new Error(JSON.stringify(result.errors));
       }
-      console.log("result", JSON.stringify(result));
+      console.log("result", JSON.stringify(result.outputFiles));
       return Promise.all(
         entryPoints
           .filter((t) => !HTML_REGEX.test(t))
           .map((file) =>
             new Promise<number>((resolve) => {
               const ls = childProcess.spawn("node", [
-                path.join("/tmp", "_html.js").replace(/\\/g, "/"),
+                path.join("_fuego", "_html.js").replace(/\\/g, "/"),
                 file.replace(/^pages/, ""),
                 file.replace(/\.tsx/, ".js").replace(/\\/g, "/"),
               ]);
@@ -59,23 +59,28 @@ const buildDir = (dir: string): Promise<number[]> => {
 };
 
 const build = (): Promise<number> =>
-  Promise.all([promiseRimraf("/tmp"), promiseRimraf("out")])
+  Promise.all([promiseRimraf("_fuego"), promiseRimraf("out")])
     .then(() => {
-      fs.mkdirSync("/tmp");
+      fs.mkdirSync("_fuego");
       fs.mkdirSync("out");
       return new Promise((resolve, reject) =>
         fs
           .createReadStream(appPath("node_modules/fuegojs/dist/_html.js"))
-          .pipe(fs.createWriteStream(path.join("/tmp", "html.js")))
+          .pipe(fs.createWriteStream(path.join("_fuego", "html.js")))
           .once("error", reject)
           .once("finish", resolve)
       );
     })
     .then(() => buildDir(appPath("pages")))
     .then((codes) => {
-      promiseRimraf("/tmp");
+      promiseRimraf("_fuego");
       console.log("Finished!");
       return codes.some((c) => c > 0) ? 1 : 0;
+    })
+    .catch((e) => {
+      promiseRimraf("_fuego");
+      console.error("ERROR:", e.message);
+      return 1;
     });
 
 export default build;
