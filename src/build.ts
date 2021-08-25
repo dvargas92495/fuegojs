@@ -49,7 +49,9 @@ const buildDir = (dir: string): Promise<number[]> => {
               });
 
               ls.on("close", (code) => {
-                code || loggedErrors ? reject(new Error(`Failed to build ${page}`)) : resolve(0);
+                code || loggedErrors
+                  ? reject(new Error(`Failed to build ${page}`))
+                  : resolve(0);
               });
             }).catch((e) => {
               console.error(e.message);
