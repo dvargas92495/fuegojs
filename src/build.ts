@@ -30,18 +30,21 @@ const buildDir = (dir: string): Promise<number[]> => {
           .filter((t) => !HTML_REGEX.test(t))
           .map((file) =>
             new Promise<number>((resolve) => {
+              const page = file
+                .replace(/^pages/, "")
+                .replace(/\.tsx/, ".js")
+                .replace(/\\/g, "/");
               const ls = childProcess.spawn("node", [
                 path.join("_fuego", "_html.js").replace(/\\/g, "/"),
-                file.replace(/^pages/, ""),
-                file.replace(/\.tsx/, ".js").replace(/\\/g, "/"),
+                page,
               ]);
               let loggedErrors = false;
               ls.stdout.on("data", (data) => {
-                console.log(`stdout: ${data}`);
+                console.log(`Log from building ${page}: ${data}`);
               });
 
               ls.stderr.on("data", (data) => {
-                console.error(`stderr: ${data}`);
+                console.error(`Error building ${page}: ${data}`);
                 loggedErrors = true;
               });
 
