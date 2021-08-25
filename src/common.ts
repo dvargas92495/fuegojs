@@ -8,5 +8,5 @@ export const readDir = (s: string): string[] =>
   fs
     .readdirSync(s, { withFileTypes: true })
     .flatMap((f) =>
-      f.isDirectory() ? readDir(path.join(s, f.name)) : [path.join(s, f.name)]
+      f.isDirectory() ? readDir(`${s}/${f.name}`) : [`${s}/${f.name}`]
     );
