@@ -65,7 +65,7 @@ const build = (): Promise<number> =>
       fs.mkdirSync("out");
       return new Promise((resolve, reject) =>
         fs
-          .createReadStream("./_html.js")
+          .createReadStream(appPath('node_modules/fuegojs/dist/_html.js'))
           .pipe(fs.createWriteStream(path.join("/tmp", "html.js")))
           .once("error", reject)
           .once("finish", resolve)
