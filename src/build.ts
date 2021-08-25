@@ -36,7 +36,7 @@ const buildDir = (dir: string): Promise<number[]> => {
                 .replace(/\\/g, "/");
               const ls = childProcess.spawn("node", [
                 path.join("_fuego", "_html.js").replace(/\\/g, "/"),
-                page,
+                appPath(page),
               ]);
               let loggedErrors = false;
               ls.stdout.on("data", (data) => {
@@ -73,7 +73,7 @@ const build = (): Promise<number> =>
           .once("finish", resolve)
       );
     })
-    .then(() => buildDir(appPath("pages")))
+    .then(() => buildDir("pages"))
     .then((codes) => {
       return promiseRimraf("_fuego").then(() => {
         console.log("Finished!");
