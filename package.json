@@ -37,7 +37,6 @@
     "@typescript-eslint/eslint-plugin": "^4.29.3",
     "@typescript-eslint/parser": "^4.29.3",
     "cross-env": "^7.0.3",
-    "esbuild": "^0.12.22",
     "eslint": "^7.32.0",
     "jest": "^27.0.6",
     "prettier": "^2.3.2",
@@ -48,6 +47,7 @@
   },
   "dependencies": {
     "aws-sdk": "^2.975.0",
+    "esbuild": "^0.12.22",
     "git-repo-name": "^1.0.1",
     "mime-types": "^2.1.32",
     "react": "^17.0.2",
