@@ -31,8 +31,8 @@ const buildDir = (dir: string): Promise<number[]> => {
           .map((file) =>
             new Promise<number>((resolve) => {
               const page = file
-                .replace(/^pages/, "")
-                .replace(/\.tsx/, ".js")
+                .replace(/^pages/, "_fuego")
+                .replace(/\.tsx$/, ".js")
                 .replace(/\\/g, "/");
               const ls = childProcess.spawn("node", [
                 path.join("_fuego", "_html.js").replace(/\\/g, "/"),
@@ -75,14 +75,16 @@ const build = (): Promise<number> =>
     })
     .then(() => buildDir(appPath("pages")))
     .then((codes) => {
-      promiseRimraf("_fuego");
-      console.log("Finished!");
-      return codes.some((c) => c > 0) ? 1 : 0;
+      return promiseRimraf("_fuego").then(() => {
+        console.log("Finished!");
+        return codes.some((c) => c > 0) ? 1 : 0;
+      });
     })
     .catch((e) => {
-      promiseRimraf("_fuego");
-      console.error("ERROR:", e.message);
-      return 1;
+      return promiseRimraf("_fuego").then(() => {
+        console.error("ERROR:", e.message);
+        return 1;
+      });
     });
 
 export default build;
