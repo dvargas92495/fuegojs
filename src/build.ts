@@ -31,7 +31,7 @@ const buildDir = (dir: string): Promise<number[]> => {
           .map((file) =>
             new Promise<number>((resolve, reject) => {
               const page = file
-                .replace(/^pages/, "")
+                .replace(/^pages\//, "")
                 .replace(/\.tsx$/, ".js")
                 .replace(/\\/g, "/");
               const ls = childProcess.spawn("node", [
