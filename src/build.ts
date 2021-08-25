@@ -25,7 +25,6 @@ const buildDir = (dir: string): Promise<number[]> => {
       if (result.errors.length) {
         throw new Error(JSON.stringify(result.errors));
       }
-      console.log("result", JSON.stringify(result.outputFiles));
       return Promise.all(
         entryPoints
           .filter((t) => !HTML_REGEX.test(t))
