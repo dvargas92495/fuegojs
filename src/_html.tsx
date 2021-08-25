@@ -12,7 +12,7 @@ const Html: React.FunctionComponent = ({ children }) => (
 
 const pagePath = process.argv[2];
 
-import(pagePath)
+import(`./${pagePath}`)
   .then((r) => {
     const Page = r.default;
     fs.writeFileSync(
