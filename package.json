@@ -1,6 +1,6 @@
 {
   "name": "fuegojs",
-  "description": "Description for fuegojs",
+  "description": "Opinionated static site generation framework built on React, Esbuild, and AWS",
   "version": "0.2.3",
   "license": "MIT",
   "main": "dist/index.js",

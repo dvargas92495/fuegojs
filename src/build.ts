@@ -18,7 +18,7 @@ const buildDir = (dir: string): Promise<number[]> => {
       target: "node12",
       platform: "node",
       bundle: true,
-      outdir: "tmp",
+      outdir: "/tmp",
       external: ["react", "react-dom"],
     })
     .then((result) => {
@@ -32,7 +32,7 @@ const buildDir = (dir: string): Promise<number[]> => {
           .map((file) =>
             new Promise<number>((resolve) => {
               const ls = childProcess.spawn("node", [
-                path.join("tmp", "_html.js").replace(/\\/g, "/"),
+                path.join("/tmp", "_html.js").replace(/\\/g, "/"),
                 file.replace(/^pages/, ""),
                 file.replace(/\.tsx/, ".js").replace(/\\/g, "/"),
               ]);
@@ -59,15 +59,21 @@ const buildDir = (dir: string): Promise<number[]> => {
 };
 
 const build = (): Promise<number> =>
-  Promise.all([promiseRimraf("tmp"), promiseRimraf("out")])
+  Promise.all([promiseRimraf("/tmp"), promiseRimraf("out")])
     .then(() => {
-      fs.mkdirSync("tmp");
-      fs.cpSync("./_html.js", "tmp");
+      fs.mkdirSync("/tmp");
       fs.mkdirSync("out");
-      return buildDir(appPath("pages"));
+      return new Promise((resolve, reject) =>
+        fs
+          .createReadStream("./_html.js")
+          .pipe(fs.createWriteStream(path.join("/tmp", "html.js")))
+          .once("error", reject)
+          .once("finish", resolve)
+      );
     })
+    .then(() => buildDir(appPath("pages")))
     .then((codes) => {
-      promiseRimraf("tmp");
+      promiseRimraf("/tmp");
       console.log("Finished!");
       return codes.some((c) => c > 0) ? 1 : 0;
     });
