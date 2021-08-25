@@ -29,7 +29,7 @@ const buildDir = (dir: string): Promise<number[]> => {
         entryPoints
           .filter((t) => !HTML_REGEX.test(t))
           .map((file) =>
-            new Promise<number>((resolve) => {
+            new Promise<number>((resolve, reject) => {
               const page = file
                 .replace(/^pages/, "_fuego")
                 .replace(/\.tsx$/, ".js")
@@ -49,7 +49,7 @@ const buildDir = (dir: string): Promise<number[]> => {
               });
 
               ls.on("close", (code) => {
-                code || loggedErrors ? process.exit(code || 1) : resolve(0);
+                code || loggedErrors ? reject(new Error(`Failed to build ${page}`)) : resolve(0);
               });
             }).catch((e) => {
               console.error(e.message);
