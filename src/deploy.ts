@@ -7,14 +7,10 @@ import repoName from "git-repo-name";
 
 const getRepoName = () => repoName.sync({ cwd: path.resolve(".") });
 
-const s3 = new AWS.S3({
-  apiVersion: "2006-03-01",
-});
-const cloudfront = new AWS.CloudFront({
-  apiVersion: "2020-05-31",
-});
-
-const getDistributionIdByDomain = async (domain: string) => {
+const getDistributionIdByDomain = async (
+  cloudfront: AWS.CloudFront,
+  domain: string
+) => {
   let finished = false;
   let props = {};
   while (!finished) {
@@ -34,12 +30,13 @@ const getDistributionIdByDomain = async (domain: string) => {
 };
 
 const waitForCloudfront = (props: {
+  cloudfront: AWS.CloudFront;
   trial?: number;
   DistributionId: string;
   resolve: (s: string) => void;
   Id: string;
 }) => {
-  const { trial = 0, resolve, ...args } = props;
+  const { cloudfront, trial = 0, resolve, ...args } = props;
   cloudfront
     .getInvalidation(args)
     .promise()
@@ -51,7 +48,13 @@ const waitForCloudfront = (props: {
         resolve("Ran out of time waiting for cloudfront...");
       } else {
         setTimeout(
-          () => waitForCloudfront({ ...args, trial: trial + 1, resolve }),
+          () =>
+            waitForCloudfront({
+              ...args,
+              trial: trial + 1,
+              resolve,
+              cloudfront,
+            }),
           1000
         );
       }
@@ -62,8 +65,28 @@ const deploy = ({
   domain = getRepoName(),
 }: {
   domain?: string;
-}): Promise<number> =>
-  Promise.all(
+}): Promise<number> => {
+  if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
+    console.error(
+      "Error: Must have environment variables AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY configured."
+    );
+    return Promise.reject(1);
+  }
+
+  const credentials = {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+  };
+
+  const s3 = new AWS.S3({
+    apiVersion: "2006-03-01",
+    credentials,
+  });
+  const cloudfront = new AWS.CloudFront({
+    apiVersion: "2020-05-31",
+    credentials,
+  });
+  return Promise.all(
     readDir("out").map((p) => {
       const Key = p.substring("out/".length);
       const uploadProps = {
@@ -80,34 +103,36 @@ const deploy = ({
         .promise();
     })
   )
-    .then(() => getDistributionIdByDomain(domain))
-    .then((DistributionId) =>
-      DistributionId
-        ? cloudfront
-            .createInvalidation({
-              DistributionId,
-              InvalidationBatch: {
-                CallerReference: new Date().toJSON(),
-                Paths: {
-                  Quantity: 1,
-                  Items: [`/*`],
-                },
+    .then(() => getDistributionIdByDomain(cloudfront, domain))
+    .then((DistributionId) => {
+      if (DistributionId) {
+        console.log(`Invalidating cache for ${domain}`);
+        return cloudfront
+          .createInvalidation({
+            DistributionId,
+            InvalidationBatch: {
+              CallerReference: new Date().toJSON(),
+              Paths: {
+                Quantity: 1,
+                Items: [`/*`],
               },
-            })
-            .promise()
-            .then((i) => ({
-              Id: i.Invalidation?.Id || "",
-              DistributionId,
-            }))
-        : Promise.reject(
-            new Error(
-              `Could not find cloudfront distribution for domain ${domain}`
-            )
-          )
-    )
+            },
+          })
+          .promise()
+          .then((i) => ({
+            Id: i.Invalidation?.Id || "",
+            DistributionId,
+          }));
+      }
+      return Promise.reject(
+        new Error(`Could not find cloudfront distribution for domain ${domain}`)
+      );
+    })
     .then(
       (props) =>
-        new Promise((resolve) => waitForCloudfront({ ...props, resolve }))
+        new Promise((resolve) =>
+          waitForCloudfront({ ...props, resolve, cloudfront })
+        )
     )
     .then((msg) => console.log(msg))
     .then(() => 0)
@@ -115,5 +140,6 @@ const deploy = ({
       console.error(e.message);
       process.exit(1);
     });
+};
 
 export default deploy;
