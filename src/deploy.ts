@@ -7,10 +7,15 @@ import repoName from "git-repo-name";
 
 const getRepoName = () => repoName.sync({ cwd: path.resolve(".") });
 
-const getDistributionIdByDomain = async (
-  cloudfront: AWS.CloudFront,
-  domain: string
-) => {
+const s3 = new AWS.S3({
+  apiVersion: "2006-03-01",
+});
+
+const cloudfront = new AWS.CloudFront({
+  apiVersion: "2020-05-31",
+});
+
+const getDistributionIdByDomain = async (domain: string) => {
   let finished = false;
   let props = {};
   while (!finished) {
@@ -30,13 +35,12 @@ const getDistributionIdByDomain = async (
 };
 
 const waitForCloudfront = (props: {
-  cloudfront: AWS.CloudFront;
   trial?: number;
   DistributionId: string;
   resolve: (s: string) => void;
   Id: string;
 }) => {
-  const { cloudfront, trial = 0, resolve, ...args } = props;
+  const { trial = 0, resolve, ...args } = props;
   cloudfront
     .getInvalidation(args)
     .promise()
@@ -53,7 +57,6 @@ const waitForCloudfront = (props: {
               ...args,
               trial: trial + 1,
               resolve,
-              cloudfront,
             }),
           1000
         );
@@ -66,26 +69,7 @@ const deploy = ({
 }: {
   domain?: string;
 }): Promise<number> => {
-  if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
-    console.error(
-      "Error: Must have environment variables AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY configured."
-    );
-    return Promise.reject(1);
-  }
-
-  const credentials = {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-  };
-
-  const s3 = new AWS.S3({
-    apiVersion: "2006-03-01",
-    credentials,
-  });
-  const cloudfront = new AWS.CloudFront({
-    apiVersion: "2020-05-31",
-    credentials,
-  });
+  console.log(`Deploying to bucket at ${domain}`);
   return Promise.all(
     readDir("out").map((p) => {
       const Key = p.substring("out/".length);
@@ -103,7 +87,7 @@ const deploy = ({
         .promise();
     })
   )
-    .then(() => getDistributionIdByDomain(cloudfront, domain))
+    .then(() => getDistributionIdByDomain(domain))
     .then((DistributionId) => {
       if (DistributionId) {
         console.log(`Invalidating cache for ${domain}`);
@@ -130,9 +114,7 @@ const deploy = ({
     })
     .then(
       (props) =>
-        new Promise((resolve) =>
-          waitForCloudfront({ ...props, resolve, cloudfront })
-        )
+        new Promise((resolve) => waitForCloudfront({ ...props, resolve }))
     )
     .then((msg) => console.log(msg))
     .then(() => 0)
