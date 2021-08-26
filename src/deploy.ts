@@ -3,9 +3,6 @@ import fs from "fs";
 import mime from "mime-types";
 import { readDir } from "./common";
 import path from "path";
-import repoName from "git-repo-name";
-
-const getRepoName = () => repoName.sync({ cwd: path.resolve(".") });
 
 const s3 = new AWS.S3({
   apiVersion: "2006-03-01",
@@ -65,7 +62,7 @@ const waitForCloudfront = (props: {
 };
 
 const deploy = ({
-  domain = getRepoName(),
+  domain = path.basename(process.cwd()),
 }: {
   domain?: string;
 }): Promise<number> => {
