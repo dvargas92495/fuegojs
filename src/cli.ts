@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import build from "./build";
 import deploy from "./deploy";
+import migrate from "./migrate";
 
 const run = async (command: string, args: string[]): Promise<number> => {
   const opts = Object.fromEntries(
@@ -13,13 +14,23 @@ const run = async (command: string, args: string[]): Promise<number> => {
           ] as const
       )
       .filter(([k]) => k.startsWith("--"))
-      .map(([k, v]) => [k.replace(/^--/, ""), v])
+      .map(([k, v]) => [
+        k
+          .replace(/^--/, "")
+          .split(/-/g)
+          .map((s, i) =>
+            i === 0 ? s : `${s.substring(0, 1).toUpperCase()}${s.substring(1)}`
+          ),
+        v,
+      ])
   );
   switch (command) {
     case "build":
       return build();
     case "deploy":
       return deploy(opts);
+    case "migrate":
+      return migrate(opts);
     /**
      * TODO
      * - build lambdas
