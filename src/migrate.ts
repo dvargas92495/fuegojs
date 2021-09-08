@@ -11,7 +11,7 @@ const sqlTypeByTs = Object.fromEntries(
 );
 
 const migrate = ({
-  rdsId,
+  rdsId = process.env.RDS_ID,
   user = process.env.DB_USER,
   password = process.env.DB_PASSWORD,
   db = process.env.DB_NAME,

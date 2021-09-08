@@ -28,3 +28,19 @@ fuego deploy
 
 The deploy command supports the following arguments:
 - `--domain [name]` - The domain name of your web application. By default, it sets the value to the name of your repository.
+
+## Migrate
+
+The migrate command reads the typescript file stored in `db/schema.ts` and translates it to a `mysql` migration. This allows you to define your `mysql` schema in a declarative way. Once loaded, the command will compare the schema you defined with the one online and apply the changes accordingly.
+
+To use, simply add the following command as a script to your `package.json`:
+
+```bash
+fuego migrate
+```
+
+The migrate command supports the following arguments:
+- `rdsId` - The RDS instance identifier hosting your schema. By default, it sets the value based on what's stored in the `RDS_ID` environment variable.
+- `user` - The mysql username that has access to the schema. By default, it sets the value based on what's stored in the `DB_USER` environment variable.
+- `password` - The password for the given mysql user. By default, it sets the value based on what's stored in the `DB_PASSWORD` environment variable.
+- `db` - The name of the schema you are looking to access. By default, it sets the value based on what's stored in the `DB_NAME` environment variable.
