@@ -1,22 +1,22 @@
-import AWS from "aws-sdk";
 import mysql from "mysql";
 import ts from "typescript";
 import { appPath } from "./common";
 import { snakeCase } from "change-case";
 
-const rds = new AWS.RDS({ apiVersion: "2014-10-31" });
 const TYPE_MAPPINGS = [{ ts: "string", sql: "varchar(255)" }];
 const sqlTypeByTs = Object.fromEntries(
   TYPE_MAPPINGS.map(({ ts, sql }) => [ts, sql])
 );
 
 const migrate = ({
-  rdsId = process.env.RDS_ID,
+  host = process.env.DB_HOST,
+  port = process.env.DB_PORT,
   user = process.env.DB_USER,
   password = process.env.DB_PASSWORD,
   db = process.env.DB_NAME,
 }: {
-  rdsId?: string;
+  host?: string;
+  port?: string;
   user?: string;
   password?: string;
   db?: string;
@@ -68,53 +68,46 @@ const migrate = ({
       }),
     };
   });
-  return rds
-    .describeDBInstances({ DBInstanceIdentifier: rdsId })
-    .promise()
-    .then((r) => {
-      if (!r.DBInstances?.length)
-        throw new Error("Could not find main RDS instance");
-      const { Address, Port } = r.DBInstances[0].Endpoint || {};
-      const connection = mysql.createConnection({
-        host: Address,
-        port: Port,
-        user,
-        password,
-        database: db,
-      });
-      connection.connect();
-      return new Promise<Record<string, string>[]>((resolve, reject) =>
-        connection.query(
-          `SELECT TABLE_NAME, COLUMN_NAME, IS_NULLABLE, COLUMN_TYPE
+  const connection = mysql.createConnection({
+    host,
+    port: Number(port) || 5432,
+    user,
+    password,
+    database: db,
+  });
+  connection.connect();
+  return new Promise<Record<string, string>[]>((resolve, reject) =>
+    connection.query(
+      `SELECT TABLE_NAME, COLUMN_NAME, IS_NULLABLE, COLUMN_TYPE
            FROM information_schema.columns
            WHERE TABLE_SCHEMA="${db}"`,
-          (err, results) => (err ? reject(err) : resolve(results))
-        )
-      )
-        .then((results) => {
-          const remoteTables = results.reduce(
-            (prev, cur) => ({
-              ...prev,
-              [snakeCase(cur.TABLE_NAME)]: [
-                ...(prev[snakeCase(cur.TABLE_NAME)] || []),
-                {
-                  name: snakeCase(cur.COLUMN_NAME),
-                  type: cur.COLUMN_TYPE,
-                  required: cur.IS_NULLABLE === "NO",
-                },
-              ],
-            }),
-            {} as Record<
-              string,
-              { name: string; type: string; required: boolean }[]
-            >
-          );
-          const createTables = localTables.filter(
-            ({ name }) => !remoteTables[name]
-          );
-          const queries = [
-            ...createTables.map(
-              (t) => `CREATE TABLE ${t.name} (
+      (err, results) => (err ? reject(err) : resolve(results))
+    )
+  )
+    .then((results) => {
+      const remoteTables = results.reduce(
+        (prev, cur) => ({
+          ...prev,
+          [snakeCase(cur.TABLE_NAME)]: [
+            ...(prev[snakeCase(cur.TABLE_NAME)] || []),
+            {
+              name: snakeCase(cur.COLUMN_NAME),
+              type: cur.COLUMN_TYPE,
+              required: cur.IS_NULLABLE === "NO",
+            },
+          ],
+        }),
+        {} as Record<
+          string,
+          { name: string; type: string; required: boolean }[]
+        >
+      );
+      const createTables = localTables.filter(
+        ({ name }) => !remoteTables[name]
+      );
+      const queries = [
+        ...createTables.map(
+          (t) => `CREATE TABLE ${t.name} (
 ${t.columns
   .map(
     (c, i) =>
@@ -124,32 +117,31 @@ ${t.columns
   )
   .join(",\n")}
 )`
-            ),
-          ];
-          if (queries.length) {
-            console.log("+----------------+");
-            console.log("| QUERIES TO RUN |");
-            console.log("+----------------+");
-            console.log("");
-            console.log(queries.join("\n\n"));
-            console.log("");
-            console.log("RUNNING...");
-            return Promise.all(
-              queries.map(
-                (q) =>
-                  new Promise((resolve, reject) =>
-                    connection.query(q, (err, res) =>
-                      err ? reject(err) : resolve(res)
-                    )
-                  )
+        ),
+      ];
+      if (queries.length) {
+        console.log("+----------------+");
+        console.log("| QUERIES TO RUN |");
+        console.log("+----------------+");
+        console.log("");
+        console.log(queries.join("\n\n"));
+        console.log("");
+        console.log("RUNNING...");
+        return Promise.all(
+          queries.map(
+            (q) =>
+              new Promise((resolve, reject) =>
+                connection.query(q, (err, res) =>
+                  err ? reject(err) : resolve(res)
+                )
               )
-            ).then(() => Promise.resolve());
-          }
-          console.log("Local schema matches remote. No changes to make.");
-          return Promise.resolve();
-        })
-        .finally(() => connection.end());
+          )
+        ).then(() => Promise.resolve());
+      }
+      console.log("Local schema matches remote. No changes to make.");
+      return Promise.resolve();
     })
+    .finally(() => connection.end())
     .then(() => 0);
 };
 
