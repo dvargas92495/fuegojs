@@ -4,24 +4,29 @@ import express from "express";
 import chokidar from "chokidar";
 
 const rebuilders: Record<string, BuildInvalidate> = {};
+const dependencies: Record<string, Set<string>> = {};
 
 const fe = (): Promise<number> =>
   prepareFeBuild().then(() => {
     chokidar
-      .watch([appPath("pages"), appPath("src")])
-      .on("add", (path) => {
-        console.log(`File ${path} has been added`);
+      .watch(["pages", "src"])
+      .on("add", (file) => {
+        console.log(`File ${file} has been added`);
         esbuild
           .build({
             ...feBuildOpts,
-            entryPoints: [path],
+            entryPoints: [file],
             incremental: true,
             plugins: [
               {
                 name: "dependency-watch",
                 setup: (build) => {
                   build.onLoad({ filter: /^.*$/s }, async (args) => {
-                    console.log("deps", args, build.initialOptions.entryPoints);
+                    dependencies[args.path] =
+                      dependencies[args.path] || new Set();
+                    dependencies[args.path].add(
+                      (build.initialOptions.entryPoints as string[])[0]
+                    );
                     return undefined;
                   });
                 },
@@ -29,18 +34,23 @@ const fe = (): Promise<number> =>
             ],
           })
           .then((r) => {
-            rebuilders[path] = r.rebuild;
-            return outputHtmlFile(path);
+            rebuilders[file] = r.rebuild;
+            return outputHtmlFile(file);
           });
       })
-      .on("change", (path) => {
-        console.log(`File ${path} has been changed`);
-        rebuilders[path]();
+      .on("change", (file) => {
+        console.log(`File ${file} has been changed`);
+        const entries = dependencies[file];
+        entries.forEach((entry) => {
+          console.log(`Rebuilding ${entry}`);
+          rebuilders[entry]();
+        });
       })
-      .on("unlink", (path) => {
-        console.log(`File ${path} has been removed`);
-        rebuilders[path].dispose();
-        delete rebuilders[path];
+      .on("unlink", (file) => {
+        console.log(`File ${file} has been removed`);
+        delete dependencies[file];
+        rebuilders[file].dispose();
+        delete rebuilders[file];
       });
     const app = express();
     app.use(express.static(appPath("out")));
