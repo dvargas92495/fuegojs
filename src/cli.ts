@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import build from "./build";
 import deploy from "./deploy";
+import fe from "./fe";
 import migrate from "./migrate";
 
 const run = async (command: string, args: string[]): Promise<number> => {
@@ -29,6 +30,8 @@ const run = async (command: string, args: string[]): Promise<number> => {
       return build();
     case "deploy":
       return deploy(opts);
+    case "fe":
+      return fe();
     case "migrate":
       return migrate(opts);
     /**

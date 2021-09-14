@@ -141,7 +141,10 @@ ${t.columns
       console.log("Local schema matches remote. No changes to make.");
       return Promise.resolve();
     })
-    .finally(() => connection.end())
+    .finally(() => {
+      connection.end();
+      console.log("Done!");
+    })
     .then(() => 0);
 };
 

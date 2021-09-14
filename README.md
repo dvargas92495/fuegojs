@@ -30,6 +30,16 @@ The deploy command supports the following arguments:
 
 - `--domain [name]` - The domain name of your web application. By default, it sets the value to the name of your repository.
 
+## FE
+
+The fe command runs a local web server that serves the `html` files that get built to the `out` directory. It watches for edits of your pages to be in the `pages` directory and rebuilds the requisite `html` files on edit.
+
+To use, simply add the following command as a script to your `package.json`:
+
+```bash
+fuego fe
+```
+
 ## Migrate
 
 The migrate command reads the typescript file stored in `db/schema.ts` and translates it to a `mysql` migration. This allows you to define your `mysql` schema in a declarative way. Once loaded, the command will compare the schema you defined with the one online and apply the changes accordingly.
