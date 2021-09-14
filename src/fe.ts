@@ -45,10 +45,10 @@ const fe = (): Promise<number> =>
       })
       .on("change", (file) => {
         console.log(`File ${file} has been changed`);
-        const entries = dependencies[file];
+        const entries = dependencies[file] || [];
         entries.forEach((entry) => {
           console.log(`Rebuilding ${entry}`);
-          rebuilders[entry]();
+          rebuilders[entry]().then(() => outputHtmlFile(entry));
         });
       })
       .on("unlink", (file) => {
