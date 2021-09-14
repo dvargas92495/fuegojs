@@ -75,4 +75,4 @@ export const outputHtmlFiles = (entryPoints: string[]): Promise<number> =>
           return 1;
         })
       )
-  ).then((codes) => codes.some((c) => c > 0) ? 1 : 0);
+  ).then((codes) => (codes.some((c) => c > 0) ? 1 : 0));
