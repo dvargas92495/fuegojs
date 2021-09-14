@@ -40,39 +40,38 @@ export const prepareFeBuild = (): Promise<void> =>
     }
   );
 
+export const outputHtmlFile = (file: string): Promise<number> =>
+  new Promise<number>((resolve, reject) => {
+    const page = file
+      .replace(/^pages\//, "")
+      .replace(/\.tsx$/, ".js")
+      .replace(/\\/g, "/");
+    const ls = childProcess.spawn("node", [
+      path.join("_fuego", "_html.js").replace(/\\/g, "/"),
+      page,
+    ]);
+    let loggedErrors = false;
+    ls.stdout.on("data", (data) => {
+      console.log(`Log from building ${page}: ${data}`);
+    });
+
+    ls.stderr.on("data", (data) => {
+      console.error(`Error building ${page}: ${data}`);
+      loggedErrors = true;
+    });
+
+    ls.on("close", (code) => {
+      code || loggedErrors
+        ? reject(new Error(`Failed to build ${page}`))
+        : resolve(0);
+    });
+  }).catch((e) => {
+    console.error(e.message);
+    return 1;
+  });
+
 const HTML_REGEX = /_html\.js$/;
 export const outputHtmlFiles = (entryPoints: string[]): Promise<number> =>
   Promise.all(
-    entryPoints
-      .filter((t) => !HTML_REGEX.test(t))
-      .map((file) =>
-        new Promise<number>((resolve, reject) => {
-          const page = file
-            .replace(/^pages\//, "")
-            .replace(/\.tsx$/, ".js")
-            .replace(/\\/g, "/");
-          const ls = childProcess.spawn("node", [
-            path.join("_fuego", "_html.js").replace(/\\/g, "/"),
-            page,
-          ]);
-          let loggedErrors = false;
-          ls.stdout.on("data", (data) => {
-            console.log(`Log from building ${page}: ${data}`);
-          });
-
-          ls.stderr.on("data", (data) => {
-            console.error(`Error building ${page}: ${data}`);
-            loggedErrors = true;
-          });
-
-          ls.on("close", (code) => {
-            code || loggedErrors
-              ? reject(new Error(`Failed to build ${page}`))
-              : resolve(0);
-          });
-        }).catch((e) => {
-          console.error(e.message);
-          return 1;
-        })
-      )
+    entryPoints.filter((t) => !HTML_REGEX.test(t)).map(outputHtmlFile)
   ).then((codes) => (codes.some((c) => c > 0) ? 1 : 0));
