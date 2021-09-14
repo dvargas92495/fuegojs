@@ -6,10 +6,13 @@ import path from "path";
 const pagePath = process.argv[2];
 
 import(`./${pagePath}`)
-  .then((r) => {
+  .then(async (r) => {
+    const config = fs.existsSync("fuego.json")
+      ? JSON.parse(fs.readFileSync("./fuego.json").toString())
+      : {};
     const Page = r.default;
     const Head = r.Head || React.Fragment;
-    const renderBodyFirst = !r.renderBodyFirst;
+    const renderBodyFirst = r.renderBodyFirst || config.renderBodyFirst;
     const outfile = path.join("out", pagePath.replace(/\.js$/i, ".html"));
     if (renderBodyFirst) {
       const body = ReactDOMServer.renderToString(<Page />);

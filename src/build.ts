@@ -26,17 +26,17 @@ const buildDir = (): Promise<number> => {
 const build = (): Promise<number> =>
   prepareFeBuild()
     .then(() => buildDir())
-    .then((code) => {
-      return promiseRimraf(INTERMEDIATE_DIR).then(() => {
+    .then((code) =>
+      promiseRimraf(INTERMEDIATE_DIR).then(() => {
         console.log("Finished!");
         return code;
-      });
-    })
-    .catch((e) => {
-      return promiseRimraf(INTERMEDIATE_DIR).then(() => {
+      })
+    )
+    .catch((e) =>
+      promiseRimraf(INTERMEDIATE_DIR).then(() => {
         console.error("ERROR:", e.message);
         return 1;
-      });
-    });
+      })
+    );
 
 export default build;
