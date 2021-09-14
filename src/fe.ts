@@ -29,7 +29,12 @@ const fe = (): Promise<number> =>
                       dependencies[args.path] =
                         dependencies[args.path] || new Set();
                       dependencies[args.path].add(entry);
-                      console.log("Added dependency on", args.path, "for", entry);
+                      console.log(
+                        "Added dependency on",
+                        args.path,
+                        "for",
+                        entry
+                      );
                       return undefined;
                     });
                   },
