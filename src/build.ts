@@ -1,4 +1,3 @@
-import path from "path";
 import esbuild from "esbuild";
 import {
   feBuildOpts,

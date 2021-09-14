@@ -1,10 +1,12 @@
 import {
+  appPath,
   feBuildOpts,
   outputHtmlFiles,
   prepareFeBuild,
   readDir,
 } from "./common";
 import esbuild from "esbuild";
+import express from "express";
 
 const fe = (): Promise<number> =>
   prepareFeBuild().then(() => {
@@ -30,7 +32,16 @@ const fe = (): Promise<number> =>
         console.log("outputting initial html files...");
         return outputHtmlFiles(entryPoints);
       })
-      .then(() => 0);
+      .then(() => {
+        const app = express();
+        app.use(express.static(appPath("out")));
+        return new Promise((resolve) =>
+          app.listen(3000, () => {
+            console.log("Web server listening on port 3000...");
+            resolve(0);
+          })
+        );
+      });
   });
 
 export default fe;
