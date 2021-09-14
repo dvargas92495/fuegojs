@@ -43,7 +43,7 @@ export const prepareFeBuild = (): Promise<void> =>
 export const outputHtmlFile = (file: string): Promise<number> =>
   new Promise<number>((resolve, reject) => {
     const page = file
-      .replace(/^pages\//, "")
+      .replace(/^pages[/\\]/, "")
       .replace(/\.tsx$/, ".js")
       .replace(/\\/g, "/");
     const ls = childProcess.spawn("node", [
