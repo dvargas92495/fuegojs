@@ -7,6 +7,7 @@ import {
 } from "./common";
 import esbuild from "esbuild";
 import express from "express";
+import { resolveConfig } from "prettier";
 
 const fe = (): Promise<number> =>
   prepareFeBuild().then(() => {
@@ -35,12 +36,12 @@ const fe = (): Promise<number> =>
       .then(() => {
         const app = express();
         app.use(express.static(appPath("out")));
-        return new Promise((resolve) =>
+        return new Promise((resolve) => {
           app.listen(3000, () => {
             console.log("Web server listening on port 3000...");
-            resolve(0);
-          })
-        );
+          });
+          app.on("close", () => resolve(0));
+        });
       });
   });
 
