@@ -21,7 +21,7 @@ const fe = (): Promise<number> =>
                 name: "dependency-watch",
                 setup: (build) => {
                   build.onLoad({ filter: /^.*$/s }, async (args) => {
-                    console.log('deps', args, build.initialOptions.entryPoints);
+                    console.log("deps", args, build.initialOptions.entryPoints);
                     return undefined;
                   });
                 },
