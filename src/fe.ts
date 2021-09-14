@@ -12,31 +12,33 @@ const fe = (): Promise<number> =>
       .watch(["pages", "src"])
       .on("add", (file) => {
         console.log(`File ${file} has been added`);
-        esbuild
-          .build({
-            ...feBuildOpts,
-            entryPoints: [file],
-            incremental: true,
-            plugins: [
-              {
-                name: "dependency-watch",
-                setup: (build) => {
-                  build.onLoad({ filter: /^.*$/s }, async (args) => {
-                    dependencies[args.path] =
-                      dependencies[args.path] || new Set();
-                    dependencies[args.path].add(
-                      (build.initialOptions.entryPoints as string[])[0]
-                    );
-                    return undefined;
-                  });
+        if (file.startsWith("pages")) {
+          esbuild
+            .build({
+              ...feBuildOpts,
+              entryPoints: [file],
+              incremental: true,
+              plugins: [
+                {
+                  name: "dependency-watch",
+                  setup: (build) => {
+                    build.onLoad({ filter: /^.*$/s }, async (args) => {
+                      dependencies[args.path] =
+                        dependencies[args.path] || new Set();
+                      dependencies[args.path].add(
+                        (build.initialOptions.entryPoints as string[])[0]
+                      );
+                      return undefined;
+                    });
+                  },
                 },
-              },
-            ],
-          })
-          .then((r) => {
-            rebuilders[file] = r.rebuild;
-            return outputHtmlFile(file);
-          });
+              ],
+            })
+            .then((r) => {
+              rebuilders[file] = r.rebuild;
+              return outputHtmlFile(file);
+            });
+        }
       })
       .on("change", (file) => {
         console.log(`File ${file} has been changed`);
@@ -49,8 +51,11 @@ const fe = (): Promise<number> =>
       .on("unlink", (file) => {
         console.log(`File ${file} has been removed`);
         delete dependencies[file];
-        rebuilders[file].dispose();
-        delete rebuilders[file];
+        if (file.startsWith("pages")) {
+          Object.values(dependencies).forEach((deps) => deps.delete(file));
+          rebuilders[file].dispose();
+          delete rebuilders[file];
+        }
       });
     const app = express();
     app.use(express.static(appPath("out")));
