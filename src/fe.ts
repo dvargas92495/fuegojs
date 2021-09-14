@@ -66,7 +66,7 @@ const fe = (): Promise<number> =>
       app.listen(3000, () => {
         console.log("Web server listening on port 3000...");
       });
-      app.on("close", () => {
+      process.on("exit", () => {
         console.log("Closing...");
         resolve(0);
       });
