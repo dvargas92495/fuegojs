@@ -61,7 +61,7 @@ const fe = (): Promise<number> =>
         }
       });
     const app = express();
-    app.use(express.static(appPath("out")));
+    app.use(express.static(appPath("out"), { extensions: ["html"] }));
     return new Promise((resolve) => {
       app.listen(3000, () => {
         console.log("Web server listening on port 3000...");
