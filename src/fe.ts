@@ -2,6 +2,7 @@ import { appPath, feBuildOpts, outputHtmlFile, prepareFeBuild } from "./common";
 import esbuild, { BuildInvalidate } from "esbuild";
 import express from "express";
 import chokidar from "chokidar";
+import path from "path";
 
 const rebuilders: Record<string, BuildInvalidate> = {};
 const dependencies: Record<string, Set<string>> = {};
@@ -26,15 +27,10 @@ const fe = (): Promise<number> =>
                       build.initialOptions.entryPoints as string[]
                     )[0];
                     build.onLoad({ filter: /^.*$/s }, async (args) => {
-                      dependencies[args.path] =
-                        dependencies[args.path] || new Set();
-                      dependencies[args.path].add(entry);
-                      console.log(
-                        "Added dependency on",
-                        args.path,
-                        "for",
-                        entry
-                      );
+                      const dep = path.relative(process.cwd(), args.path);
+                      dependencies[dep] = dependencies[dep] || new Set();
+                      dependencies[dep].add(entry);
+                      console.log("Added dependency on", dep, "for", entry);
                       return undefined;
                     });
                   },
@@ -70,7 +66,10 @@ const fe = (): Promise<number> =>
       app.listen(3000, () => {
         console.log("Web server listening on port 3000...");
       });
-      app.on("close", () => resolve(0));
+      app.on("close", () => {
+        console.log("Closing...");
+        resolve(0);
+      });
     });
   });
 
