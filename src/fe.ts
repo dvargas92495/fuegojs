@@ -22,12 +22,14 @@ const fe = (): Promise<number> =>
                 {
                   name: "dependency-watch",
                   setup: (build) => {
+                    const entry = (
+                      build.initialOptions.entryPoints as string[]
+                    )[0];
                     build.onLoad({ filter: /^.*$/s }, async (args) => {
                       dependencies[args.path] =
                         dependencies[args.path] || new Set();
-                      dependencies[args.path].add(
-                        (build.initialOptions.entryPoints as string[])[0]
-                      );
+                      dependencies[args.path].add(entry);
+                      console.log("Added dependency on", args.path, "for", entry);
                       return undefined;
                     });
                   },
