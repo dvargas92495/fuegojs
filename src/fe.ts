@@ -7,7 +7,6 @@ import {
 } from "./common";
 import esbuild from "esbuild";
 import express from "express";
-import { resolveConfig } from "prettier";
 
 const fe = (): Promise<number> =>
   prepareFeBuild().then(() => {
