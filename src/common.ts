@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import rimraf from "rimraf";
 import childProcess from "child_process";
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 dotenv.config();
 
 export const INTERMEDIATE_DIR = "_fuego";
