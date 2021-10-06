@@ -36,7 +36,7 @@ import(`./${pagePath}`)
         `import React from 'react';
 import ReactDOM from 'react-dom';
 import Page from './${pagePath}';
-ReactDOM.hydrate(<Page />, document.body.firstElementChild);`
+window.onload = () => ReactDOM.hydrate(<Page />, document.body.firstElementChild);`
       );
       await esbuild
         .build({

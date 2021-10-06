@@ -2,6 +2,8 @@ import fs from "fs";
 import path from "path";
 import rimraf from "rimraf";
 import childProcess from "child_process";
+import dotenv from 'dotenv';
+dotenv.config();
 
 export const INTERMEDIATE_DIR = "_fuego";
 
@@ -15,11 +17,26 @@ export const readDir = (s: string): string[] =>
       f.isDirectory() ? readDir(`${s}/${f.name}`) : [`${s}/${f.name}`]
     );
 
+const IGNORE_ENV = ["HOME"];
+const getDotEnvObject = () => {
+  const env = {
+    ...Object.fromEntries(
+      Object.entries(process.env)
+        .filter(([k]) => !/[()]/.test(k))
+        .filter(([k]) => !IGNORE_ENV.includes(k))
+    ),
+  };
+  return Object.fromEntries(
+    Object.keys(env).map((k) => [`process.env.${k}`, JSON.stringify(env[k])])
+  );
+};
+
 export const feBuildOpts = {
   platform: "node" as const,
   bundle: true,
   outdir: INTERMEDIATE_DIR,
   external: ["react", "react-dom"],
+  define: getDotEnvObject(),
 };
 
 export const promiseRimraf = (s: string): Promise<null | void | Error> =>
