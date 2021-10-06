@@ -29,8 +29,10 @@ const fe = (): Promise<number> =>
                     build.onLoad({ filter: /^.*$/s }, async (args) => {
                       const dep = path.relative(process.cwd(), args.path);
                       dependencies[dep] = dependencies[dep] || new Set();
-                      dependencies[dep].add(entry);
-                      console.log("Added dependency on", dep, "for", entry);
+                      if (!dependencies[dep].has(entry)) {
+                        dependencies[dep].add(entry);
+                        console.log("Added dependency on", dep, "for", entry);
+                      }
                       return undefined;
                     });
                   },
