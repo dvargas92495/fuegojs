@@ -42,7 +42,6 @@ ReactDOM.hydrate(<Page />, document.body.firstElementChild);`
         .build({
           bundle: true,
           outfile: path.join("out", pagePath),
-          external: ["react", "react-dom"],
           entryPoints: [clientEntry],
         })
         .then(() => headChildren.push(<script src={`/${pagePath}`} />));
