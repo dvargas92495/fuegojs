@@ -27,9 +27,12 @@ import(`./${pagePath}`)
     );
     const headChildren: React.ReactNode[] = [];
     if (!htmlOnly) {
-      const clientEntry = pagePath.replace(/\.js$/i, ".client.tsx");
+      const clientEntry = path.join(
+        "_fuego",
+        pagePath.replace(/\.js$/i, ".client.tsx")
+      );
       fs.writeFileSync(
-        path.join("_fuego", clientEntry),
+        clientEntry,
         `import React from 'react';
 import ReactDOM from 'react-dom';
 import Page from './${pagePath}';
