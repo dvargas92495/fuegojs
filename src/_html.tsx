@@ -29,7 +29,7 @@ import(`./${pagePath}`)
     if (!htmlOnly) {
       const clientEntry = pagePath.replace(/\.js$/i, ".client.tsx");
       fs.writeFileSync(
-        clientEntry,
+        path.join("_fuego", clientEntry),
         `import React from 'react';
 import ReactDOM from 'react-dom';
 import Page from './${pagePath}';
