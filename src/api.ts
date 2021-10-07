@@ -66,9 +66,11 @@ const api = (): Promise<number> =>
             .replace(/\.[t|j]s$/, "");
           const paths = functionName.split("_");
           const method = paths.slice(-1)[0].toLowerCase() as ExpressMethod;
-          const route = `/${METHOD_SET.has(method)
-            ? paths.slice(0, -1).join("/")
-            : paths.join("/")}`;
+          const route = `/${
+            METHOD_SET.has(method)
+              ? paths.slice(0, -1).join("/")
+              : paths.join("/")
+          }`;
           if (!handlersByRoute[functionName]) {
             if (METHOD_SET.has(method)) {
               // Mock API Gateway
