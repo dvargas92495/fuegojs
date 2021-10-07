@@ -62,13 +62,13 @@ const api = (): Promise<number> =>
           appPath(file.replace(/^functions/, "build").replace(/\.ts$/, ".js"))
         ).then(({ handler }) => {
           const functionName = file
-            .replace(/^functions\//, "build/")
+            .replace(/^functions/, "build")
             .replace(/\.[t|j]s$/, "");
           const paths = functionName.split("_");
           const method = paths.slice(-1)[0].toLowerCase() as ExpressMethod;
-          const route = METHOD_SET.has(method)
+          const route = `/${METHOD_SET.has(method)
             ? paths.slice(0, -1).join("/")
-            : paths.join("/");
+            : paths.join("/")}`;
           if (!handlersByRoute[functionName]) {
             if (METHOD_SET.has(method)) {
               // Mock API Gateway
@@ -311,7 +311,7 @@ const api = (): Promise<number> =>
         }),
       entryRegex: /^functions/,
     });
-    app.route("/").all((req, res) =>
+    app.route("*").all((req, res) =>
       res
         .header("Access-Control-Allow-Origin", "*")
         .header(
