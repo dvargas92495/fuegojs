@@ -62,7 +62,7 @@ const api = (): Promise<number> =>
           appPath(file.replace(/^functions/, "build").replace(/\.ts$/, ".js"))
         ).then(({ handler }) => {
           const functionName = file
-            .replace(/^functions/, "build")
+            .replace(/^functions[\\/]/, "")
             .replace(/\.[t|j]s$/, "");
           const paths = functionName.split("_");
           const method = paths.slice(-1)[0].toLowerCase() as ExpressMethod;
