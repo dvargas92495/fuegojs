@@ -3,6 +3,9 @@ import build from "./build";
 import deploy from "./deploy";
 import fe from "./fe";
 import migrate from "./migrate";
+import compile from "./compile";
+import publish from "./publish";
+import api from "./api";
 
 const run = async (command: string, args: string[]): Promise<number> => {
   const opts = Object.fromEntries(
@@ -34,11 +37,15 @@ const run = async (command: string, args: string[]): Promise<number> => {
       return fe();
     case "migrate":
       return migrate(opts);
+    case "compile":
+      return compile();
+    case "publish":
+      return publish(opts);
+    case "api":
+      return api();
     /**
      * TODO
-     * - build lambdas
-     * - publish lambdas
-     * - start - FE-only, BE-only, both
+     * - start - both
      * - init - create a new app, utilize create-vargas-npm,
      */
     default:
