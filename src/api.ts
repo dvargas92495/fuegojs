@@ -290,6 +290,7 @@ const api = (): Promise<number> =>
                 return res.json({}).status(202);
               });
             }
+            console.log(`Added Route ${method.toUpperCase()} ${route}`);
           }
           handlersByRoute[functionName] = handler;
           if (!optionRoutes.has(route)) {
@@ -311,11 +312,18 @@ const api = (): Promise<number> =>
       entryRegex: /^functions/,
     });
     app.route("/").all((req, res) =>
-      res.status(404).json({
-        currentRoute: `${req.method} - ${req.path}`,
-        error: "Route not found.",
-        statusCode: 404,
-      })
+      res
+        .header("Access-Control-Allow-Origin", "*")
+        .header(
+          "Access-Control-Allow-Methods",
+          "GET, POST, PUT, DELETE, OPTIONS"
+        )
+        .status(404)
+        .json({
+          currentRoute: `${req.method} - ${req.path}`,
+          error: "Route not found.",
+          statusCode: 404,
+        })
     );
     return setupServer({ app, port: 3003, label: "App" });
   });
