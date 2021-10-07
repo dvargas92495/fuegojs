@@ -40,6 +40,8 @@ To use, simply add the following command as a script to your `package.json`:
 fuego fe
 ```
 
+By default, the web server runs on `http://localhost:3000`.
+
 ## Migrate
 
 The `migrate` command reads the typescript file stored in `db/schema.ts` and translates it to a `mysql` migration. This allows you to define your `mysql` schema in a declarative way. Once loaded, the command will compare the schema you defined with the one online and apply the changes accordingly.
@@ -91,3 +93,5 @@ To use, simply add the following command as a script to your `package.json`:
 ```bash
 fuego api
 ```
+
+By default, the api server runs on `http://localhost:3003`.
