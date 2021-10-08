@@ -23,8 +23,8 @@ const publish = ({
       .map((f) => {
         const apiName = name.replace(/\./g, "-");
         const zip = new JSZip();
-        console.log(`Zipping ${path.join(appPath("out"), f)}...`);
-        const content = fs.readFileSync(path.join(appPath("out"), f));
+        console.log(`Zipping ${path.join(appPath("build"), f)}...`);
+        const content = fs.readFileSync(path.join(appPath("build"), f));
         // including a date in the zip produces consistent hashes
         zip.file(f, content, { date: new Date("09-24-1995") });
         const functionName = f.replace(/\.js$/, "");
