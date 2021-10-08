@@ -1,4 +1,4 @@
-import express, { ErrorRequestHandler } from "express";
+import express from "express";
 import type {
   APIGatewayProxyHandler,
   APIGatewayProxyResult,
@@ -235,7 +235,7 @@ const api = (): Promise<number> =>
                         ? res
                             .setDefaultEncoding("binary")
                             .send(Buffer.from(result.body, "base64"))
-                        : res.json(result.body);
+                        : res.json(JSON.parse(result.body));
                     })
                     .catch((error: Error) => {
                       const message = error.message || error.toString();
@@ -325,26 +325,20 @@ const api = (): Promise<number> =>
         entryRegex: /^functions/,
       })
     ).then(() => {
-      const errorHandler: ErrorRequestHandler = (err, req, res, next) => {
-        console.log(err);
-        if (err) {
-          res
-            .header("Access-Control-Allow-Origin", "*")
-            .header(
-              "Access-Control-Allow-Methods",
-              "GET, POST, PUT, DELETE, OPTIONS"
-            )
-            .status(404)
-            .json({
-              currentRoute: `${req.method} - ${req.path}`,
-              error: "Route not found.",
-              statusCode: 404,
-            });
-        } else {
-          next(err);
-        }
-      };
-      app.use(errorHandler);
+      app.use((req, res) =>
+        res
+          .header("Access-Control-Allow-Origin", "*")
+          .header(
+            "Access-Control-Allow-Methods",
+            "GET, POST, PUT, DELETE, OPTIONS"
+          )
+          .status(404)
+          .json({
+            currentRoute: `${req.method} - ${req.path}`,
+            error: "Route not found.",
+            statusCode: 404,
+          })
+      );
       return setupServer({ app, port: 3003, label: "App" });
     });
   });
