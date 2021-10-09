@@ -116,7 +116,7 @@ const api = (): Promise<number> =>
                     ])
                   );
                   const event = {
-                    body: payload,
+                    body: JSON.stringify(payload),
                     headers: simpleHeaders,
                     httpMethod: method,
                     isBase64Encoded: false, // TODO hook up
