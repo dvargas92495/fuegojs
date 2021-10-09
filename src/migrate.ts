@@ -2,6 +2,7 @@ import mysql from "mysql";
 import ts from "typescript";
 import { appPath } from "./common";
 import { snakeCase } from "change-case";
+import pluralize from "pluralize";
 
 const TYPE_MAPPINGS = [{ ts: "string", sql: "varchar(255)" }];
 const sqlTypeByTs = Object.fromEntries(
@@ -53,7 +54,7 @@ const migrate = ({
     }
     const properties = syntaxList.getChildren(sourceFile);
     return {
-      name: snakeCase(name),
+      name: pluralize(snakeCase(name)),
       columns: properties.map((p) => {
         const parts = p.getChildren(sourceFile);
         const name = (parts.find((p) => ts.isIdentifier(p)) as ts.Identifier)
