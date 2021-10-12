@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import type { Express } from "express";
 import esbuild, { BuildInvalidate, BuildOptions } from "esbuild";
 import chokidar from "chokidar";
+import esbuildPluginTsc from 'esbuild-plugin-tsc';
 dotenv.config();
 
 export const INTERMEDIATE_DIR = "_fuego";
@@ -68,6 +69,9 @@ export const prepareApiBuild = (): Promise<Partial<BuildOptions>> =>
       platform: "node",
       external: ["aws-sdk", "canvas"],
       define: getDotEnvObject(),
+      plugins: [
+        esbuildPluginTsc()
+      ],
     };
   });
 
@@ -138,7 +142,8 @@ export const esbuildWatch = ({
   chokidar
     .watch(paths)
     .on("add", (file) => {
-      console.log(`File ${file} has been added`);
+      if (!/node_modules/.test(file))
+        console.log(`File ${file} has been added`);
       if (entryRegex.test(file)) {
         esbuild
           .build({
@@ -146,6 +151,7 @@ export const esbuildWatch = ({
             entryPoints: [file],
             incremental: true,
             plugins: [
+              ...opts.plugins || [],
               {
                 name: "dependency-watch",
                 setup: (build) => {
