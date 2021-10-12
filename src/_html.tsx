@@ -2,7 +2,7 @@ import React from "react";
 import ReactDOMServer from "react-dom/server";
 import fs from "fs";
 import path from "path";
-import esbuild from "esbuild";
+import { build } from "esbuild";
 
 const page = process.argv[2];
 const pagePath = page
@@ -38,8 +38,7 @@ import ReactDOM from 'react-dom';
 import Page from './${pagePath}';
 window.onload = () => ReactDOM.hydrate(<Page />, document.body.firstElementChild);`
       );
-      await esbuild
-        .build({
+      await build({
           bundle: true,
           outfile: path.join("out", pagePath),
           entryPoints: [clientEntry],

@@ -4,7 +4,7 @@ import rimraf from "rimraf";
 import childProcess from "child_process";
 import dotenv from "dotenv";
 import type { Express } from "express";
-import esbuild, { BuildInvalidate, BuildOptions } from "esbuild";
+import { build, BuildInvalidate, BuildOptions } from "esbuild";
 import chokidar from "chokidar";
 import esbuildPluginTsc from "esbuild-plugin-tsc";
 dotenv.config();
@@ -143,36 +143,32 @@ export const esbuildWatch = ({
       if (!/node_modules/.test(file))
         console.log(`File ${file} has been added`);
       if (entryRegex.test(file)) {
-        esbuild
-          .build({
-            ...opts,
-            entryPoints: [file],
-            incremental: true,
-            plugins: [
-              ...(opts.plugins || []),
-              {
-                name: "dependency-watch",
-                setup: (build) => {
-                  const entry = (
-                    build.initialOptions.entryPoints as string[]
-                  )[0];
-                  build.onLoad({ filter: /^.*$/s }, async (args) => {
-                    const dep = path.relative(process.cwd(), args.path);
-                    dependencies[dep] = dependencies[dep] || new Set();
-                    if (!dependencies[dep].has(entry)) {
-                      dependencies[dep].add(entry);
-                      console.log("Added dependency on", dep, "for", entry);
-                    }
-                    return undefined;
-                  });
-                },
+        build({
+          ...opts,
+          entryPoints: [file],
+          incremental: true,
+          plugins: [
+            ...(opts.plugins || []),
+            {
+              name: "dependency-watch",
+              setup: (build) => {
+                const entry = (build.initialOptions.entryPoints as string[])[0];
+                build.onLoad({ filter: /^.*$/s }, async (args) => {
+                  const dep = path.relative(process.cwd(), args.path);
+                  dependencies[dep] = dependencies[dep] || new Set();
+                  if (!dependencies[dep].has(entry)) {
+                    dependencies[dep].add(entry);
+                    console.log("Added dependency on", dep, "for", entry);
+                  }
+                  return undefined;
+                });
               },
-            ],
-          })
-          .then((r) => {
-            rebuilders[file] = r.rebuild;
-            return rebuildCallback(file);
-          });
+            },
+          ],
+        }).then((r) => {
+          rebuilders[file] = r.rebuild;
+          return rebuildCallback(file);
+        });
       }
     })
     .on("change", (file) => {

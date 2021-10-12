@@ -1,4 +1,4 @@
-import esbuild from "esbuild";
+import { build as esbuild } from "esbuild";
 import {
   feBuildOpts,
   INTERMEDIATE_DIR,
@@ -10,17 +10,15 @@ import {
 
 const buildDir = (): Promise<number> => {
   const entryPoints = readDir("pages");
-  return esbuild
-    .build({
-      entryPoints,
-      ...feBuildOpts,
-    })
-    .then((result) => {
-      if (result.errors.length) {
-        throw new Error(JSON.stringify(result.errors));
-      }
-      return outputHtmlFiles(entryPoints);
-    });
+  return esbuild({
+    entryPoints,
+    ...feBuildOpts,
+  }).then((result) => {
+    if (result.errors.length) {
+      throw new Error(JSON.stringify(result.errors));
+    }
+    return outputHtmlFiles(entryPoints);
+  });
 };
 
 const build = (): Promise<number> =>

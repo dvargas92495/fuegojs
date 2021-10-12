@@ -1,11 +1,11 @@
-import esbuild from "esbuild";
+import { build as esbuild } from "esbuild";
 import fs from "fs";
 import { prepareApiBuild } from "./common";
 
 const compile = (): Promise<number> =>
   prepareApiBuild()
     .then((opts) =>
-      esbuild.build({
+      esbuild({
         ...opts,
         entryPoints: Object.fromEntries(
           fs
