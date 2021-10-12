@@ -42,24 +42,6 @@ fuego fe
 
 By default, the web server runs on `http://localhost:3000`.
 
-## Migrate
-
-The `migrate` command reads the typescript file stored in `db/schema.ts` and translates it to a `mysql` migration. This allows you to define your `mysql` schema in a declarative way. Once loaded, the command will compare the schema you defined with the one online and apply the changes accordingly.
-
-To use, simply add the following command as a script to your `package.json`:
-
-```bash
-fuego migrate
-```
-
-The migrate command supports the following arguments:
-
-- `--host [endpoint]` - The endpoint hosting your mysql instance. By default, it sets the value based on what's stored in the `DB_HOST` environment variable.
-- `--port [port]` - The port your mysql instance is listening to. By default, it sets the value based on what's stored in the `DB_PORT` environment variable.
-- `--user [name]` - The mysql username that has access to the schema. By default, it sets the value based on what's stored in the `DB_USER` environment variable.
-- `--password [pw]` - The password for the given mysql user. By default, it sets the value based on what's stored in the `DB_PASSWORD` environment variable. Using the environment variable is the recommended way for this argument.
-- `--db [name]` - The name of the schema you are looking to access. By default, it sets the value based on what's stored in the `DB_NAME` environment variable.
-
 ## Compile
 
 The `compile` command reads all of the serverless functions that make up your backend api and outputs them as `js` files in the `build` directory. It expects all of your functions to be in the `functions` directory in your repo.

@@ -2,7 +2,6 @@
 import build from "./build";
 import deploy from "./deploy";
 import fe from "./fe";
-import migrate from "./migrate";
 import compile from "./compile";
 import publish from "./publish";
 import api from "./api";
@@ -35,8 +34,6 @@ const run = async (command: string, args: string[]): Promise<number> => {
       return deploy(opts);
     case "fe":
       return fe();
-    case "migrate":
-      return migrate(opts);
     case "compile":
       return compile();
     case "publish":

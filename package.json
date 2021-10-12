@@ -8,7 +8,7 @@
   "repository": "dvargas92495/fuegojs",
   "scripts": {
     "prebuild": "cross-env NODE_ENV=test npm t",
-    "build": "esbuild src/index.ts src/cli.ts src/_html.tsx --outdir=dist --bundle --external:esbuild --external:react --external:react-dom --platform=node --target=node12",
+    "build": "tsc",
     "format": "prettier --write \"src/**/*\"",
     "lint": "eslint . --ext .ts,.tsx",
     "prepublishOnly": "npm run build",
