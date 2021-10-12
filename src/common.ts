@@ -157,7 +157,7 @@ export const esbuildWatch = ({
                   dependencies[dep] = dependencies[dep] || new Set();
                   if (!dependencies[dep].has(entry)) {
                     dependencies[dep].add(entry);
-                    if (!/node_modules/.test(file))
+                    if (!/node_modules/.test(dep))
                       console.log("Added dependency on", dep, "for", entry);
                   }
                   return undefined;
