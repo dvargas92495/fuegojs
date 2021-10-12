@@ -6,7 +6,7 @@ import dotenv from "dotenv";
 import type { Express } from "express";
 import esbuild, { BuildInvalidate, BuildOptions } from "esbuild";
 import chokidar from "chokidar";
-import esbuildPluginTsc from 'esbuild-plugin-tsc';
+import esbuildPluginTsc from "esbuild-plugin-tsc";
 dotenv.config();
 
 export const INTERMEDIATE_DIR = "_fuego";
@@ -69,9 +69,7 @@ export const prepareApiBuild = (): Promise<Partial<BuildOptions>> =>
       platform: "node",
       external: ["aws-sdk", "canvas"],
       define: getDotEnvObject(),
-      plugins: [
-        esbuildPluginTsc()
-      ],
+      plugins: [esbuildPluginTsc()],
     };
   });
 
@@ -151,7 +149,7 @@ export const esbuildWatch = ({
             entryPoints: [file],
             incremental: true,
             plugins: [
-              ...opts.plugins || [],
+              ...(opts.plugins || []),
               {
                 name: "dependency-watch",
                 setup: (build) => {
