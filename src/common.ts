@@ -140,8 +140,7 @@ export const esbuildWatch = ({
   chokidar
     .watch(paths)
     .on("add", (file) => {
-      if (!/node_modules/.test(file))
-        console.log(`File ${file} has been added`);
+      console.log(`File ${file} has been added`);
       if (entryRegex.test(file)) {
         build({
           ...opts,
@@ -158,7 +157,8 @@ export const esbuildWatch = ({
                   dependencies[dep] = dependencies[dep] || new Set();
                   if (!dependencies[dep].has(entry)) {
                     dependencies[dep].add(entry);
-                    console.log("Added dependency on", dep, "for", entry);
+                    if (!/node_modules/.test(file))
+                      console.log("Added dependency on", dep, "for", entry);
                   }
                   return undefined;
                 });
