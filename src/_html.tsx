@@ -39,12 +39,11 @@ import Page from './${pagePath}';
 window.onload = () => ReactDOM.hydrate(<Page />, document.body.firstElementChild);`
       );
       await build({
-          bundle: true,
-          outfile: path.join("out", pagePath),
-          entryPoints: [clientEntry],
-          minify: true,
-        })
-        .then(() => headChildren.push(<script src={`/${pagePath}`} />));
+        bundle: true,
+        outfile: path.join("out", pagePath),
+        entryPoints: [clientEntry],
+        minify: true,
+      }).then(() => headChildren.push(<script src={`/${pagePath}`} />));
     }
     const head = ReactDOMServer.renderToString(
       <>
