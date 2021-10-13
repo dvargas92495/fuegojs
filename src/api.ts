@@ -316,6 +316,7 @@ const api = (): Promise<number> =>
                     "Access-Control-Allow-Methods",
                     req.headers["access-control-request-method"]
                   )
+                  .send()
               );
             }
             if (apiCount === ++currentCount) {
