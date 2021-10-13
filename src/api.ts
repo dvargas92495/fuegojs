@@ -86,12 +86,12 @@ const api = (): Promise<number> =>
                   ] as APIGatewayProxyHandler;
                   if (typeof handler !== "function") {
                     return res
+                      .header("Content-Type", "application/json")
+                      .status(502)
                       .json({
                         errorMessage: `Could not find function handler for ${functionName}`,
                         errorType: "HANDLER_NOT_FOUND",
-                      })
-                      .header("Content-Type", "application/json")
-                      .status(502);
+                      });
                   }
                   const {
                     headers,
@@ -216,12 +216,12 @@ const api = (): Promise<number> =>
                     .then((result) => {
                       if (!result || typeof result.body !== "string") {
                         return res
+                          .header("Content-Type", "application/json")
+                          .status(502)
                           .json({
                             errorMessage: "Invalid body returned",
                             errorType: "INVALID_BODY",
-                          })
-                          .header("Content-Type", "application/json")
-                          .status(502);
+                          });
                       }
                       Object.entries(result.headers || {}).forEach(([k, v]) =>
                         res.append(k, v.toString())
@@ -241,15 +241,15 @@ const api = (): Promise<number> =>
                       const message = error.message || error.toString();
                       console.error(message, "\n", error);
                       return res
+                        .header("Content-Type", "application/json")
+                        .status(502)
                         .json({
                           errorMessage: message,
                           errorType: error.constructor.name,
                           stackTrace: (error.stack || "")
                             .split("\n")
                             .map((l) => l.trim()),
-                        })
-                        .header("Content-Type", "application/json")
-                        .status(502);
+                        });
                     });
                 });
                 if (method === "options") {
@@ -264,12 +264,12 @@ const api = (): Promise<number> =>
                   >;
                   if (typeof handler !== "function") {
                     return res
+                      .header("Content-Type", "application/json")
+                      .status(502)
                       .json({
                         errorMessage: `Could not find function handler for ${functionName}`,
                         errorType: "HANDLER_NOT_FOUND",
-                      })
-                      .header("Content-Type", "application/json")
-                      .status(502);
+                      });
                   }
                   const event = req.body;
                   console.log(`Received Request async ${route}`);
@@ -297,7 +297,7 @@ const api = (): Promise<number> =>
                       const message = error.message || error.toString();
                       console.error(message, "\n", error);
                     });
-                  return res.json({}).status(202);
+                  return res.status(202).json({});
                 });
               }
               console.log(`Added Route ${method.toUpperCase()} ${route}`);
@@ -322,7 +322,7 @@ const api = (): Promise<number> =>
               resolve();
             }
           }),
-        entryRegex: /^functions/,
+        entryRegex: /^functions[\\/][a-z-_]\.ts$/,
       })
     ).then(() => {
       app.use((req, res) =>
