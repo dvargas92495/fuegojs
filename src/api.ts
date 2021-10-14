@@ -93,13 +93,7 @@ const api = (): Promise<number> =>
                         errorType: "HANDLER_NOT_FOUND",
                       });
                   }
-                  const {
-                    headers,
-                    body: payload,
-                    params,
-                    url,
-                    ip,
-                  } = req;
+                  const { headers, body: payload, params, url, ip } = req;
                   console.log(`Received Request ${method} ${route}`);
                   const searchParams = Array.from(
                     new URL(

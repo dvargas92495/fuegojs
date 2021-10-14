@@ -10,7 +10,7 @@ import {
 
 const buildDir = (): Promise<number> => {
   const commonRegex = /^pages[/\\]_common/;
-  const entryPoints = readDir("pages").filter(p => !commonRegex.test(p));
+  const entryPoints = readDir("pages").filter((p) => !commonRegex.test(p));
   return esbuild({
     entryPoints,
     ...feBuildOpts,
