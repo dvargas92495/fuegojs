@@ -14,7 +14,7 @@ const fe = (): Promise<number> =>
       paths: ["pages", "src"],
       rebuildCallback: outputHtmlFile,
       opts: feBuildOpts,
-      entryRegex: /^pages/,
+      entryRegex: /^pages[\\/][^_]+/,
     });
     const app = express();
     app.use(express.static(appPath("out"), { extensions: ["html"] }));

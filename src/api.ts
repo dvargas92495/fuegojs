@@ -99,7 +99,6 @@ const api = (): Promise<number> =>
                     params,
                     url,
                     ip,
-                    //info: { received, remoteAddress },
                   } = req;
                   console.log(`Received Request ${method} ${route}`);
                   const searchParams = Array.from(
@@ -323,7 +322,7 @@ const api = (): Promise<number> =>
               resolve();
             }
           }),
-        entryRegex: /^functions[\\/][a-z-_]+\.ts$/,
+        entryRegex: /^functions[\\/][a-z-]+\.ts$/,
       })
     ).then(() => {
       app.use((req, res) =>
