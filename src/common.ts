@@ -146,7 +146,9 @@ export const esbuildWatch = ({
           entryPoints: [file],
           outfile: path.join(
             outdir,
-            file.replace(new RegExp(`^(${paths.join("|")})[/\\\\]`), "")
+            file
+              .replace(new RegExp(`^(${paths.join("|")})[/\\\\]`), "")
+              .replace(/\.ts$/, ".js")
           ),
           incremental: true,
           plugins: [
