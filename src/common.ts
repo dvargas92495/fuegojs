@@ -139,10 +139,15 @@ export const esbuildWatch = ({
     .watch(paths)
     .on("add", (file) => {
       console.log(`File ${file} has been added`);
+      const { outdir = "", ...restOpts } = opts;
       if (entryRegex.test(file)) {
         build({
-          ...opts,
+          ...restOpts,
           entryPoints: [file],
+          outfile: path.join(
+            outdir,
+            file.replace(new RegExp(`^(${paths.join("|")})[/\\\\]`), "")
+          ),
           incremental: true,
           plugins: [
             ...(opts.plugins || []),
