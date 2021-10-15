@@ -1,5 +1,5 @@
 import fs from "fs";
-import { appPath } from "./common";
+import { appPath, readDir } from "./common";
 import JSZip from "jszip";
 import path from "path";
 import crypto from "crypto";
@@ -15,10 +15,7 @@ const publish = ({
   name?: string;
 }): Promise<number> =>
   Promise.all(
-    fs
-      .readdirSync(appPath("build"), { withFileTypes: true })
-      .filter((f) => !f.isDirectory())
-      .map((f) => f.name)
+    readDir("build")
       .filter((f) => /\.js$/.test(f))
       .map((f) => {
         const apiName = name.replace(/\./g, "-");
@@ -27,7 +24,7 @@ const publish = ({
         const content = fs.readFileSync(path.join(appPath("build"), f));
         // including a date in the zip produces consistent hashes
         zip.file(f, content, { date: new Date("09-24-1995") });
-        const functionName = f.replace(/\.js$/, "");
+        const functionName = f.replace(/\.js$/, "").replace(/[\\/]/g,'_');
         const shasum = crypto.createHash("sha256");
         const data: Uint8Array[] = [];
         return new Promise<void>((resolve, reject) =>

@@ -9,7 +9,13 @@ import differenceInMilliseconds from "date-fns/differenceInMilliseconds";
 import format from "date-fns/format";
 import cuid from "cuid";
 import fs from "fs";
-import { appPath, esbuildWatch, prepareApiBuild, setupServer } from "./common";
+import {
+  appPath,
+  esbuildWatch,
+  prepareApiBuild,
+  readDir,
+  setupServer,
+} from "./common";
 
 const METHODS = ["get", "post", "put", "delete", "options"] as const;
 const METHOD_SET = new Set<string>(METHODS);
@@ -45,6 +51,7 @@ const generateContext = ({
 };
 const handlersByRoute: { [key: string]: APIGatewayProxyHandler | Handler } = {};
 const optionRoutes = new Set();
+const commonRegex = /^functions[/\\]_common/;
 
 const api = (): Promise<number> =>
   prepareApiBuild().then((opts) => {
@@ -55,9 +62,9 @@ const api = (): Promise<number> =>
         extended: true,
       })
     );
-    const apiCount = fs
-      .readdirSync("./functions/", { withFileTypes: true })
-      .filter((f) => !f.isDirectory()).length;
+    const apiCount = readDir("functions").filter(
+      (f) => !commonRegex.test(f)
+    ).length;
     let currentCount = 0;
     return new Promise<void>((resolve) =>
       esbuildWatch({
@@ -70,7 +77,7 @@ const api = (): Promise<number> =>
             const functionName = file
               .replace(/^functions[\\/]/, "")
               .replace(/\.[t|j]s$/, "");
-            const paths = functionName.split("_");
+            const paths = functionName.split(/[\\/]/);
             const method = paths.slice(-1)[0].toLowerCase() as ExpressMethod;
             const route = `/${
               METHOD_SET.has(method)

@@ -44,7 +44,7 @@ By default, the web server runs on `http://localhost:3000`.
 
 ## Compile
 
-The `compile` command reads all of the serverless functions that make up your backend api and outputs them as `js` files in the `build` directory. It expects all of your functions to be in the `functions` directory in your repo.
+The `compile` command reads all of the serverless functions that make up your backend api and outputs them as `js` files in the `build` directory. It expects all of your functions to be in the `functions` directory in your repo. Each function file must be named after an HTTP method: `get.ts`, `post.ts`, `put.ts`, & `delete.ts`. The path they are found in map to the API path.
 
 To use, simply add the following command as a script to your `package.json`:
 
@@ -54,7 +54,7 @@ fuego compile
 
 ## Publish
 
-The `publish` command reads the files from the `build` directory and deploys them to various AWS Lambdas. It expects the names of the AWS Lambda functions to be `{NAME}_{FUNCTION}` where `NAME` is the name of your backend API and `FUNCTION` is the name of your function. Special characters in your name (e.g. `.`) will be replaced with a `-`.
+The `publish` command reads the files from the `build` directory and deploys them to various AWS Lambdas. It expects the names of the AWS Lambda functions to be `{NAME}_{FUNCTION}` where `NAME` is the name of your backend API and `FUNCTION` is the name of your function, delimiting the parts of path with `_` instead of `/`. Special characters in your name (e.g. `.`) will be replaced with a `-`.
 
 To use, simply add the following command as a script to your `package.json`:
 
@@ -68,7 +68,7 @@ The `publish` command supports the following arguments:
 
 ## API
 
-The `api` command runs a local api server that maps each of the functions built to the `build` directory to an API path. The function name should be underscore delimited, where the last element in the list will be the HTTP method. For example, the function name `example_get.ts` will create a path `GET /example` in the API server. It watches for edits of your functions in the `functions` directory and rebuilds the requisite `js` files on edit, remapping the server handler.
+The `api` command runs a local api server that maps each of the functions built to the `build` directory to an API path. The function name should follow the same convention as the `build` command. For example, the function `example/get.ts` will create a path `GET /example` in the API server. It watches for edits of your functions in the `functions` directory and rebuilds the requisite `js` files on edit, remapping the server handler.
 
 To use, simply add the following command as a script to your `package.json`:
 

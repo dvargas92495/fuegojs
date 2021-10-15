@@ -1,6 +1,7 @@
 import { build as esbuild } from "esbuild";
-import fs from "fs";
-import { prepareApiBuild } from "./common";
+import { prepareApiBuild, readDir } from "./common";
+
+const commonRegex = /^functions[/\\]_common/;
 
 const compile = (): Promise<number> =>
   prepareApiBuild()
@@ -8,10 +9,8 @@ const compile = (): Promise<number> =>
       esbuild({
         ...opts,
         entryPoints: Object.fromEntries(
-          fs
-            .readdirSync("./functions/", { withFileTypes: true })
-            .filter((f) => !f.isDirectory())
-            .map((f) => f.name)
+          readDir("functions")
+            .filter((f) => !commonRegex.test(f))
             .map((f) => [f.replace(/\.[t|j]s$/, ""), `./functions/${f}`])
         ),
         minify: true,
