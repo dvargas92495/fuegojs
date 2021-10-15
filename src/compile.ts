@@ -11,7 +11,10 @@ const compile = (): Promise<number> =>
         entryPoints: Object.fromEntries(
           readDir("functions")
             .filter((f) => !commonRegex.test(f))
-            .map((f) => [f.replace(/\.[t|j]s$/, ""), `./functions/${f}`])
+            .map((f) => [
+              f.replace(/\.[t|j]s$/, "").replace(/^functions[/\\]/, ""),
+              `./${f}`,
+            ])
         ),
         minify: true,
       })
