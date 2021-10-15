@@ -316,7 +316,7 @@ const api = (): Promise<number> =>
               resolve();
             }
           }),
-        entryRegex: /^functions[\\/][a-z-]+\.ts$/,
+        entryRegex: /^functions[\\/][a-z-_]+\.ts$/,
       })
     ).then(() => {
       app.use((req, res) =>
