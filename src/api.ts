@@ -8,7 +8,6 @@ import addSeconds from "date-fns/addSeconds";
 import differenceInMilliseconds from "date-fns/differenceInMilliseconds";
 import format from "date-fns/format";
 import cuid from "cuid";
-import fs from "fs";
 import {
   appPath,
   esbuildWatch,
