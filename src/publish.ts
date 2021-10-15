@@ -24,7 +24,7 @@ const publish = ({
         const content = fs.readFileSync(path.join(appPath("build"), f));
         // including a date in the zip produces consistent hashes
         zip.file(f, content, { date: new Date("09-24-1995") });
-        const functionName = f.replace(/\.js$/, "").replace(/[\\/]/g,'_');
+        const functionName = f.replace(/\.js$/, "").replace(/[\\/]/g, "_");
         const shasum = crypto.createHash("sha256");
         const data: Uint8Array[] = [];
         return new Promise<void>((resolve, reject) =>
