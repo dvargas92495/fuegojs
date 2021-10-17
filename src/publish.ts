@@ -9,6 +9,34 @@ const lambda = new AWS.Lambda({
   apiVersion: "2015-03-31",
 });
 
+const getFunction = ({
+  FunctionName,
+  trial = 0,
+}: {
+  FunctionName: string;
+  trial?: number;
+}): Promise<AWS.Lambda.GetFunctionResponse> =>
+  lambda
+    .getFunction({
+      FunctionName,
+    })
+    .promise()
+    .catch((e) => {
+      if (trial < 100) {
+        console.warn(
+          `Function ${FunctionName} not found on trial ${trial}. Trying again...`
+        );
+        return new Promise((resolve) =>
+          setTimeout(
+            () => resolve(getFunction({ FunctionName, trial: trial + 1 })),
+            10000
+          )
+        );
+      } else {
+        throw e;
+      }
+    });
+
 const publish = ({
   name = path.basename(process.cwd()),
 }: {
@@ -41,11 +69,9 @@ const publish = ({
               console.log(`Zip of ${functionName} complete (${data.length}).`);
               const sha256 = shasum.digest("base64");
               const FunctionName = `${apiName}_${functionName}`;
-              lambda
-                .getFunction({
-                  FunctionName,
-                })
-                .promise()
+              getFunction({
+                FunctionName,
+              })
                 .then((l) => {
                   if (sha256 === l.Configuration?.CodeSha256) {
                     return `No need to upload ${FunctionName}, shas match.`;
