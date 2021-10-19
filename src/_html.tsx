@@ -12,10 +12,6 @@ const pagePath = page
 
 import(`./${pagePath}`)
   .then(async (r) => {
-    // might not need config yet
-    // const config = fs.existsSync("fuego.json")
-    //   ? JSON.parse(fs.readFileSync("./fuego.json").toString())
-    //   : {};
     const Page = r.default;
     const Head = (r.Head as React.FC) || React.Fragment;
     const htmlOnly = r.htmlOnly || false;
