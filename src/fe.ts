@@ -11,10 +11,11 @@ import express from "express";
 const fe = (): Promise<number> =>
   prepareFeBuild().then(() => {
     esbuildWatch({
-      paths: ["pages", "src"],
-      rebuildCallback: outputHtmlFile,
+      paths: ["pages"],
+      rebuildCallback: (s) =>
+        /_html\.[j|t]sx?$/.test(s) ? Promise.resolve(0) : outputHtmlFile(s),
       opts: feBuildOpts,
-      entryRegex: /^pages[\\/][^_]+/,
+      entryRegex: /^pages[\\/]([^_]+|_html)\.[j|t]sx?$/,
     });
     const app = express();
     app.use(express.static(appPath("out"), { extensions: ["html"] }));

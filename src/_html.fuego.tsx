@@ -12,7 +12,7 @@ const pagePath = page
 
 Promise.all([
   import(`./${pagePath}`),
-  fs.existsSync("./_html.js")
+  fs.existsSync("_fuego/_html.js")
     ? // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore dynamically imported
       import("./_html.js")
