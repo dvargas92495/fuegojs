@@ -23,6 +23,7 @@ import(`./${pagePath}`)
     );
     const headChildren: React.ReactNode[] = [];
     if (!htmlOnly) {
+      const clientIgnorePlugins = (r.clientIgnorePlugins || []) as string[];
       const clientEntry = path.join(
         "_fuego",
         pagePath.replace(/\.js$/i, ".client.tsx")
@@ -39,6 +40,27 @@ window.onload = () => ReactDOM.hydrate(<Page />, document.body.firstElementChild
         outfile: path.join("out", pagePath),
         entryPoints: [clientEntry],
         minify: true,
+        plugins: clientIgnorePlugins.length
+          ? [
+              {
+                name: "ignore",
+                setup(build) {
+                  clientIgnorePlugins.forEach((mod) =>
+                    build.onResolve(
+                      { filter: new RegExp(`^${mod}$`) },
+                      (args) => ({
+                        path: args.path,
+                        namespace: "ignore",
+                      })
+                    )
+                  );
+                  build.onLoad({ filter: /.*/, namespace: "ignore" }, () => ({
+                    contents: "",
+                  }));
+                },
+              },
+            ]
+          : [],
       }).then(() => headChildren.push(<script src={`/${pagePath}`} />));
     }
     const head = ReactDOMServer.renderToString(
