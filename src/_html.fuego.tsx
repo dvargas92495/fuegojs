@@ -40,7 +40,10 @@ Promise.all([
       fs.writeFileSync(path.join("_fuego", pagePath), clientContents);
 
       const clientJsFile = pagePath.replace(/\.js$/i, ".client.js");
-      const clientEntry = path.join("_fuego", pagePath.replace(/\.js$/i, ".client.tsx"));
+      const clientEntry = path.join(
+        "_fuego",
+        pagePath.replace(/\.js$/i, ".client.tsx")
+      );
       fs.writeFileSync(
         clientEntry,
         `import React from 'react';
