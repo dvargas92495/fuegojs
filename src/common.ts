@@ -99,10 +99,10 @@ export const outputHtmlFile = (page: string): Promise<number> =>
     return 1;
   });
 
-const HTML_REGEX = /_html\.js$/;
+const COMMON_REGEX = /^pages[/\\]_/;
 export const outputHtmlFiles = (entryPoints: string[]): Promise<number> =>
   Promise.all(
-    entryPoints.filter((t) => !HTML_REGEX.test(t)).map(outputHtmlFile)
+    entryPoints.filter((t) => !COMMON_REGEX.test(t)).map(outputHtmlFile)
   ).then((codes) => (codes.some((c) => c > 0) ? 1 : 0));
 
 export const setupServer = ({

@@ -30,45 +30,43 @@ Promise.all([
     );
     const headChildren: React.ReactNode[] = [];
     if (!htmlOnly) {
-      const clientIgnorePlugins = (_html.clientIgnorePlugins || []) as string[];
-      const clientEntry = path.join(
-        "_fuego",
-        pagePath.replace(/\.js$/i, ".client.tsx")
-      );
+      // Inject pure annotations so that server side could get tree shaken
+      const fileContents = fs
+        .readFileSync(path.join("_fuego", pagePath))
+        .toString();
+      const clientContents = fileContents
+        .replace(/__toModule\(/g, "/* @__PURE__ */ __toModule( /* @__PURE__ */")
+        .replace(/__commonJS\(/g, "/* @__PURE__ */ __commonJS(");
+      fs.writeFileSync(path.join("_fuego", pagePath), clientContents);
+
+      const clientJsFile = pagePath.replace(/\.js$/i, ".client.js");
+      const clientEntry = path.join("_fuego", pagePath.replace(/\.js$/i, ".client.tsx"));
       fs.writeFileSync(
         clientEntry,
         `import React from 'react';
 import ReactDOM from 'react-dom';
-import Page from './${pagePath}';
+import Page from './${clientJsFile}';
 window.onload = () => ReactDOM.hydrate(<Page />, document.body.firstElementChild);`
       );
+      // We do two esbuilds
+      // 1. Performs the tree shaking to get rid of server side code
+      // 2. Performs the actual build to produce the minified JS file
       await build({
+        outfile: path.join("_fuego", clientJsFile),
+        entryPoints: [path.join("_fuego", pagePath)],
+        platform: "node",
+        external: ["react", "react-dom"],
         bundle: true,
-        outfile: path.join("out", pagePath),
-        entryPoints: [clientEntry],
-        minify: true,
-        plugins: clientIgnorePlugins.length
-          ? [
-              {
-                name: "ignore",
-                setup(build) {
-                  clientIgnorePlugins.forEach((mod) =>
-                    build.onResolve(
-                      { filter: new RegExp(`^${mod}$`) },
-                      (args) => ({
-                        path: args.path,
-                        namespace: "ignore",
-                      })
-                    )
-                  );
-                  build.onLoad({ filter: /.*/, namespace: "ignore" }, () => ({
-                    contents: "",
-                  }));
-                },
-              },
-            ]
-          : [],
-      }).then(() => headChildren.push(<script src={`/${pagePath}`} />));
+      })
+        .then(() =>
+          build({
+            bundle: true,
+            outfile: path.join("out", pagePath),
+            entryPoints: [clientEntry],
+            minify: true,
+          })
+        )
+        .then(() => headChildren.push(<script src={`/${pagePath}`} />));
     }
     const head = ReactDOMServer.renderToString(
       <>
