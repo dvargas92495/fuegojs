@@ -52,8 +52,8 @@ export const prepareFeBuild = (): Promise<void> =>
       fs.mkdirSync("out");
       return new Promise((resolve, reject) =>
         fs
-          .createReadStream(appPath("node_modules/fuegojs/dist/_html.js"))
-          .pipe(fs.createWriteStream(path.join(INTERMEDIATE_DIR, "_html.js")))
+          .createReadStream(appPath("node_modules/fuegojs/dist/_html.fuego.js"))
+          .pipe(fs.createWriteStream(path.join(INTERMEDIATE_DIR, "_html.fuego.js")))
           .once("error", reject)
           .once("finish", resolve)
       );
@@ -74,7 +74,7 @@ export const prepareApiBuild = (): Promise<Partial<BuildOptions>> =>
 export const outputHtmlFile = (page: string): Promise<number> =>
   new Promise<number>((resolve, reject) => {
     const ls = childProcess.spawn("node", [
-      path.join("_fuego", "_html.js").replace(/\\/g, "/"),
+      path.join("_fuego", "_html.fuego.js").replace(/\\/g, "/"),
       page,
     ]);
     let loggedErrors = false;

@@ -10,10 +10,17 @@ const pagePath = page
   .replace(/\.tsx$/, ".js")
   .replace(/\\/g, "/");
 
-import(`./${pagePath}`)
-  .then(async (r) => {
+Promise.all([
+  import(`./${pagePath}`),
+  fs.existsSync("./_html.js")
+    ? // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore dynamically imported
+      import("./_html.js")
+    : Promise.resolve({}),
+])
+  .then(async ([r, _html]) => {
     const Page = r.default;
-    const Head = (r.Head as React.FC<{ html: string }>) || React.Fragment;
+    const Head = (r.Head as React.FC) || React.Fragment;
     const htmlOnly = r.htmlOnly || false;
     const outfile = path.join("out", pagePath.replace(/\.js$/i, ".html"));
     const body = ReactDOMServer.renderToString(
@@ -23,8 +30,7 @@ import(`./${pagePath}`)
     );
     const headChildren: React.ReactNode[] = [];
     if (!htmlOnly) {
-      // TODO think of a better way to dynamically load this
-      const clientIgnorePlugins = ["@emotion/server/create-instance"];
+      const clientIgnorePlugins = (_html.clientIgnorePlugins || []) as string[];
       const clientEntry = path.join(
         "_fuego",
         pagePath.replace(/\.js$/i, ".client.tsx")
@@ -66,18 +72,22 @@ window.onload = () => ReactDOM.hydrate(<Page />, document.body.firstElementChild
     }
     const head = ReactDOMServer.renderToString(
       <>
-        <Head html={body} />
+        <Head />
         {headChildren.map((c, i) => (
           <React.Fragment key={i}>{c}</React.Fragment>
         ))}
       </>
     );
+    const transformHead = (_html.transformHead || ((h) => h)) as (
+      head: string,
+      body: string
+    ) => string;
     fs.writeFileSync(
       outfile,
       `<!DOCTYPE html>
 <html>
   <head>
-    ${head}
+    ${transformHead(head, body)}
   </head>
   <body>
     ${body}
