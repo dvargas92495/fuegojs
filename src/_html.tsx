@@ -13,7 +13,7 @@ const pagePath = page
 import(`./${pagePath}`)
   .then(async (r) => {
     const Page = r.default;
-    const Head = (r.Head as React.FC<{html: string}>) || React.Fragment;
+    const Head = (r.Head as React.FC<{ html: string }>) || React.Fragment;
     const htmlOnly = r.htmlOnly || false;
     const outfile = path.join("out", pagePath.replace(/\.js$/i, ".html"));
     const body = ReactDOMServer.renderToString(
@@ -66,7 +66,7 @@ window.onload = () => ReactDOM.hydrate(<Page />, document.body.firstElementChild
     }
     const head = ReactDOMServer.renderToString(
       <>
-        <Head html={body}/>
+        <Head html={body} />
         {headChildren.map((c, i) => (
           <React.Fragment key={i}>{c}</React.Fragment>
         ))}
