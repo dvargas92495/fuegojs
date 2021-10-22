@@ -52,6 +52,17 @@ const handlersByRoute: { [key: string]: APIGatewayProxyHandler | Handler } = {};
 const optionRoutes = new Set();
 const commonRegex = /^functions[/\\]_common/;
 
+const inlineTryCatch = <T extends unknown>(
+  tryFcn: () => T,
+  catchFcn: (e: Error) => T
+): T => {
+  try {
+    return tryFcn();
+  } catch (e) {
+    return catchFcn(e);
+  }
+};
+
 const api = (): Promise<number> =>
   prepareApiBuild().then((opts) => {
     const app = express();
@@ -234,7 +245,10 @@ const api = (): Promise<number> =>
                         ? res
                             .setDefaultEncoding("binary")
                             .send(Buffer.from(result.body, "base64"))
-                        : res.json(JSON.parse(result.body));
+                        : inlineTryCatch(
+                            () => res.json(JSON.parse(result.body)),
+                            () => res.send(result.body)
+                          );
                     })
                     .catch((error: Error) => {
                       const message = error.message || error.toString();
