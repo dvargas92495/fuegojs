@@ -66,7 +66,7 @@ window.onload = () => ReactDOM.hydrate(<Page />, document.body.firstElementChild
             bundle: true,
             outfile: path.join("out", pagePath),
             entryPoints: [clientEntry],
-            minify: true,
+            minify: process.env.NODE_ENV === 'production',
           })
         )
         .then(() => headChildren.push(<script src={`/${pagePath}`} />));

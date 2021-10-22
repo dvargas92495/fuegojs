@@ -10,6 +10,7 @@ import express from "express";
 
 const fe = (): Promise<number> =>
   prepareFeBuild().then(() => {
+    process.env.NODE_ENV = 'development';
     esbuildWatch({
       paths: ["pages"],
       rebuildCallback: (s) =>
