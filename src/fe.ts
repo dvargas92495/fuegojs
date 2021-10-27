@@ -20,7 +20,7 @@ const fe = (): Promise<number> =>
     esbuildWatch({
       paths: ["pages"],
       rebuildCallback: (s) =>
-        /_html\.[j|t]sx?$/.test(s)
+        /(_html|\.data)\.[j|t]sx?$/.test(s)
           ? Promise.resolve(0)
           : /\[[a-z0-9-]+\]\.[j|t]sx?/.test(s)
           ? new Promise<number>((resolve) => {

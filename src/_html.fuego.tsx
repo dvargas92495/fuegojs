@@ -15,6 +15,7 @@ const pagePath = page
   .replace(/^pages[/\\]/, "")
   .replace(/\.tsx$/, ".js")
   .replace(/\\/g, "/");
+const dataPath = pagePath.replace(/\.js$/, ".data.js");
 
 Promise.all([
   import(`./${pagePath}`),
@@ -23,12 +24,17 @@ Promise.all([
       // @ts-ignore dynamically imported
       import("./_html.js")
     : Promise.resolve({}),
+  fs.existsSync(`_fuego/${dataPath}`)
+    ? import(`/${dataPath}`)
+    : Promise.resolve({}),
 ])
-  .then(async ([r, _html]) => {
+  .then(async ([r, _html, data]) => {
     const Page = r.default;
     const Head = (r.Head as React.FC) || React.Fragment;
+    const ReactRoot =
+      (_html.default as React.FC) || (({ children }) => <div>{children}</div>);
     const getStaticProps =
-      (r.getStaticProps as (p: {
+      (data.default as (p: {
         params: Record<string, string>;
       }) => Promise<{ props: Record<string, unknown> }>) ||
       (() => Promise.resolve({ props: {} }));
@@ -36,23 +42,15 @@ Promise.all([
     const outfile = path.join("out", pagePath.replace(/\.js$/i, ".html"));
     const body = await getStaticProps({ params }).then(({ props }) =>
       ReactDOMServer.renderToString(
-        <div>
+        <ReactRoot>
           <Page {...props} />
-        </div>
+        </ReactRoot>
       )
     );
     const headChildren: React.ReactNode[] = [];
-    if (!htmlOnly) {
-      // Inject pure annotations so that server side could get tree shaken
-      const fileContents = fs
-        .readFileSync(path.join("_fuego", pagePath))
-        .toString();
-      const clientContents = fileContents
-        .replace(/__toModule\(/g, "/* @__PURE__ */ __toModule( /* @__PURE__ */")
-        .replace(/__commonJS\(/g, "/* @__PURE__ */ __commonJS(");
-      fs.writeFileSync(path.join("_fuego", pagePath), clientContents);
 
-      const clientJsFile = pagePath.replace(/\.js$/i, ".client.js");
+    // There has to be a better way to do this whole code block
+    if (!htmlOnly) {
       const clientEntry = path.join(
         "_fuego",
         pagePath.replace(/\.js$/i, ".client.tsx")
@@ -61,28 +59,17 @@ Promise.all([
         clientEntry,
         `import React from 'react';
 import ReactDOM from 'react-dom';
-import Page from './${clientJsFile}';
+import Page from './${path.basename(pagePath)}';
 window.onload = () => ReactDOM.hydrate(<Page />, document.body.firstElementChild);`
       );
-      // We do two esbuilds
-      // 1. Performs the tree shaking to get rid of server side code
-      // 2. Performs the actual build to produce the minified JS file
+
       await build({
-        outfile: path.join("_fuego", clientJsFile),
-        entryPoints: [path.join("_fuego", pagePath)],
-        platform: "node",
-        external: ["react", "react-dom"],
         bundle: true,
-      })
-        .then(() =>
-          build({
-            bundle: true,
-            outfile: path.join("out", pagePath),
-            entryPoints: [clientEntry],
-            minify: process.env.NODE_ENV === "production",
-          })
-        )
-        .then(() => headChildren.push(<script src={`/${pagePath}`} />));
+        outfile: path.join("out", pagePath),
+        entryPoints: [clientEntry],
+        minify: process.env.NODE_ENV === "production",
+        external: ["react", "react-dom"],
+      }).then(() => headChildren.push(<script src={`/${pagePath}`} />));
     }
     const head = ReactDOMServer.renderToString(
       <>

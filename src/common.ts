@@ -147,9 +147,9 @@ export const esbuildWatch = ({
   chokidar
     .watch(paths)
     .on("add", (file) => {
-      console.log(`File ${file} has been added`);
       const { outdir = "", ...restOpts } = opts;
       if (entryRegex.test(file)) {
+        console.log(`building ${file}...`);
         build({
           ...restOpts,
           entryPoints: [file],
@@ -171,26 +171,27 @@ export const esbuildWatch = ({
                   dependencies[dep] = dependencies[dep] || new Set();
                   if (!dependencies[dep].has(entry)) {
                     dependencies[dep].add(entry);
-                    if (!/node_modules/.test(dep))
-                      console.log("Added dependency on", dep, "for", entry);
                   }
                   return undefined;
                 });
               },
             },
           ],
-        }).then((r) => {
-          rebuilders[file] = r.rebuild;
-          return rebuildCallback(file);
-        });
+        })
+          .then((r) => {
+            rebuilders[file] = r.rebuild;
+            return rebuildCallback(file);
+          })
+          .then(() => console.log(`successfully built ${file}...`));
       }
     })
     .on("change", (file) => {
       console.log(`File ${file} has been changed`);
       const entries = dependencies[file] || [];
       entries.forEach((entry) => {
-        console.log(`Rebuilding ${entry}`);
-        rebuilders[entry]().then(() => rebuildCallback(entry));
+        rebuilders[entry]()
+          .then(() => rebuildCallback(entry))
+          .then(() => console.log(`Rebuilt ${entry}`));
       });
     })
     .on("unlink", (file) => {
