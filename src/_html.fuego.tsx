@@ -45,8 +45,7 @@ Promise.all([
     );
     const outfile = path.join(
       "out",
-      parameterizedPath
-        .replace(/\.js$/i, ".html")
+      parameterizedPath.replace(/\.js$/i, ".html")
     );
     const { props } = await getStaticProps({ params });
     const body = ReactDOMServer.renderToString(
@@ -77,7 +76,9 @@ window.onload = () => ReactDOM.hydrate(<Page {...props}/>, document.body.firstEl
         entryPoints: [clientEntry],
         minify: process.env.NODE_ENV === "production",
         external: ["react", "react-dom"],
-      }).then(() => headChildren.push(<script src={`/${parameterizedPath}`} />));
+      }).then(() =>
+        headChildren.push(<script src={`/${parameterizedPath}`} />)
+      );
     }
     const head = ReactDOMServer.renderToString(
       <>
