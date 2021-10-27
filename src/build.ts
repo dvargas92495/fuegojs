@@ -33,7 +33,7 @@ const buildDir = ({ path = "" }: BuildArgs): Promise<number> => {
   });
 };
 
-const build = (args: BuildArgs): Promise<number> =>
+const build = (args: BuildArgs = {}): Promise<number> =>
   prepareFeBuild()
     .then(() => buildDir(args))
     .then((code) =>
