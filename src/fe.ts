@@ -40,7 +40,10 @@ const fe = (): Promise<number> =>
                     )}.html`
                   );
                   if (fs.existsSync(fileLocation)) res.sendFile(fileLocation);
-                  else outputHtmlFile(s, req.params).then(() => res.sendFile(fileLocation))
+                  else
+                    outputHtmlFile(s, req.params).then(() =>
+                      res.sendFile(fileLocation)
+                    );
                 }
               );
             }).catch((e) => {
