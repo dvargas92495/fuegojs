@@ -73,11 +73,16 @@ export const prepareApiBuild = (): Promise<Partial<BuildOptions>> =>
     };
   });
 
-export const outputHtmlFile = (page: string): Promise<number> =>
+export const outputHtmlFile = (
+  page: string,
+  params: Record<string, string> = {}
+): Promise<number> =>
   new Promise<number>((resolve, reject) => {
+    const args = Object.entries(params).flatMap(([k, v]) => [`--${k}`, v]);
     const ls = childProcess.spawn("node", [
       path.join("_fuego", "_html.fuego.js").replace(/\\/g, "/"),
       page,
+      ...args,
     ]);
     let loggedErrors = false;
     ls.stdout.on("data", (data) => {
@@ -102,7 +107,9 @@ export const outputHtmlFile = (page: string): Promise<number> =>
 const COMMON_REGEX = /^pages[/\\]_/;
 export const outputHtmlFiles = (entryPoints: string[]): Promise<number> =>
   Promise.all(
-    entryPoints.filter((t) => !COMMON_REGEX.test(t)).map(outputHtmlFile)
+    entryPoints
+      .filter((t) => !COMMON_REGEX.test(t))
+      .map((s) => outputHtmlFile(s))
   ).then((codes) => (codes.some((c) => c > 0) ? 1 : 0));
 
 export const setupServer = ({

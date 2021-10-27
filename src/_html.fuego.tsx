@@ -5,6 +5,12 @@ import path from "path";
 import { build } from "esbuild";
 
 const page = process.argv[2];
+const params = Object.fromEntries(
+  process.argv
+    .slice(3)
+    .map((a, i, arr) => [a.replace(/^--/, ""), arr[i + 1]])
+    .filter((_, i) => i % 2 === 0)
+) as Record<string, string>;
 const pagePath = page
   .replace(/^pages[/\\]/, "")
   .replace(/\.tsx$/, ".js")
@@ -21,12 +27,19 @@ Promise.all([
   .then(async ([r, _html]) => {
     const Page = r.default;
     const Head = (r.Head as React.FC) || React.Fragment;
+    const getStaticProps =
+      (r.getStaticProps as (p: {
+        params: Record<string, string>;
+      }) => Promise<{ props: Record<string, unknown> }>) ||
+      (() => Promise.resolve({ props: {} }));
     const htmlOnly = r.htmlOnly || false;
     const outfile = path.join("out", pagePath.replace(/\.js$/i, ".html"));
-    const body = ReactDOMServer.renderToString(
-      <div>
-        <Page />
-      </div>
+    const body = await getStaticProps({ params }).then(({ props }) =>
+      ReactDOMServer.renderToString(
+        <div>
+          <Page {...props} />
+        </div>
+      )
     );
     const headChildren: React.ReactNode[] = [];
     if (!htmlOnly) {
