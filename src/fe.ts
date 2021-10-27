@@ -32,13 +32,16 @@ const fe = (): Promise<number> =>
               app.get(
                 fileRoute.replace(/\[([a-z0-9-]+)\]/g, ":$1"),
                 (req, res) => {
-                  const fileLocation = path.join(
+                  const reqPath = path.join(
                     appPath("out"),
-                    `${fileRoute.replace(
+                    `${req.path.replace(
                       /\[([a-z0-9-]+)\]/g,
                       (_, param) => req.params[param]
-                    )}.html`
+                    )}`
                   );
+                  const fileLocation = /\.[a-z]{2,4}$/.test(reqPath)
+                    ? reqPath
+                    : `${reqPath}.html`;
                   if (fs.existsSync(fileLocation)) res.sendFile(fileLocation);
                   else
                     outputHtmlFile(s, req.params).then(() =>

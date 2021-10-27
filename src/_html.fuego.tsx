@@ -39,11 +39,14 @@ Promise.all([
       }) => Promise<{ props: Record<string, unknown> }>) ||
       (() => Promise.resolve({ props: {} }));
     const htmlOnly = r.htmlOnly || false;
+    const parameterizedPath = pagePath.replace(
+      /\[([a-z0-9-]+)\]/g,
+      (_, param) => params[param]
+    );
     const outfile = path.join(
       "out",
-      pagePath
+      parameterizedPath
         .replace(/\.js$/i, ".html")
-        .replace(/\[([a-z0-9-]+)\]/g, (_, param) => params[param])
     );
     const { props } = await getStaticProps({ params });
     const body = ReactDOMServer.renderToString(
@@ -74,7 +77,7 @@ window.onload = () => ReactDOM.hydrate(<Page {...props}/>, document.body.firstEl
         entryPoints: [clientEntry],
         minify: process.env.NODE_ENV === "production",
         external: ["react", "react-dom"],
-      }).then(() => headChildren.push(<script src={`/${pagePath}`} />));
+      }).then(() => headChildren.push(<script src={`/${parameterizedPath}`} />));
     }
     const head = ReactDOMServer.renderToString(
       <>

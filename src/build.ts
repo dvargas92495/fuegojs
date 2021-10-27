@@ -1,4 +1,5 @@
 import { build as esbuild } from "esbuild";
+import fs from "fs";
 import {
   feBuildOpts,
   INTERMEDIATE_DIR,
@@ -8,9 +9,18 @@ import {
   readDir,
 } from "./common";
 
-const buildDir = (): Promise<number> => {
-  const commonRegex = /^pages[/\\]_common/;
-  const entryPoints = readDir("pages").filter((p) => !commonRegex.test(p));
+type BuildArgs = { path?: string };
+
+const commonRegex = /^pages[/\\]_common/;
+const dynamicRegex = /[[]]/;
+const buildDir = ({ path = "" }: BuildArgs): Promise<number> => {
+  const entryPoints = path
+    ? [`pages/${path}`].concat(
+        fs.existsSync("pages/_html.tsx") ? ["pages/_html.tsx"] : []
+      )
+    : readDir("pages")
+        .filter((p) => !commonRegex.test(p))
+        .filter((p) => !dynamicRegex.test(p));
   process.env.NODE_ENV = "production";
   return esbuild({
     entryPoints,
@@ -23,9 +33,9 @@ const buildDir = (): Promise<number> => {
   });
 };
 
-const build = (): Promise<number> =>
+const build = (args: BuildArgs): Promise<number> =>
   prepareFeBuild()
-    .then(() => buildDir())
+    .then(() => buildDir(args))
     .then((code) =>
       promiseRimraf(INTERMEDIATE_DIR).then(() => {
         console.log("Finished!");
