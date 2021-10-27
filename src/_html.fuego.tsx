@@ -25,7 +25,7 @@ Promise.all([
       import("./_html.js")
     : Promise.resolve({}),
   fs.existsSync(`_fuego/${dataPath}`)
-    ? import(`/${dataPath}`)
+    ? import(`./${dataPath}`)
     : Promise.resolve({}),
 ])
   .then(async ([r, _html, data]) => {
@@ -39,13 +39,17 @@ Promise.all([
       }) => Promise<{ props: Record<string, unknown> }>) ||
       (() => Promise.resolve({ props: {} }));
     const htmlOnly = r.htmlOnly || false;
-    const outfile = path.join("out", pagePath.replace(/\.js$/i, ".html"));
-    const body = await getStaticProps({ params }).then(({ props }) =>
-      ReactDOMServer.renderToString(
-        <ReactRoot>
-          <Page {...props} />
-        </ReactRoot>
-      )
+    const outfile = path.join(
+      "out",
+      pagePath
+        .replace(/\.js$/i, ".html")
+        .replace(/\[([a-z0-9-]+)\]/g, (_, param) => params[param])
+    );
+    const { props } = await getStaticProps({ params });
+    const body = ReactDOMServer.renderToString(
+      <ReactRoot>
+        <Page {...props} />
+      </ReactRoot>
     );
     const headChildren: React.ReactNode[] = [];
 
@@ -60,12 +64,13 @@ Promise.all([
         `import React from 'react';
 import ReactDOM from 'react-dom';
 import Page from './${path.basename(pagePath)}';
-window.onload = () => ReactDOM.hydrate(<Page />, document.body.firstElementChild);`
+const props = ${JSON.stringify(props)};
+window.onload = () => ReactDOM.hydrate(<Page {...props}/>, document.body.firstElementChild);`
       );
 
       await build({
         bundle: true,
-        outfile: path.join("out", pagePath),
+        outfile: outfile.replace(/\.html$/, ".js"),
         entryPoints: [clientEntry],
         minify: process.env.NODE_ENV === "production",
         external: ["react", "react-dom"],
