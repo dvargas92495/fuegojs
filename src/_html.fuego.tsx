@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOMServer from "react-dom/server";
 import fs from "fs";
 import path from "path";
+import { build } from "esbuild";
 
 const page = process.argv[2];
 const params = Object.fromEntries(
@@ -37,6 +38,7 @@ Promise.all([
         params: Record<string, string>;
       }) => Promise<{ props: Record<string, unknown> }>) ||
       (() => Promise.resolve({ props: {} }));
+    const htmlOnly = r.htmlOnly || false;
     const parameterizedPath = pagePath.replace(
       /\[([a-z0-9-]+)\]/g,
       (_, param) => params[param]
@@ -61,6 +63,29 @@ Promise.all([
     // - Get rid of the node process and just import the default function
     // - ISR lambda also imports this function
     // - Start off assuming always js, then graduate
+    if (!htmlOnly) {
+      const clientEntry = path.join(
+        "_fuego",
+        pagePath.replace(/\.js$/i, ".client.tsx")
+      );
+      fs.writeFileSync(
+        clientEntry,
+        `import React from 'react';
+import ReactDOM from 'react-dom';
+import Page from './${path.basename(pagePath)}';
+const props = ${JSON.stringify(props)};
+window.onload = () => ReactDOM.hydrate(<Page {...props}/>, document.body.firstElementChild);`
+      );
+
+      await build({
+        bundle: true,
+        outfile: outfile.replace(/\.html$/, ".js"),
+        entryPoints: [clientEntry],
+        minify: process.env.NODE_ENV === "production",
+      }).then(() =>
+        headChildren.push(<script src={`/${parameterizedPath}`} />)
+      );
+    }
     const head = ReactDOMServer.renderToString(
       <>
         <Head />

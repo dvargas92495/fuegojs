@@ -1,7 +1,9 @@
 import { build as esbuild } from "esbuild";
 import fs from "fs";
 import {
+  appPath,
   feBuildOpts,
+  getDotEnvObject,
   INTERMEDIATE_DIR,
   outputHtmlFiles,
   prepareFeBuild,
@@ -11,7 +13,7 @@ import {
 
 type BuildArgs = { path?: string | string[] };
 
-const commonRegex = /^pages[/\\]_common/;
+const commonRegex = /^pages[/\\]_/;
 const dynamicRegex = /[[\]]/;
 const dataRegex = /\.data\.[t|j]sx?/;
 const getEntryPoints = (paths: string[]) => {
@@ -45,12 +47,7 @@ const getEntryPoints = (paths: string[]) => {
         entry: result?.page || "",
         params: result?.regex.exec(path)?.groups || {},
         data: result?.data,
-      }))
-      .concat(
-        fs.existsSync("pages/_html.tsx")
-          ? [{ entry: "pages/_html.tsx", params: {}, data: undefined }]
-          : []
-      );
+      }));
   }
   return pages
     .filter((p) => !dynamicRegex.test(p))
@@ -61,6 +58,21 @@ const buildDir = ({ path = "" }: BuildArgs): Promise<number> => {
   const paths = typeof path === "object" ? path : path ? [path] : [];
   const entryPoints = getEntryPoints(paths);
   process.env.NODE_ENV = process.env.NODE_ENV || "production";
+  const clientEntries = Array.from(
+    new Set(entryPoints.map(({ entry }) => entry))
+  )
+    .map((e) => appPath(`${e.replace(/^pages[/\\]/, `${INTERMEDIATE_DIR}/`)}`));
+  clientEntries
+    .forEach((e) =>
+      fs.writeFileSync(
+        appPath(`${INTERMEDIATE_DIR}/${e.replace(/^pages[/\\]/, "")}`),
+        `import React from 'react';
+import ReactDOM from 'react-dom';
+import Page from '${appPath(e)}';
+const props = window.FUEGO_PROPS || {};
+window.onload = () => ReactDOM.hydrate(<Page {...props}/>, document.body.firstElementChild);`
+      )
+    );
   return Promise.all([
     esbuild({
       entryPoints: Object.fromEntries(
@@ -70,27 +82,31 @@ const buildDir = ({ path = "" }: BuildArgs): Promise<number> => {
               .map(({ entry, data }) => (data ? [entry, data] : [entry]))
               .flat()
           )
-        ).map((e) => [
-          e
-            .replace(/^pages[/\\]/, "")
-            .replace(/\.[t|j]sx?$/, ".server")
-            .replace(/\.data\.server$/, ".data"),
-          e,
-        ])
+        )
+          .map((e) => [
+            e
+              .replace(/^pages[/\\]/, "")
+              .replace(/\.[t|j]sx?$/, ".server")
+              .replace(/\.data\.server$/, ".data"),
+            e,
+          ])
+          .concat(
+            fs.existsSync("pages/_html.tsx")
+              ? [["_html", "pages/_html.tsx"]]
+              : []
+          )
       ),
       platform: "node",
       external: ["react", "react-dom"],
       ...feBuildOpts,
     }),
     esbuild({
-      entryPoints: Object.fromEntries(
-        Array.from(new Set(entryPoints.map(({ entry }) => entry))).map((e) => [
-          e.replace(/^pages[/\\]/, "").replace(/\.[t|j]sx?/, ".client"),
-          e,
-        ])
-      ),
+      entryPoints: clientEntries,
       platform: "browser",
-      ...feBuildOpts,
+      minify: true,
+      bundle: true,
+      outdir: "out",
+      define: getDotEnvObject(),
     }),
   ]).then(([serverResults, clientResults]) => {
     if (serverResults.errors.length) {

@@ -82,11 +82,10 @@ export const outputHtmlFile = (
     .replace(/\\/g, "/");
   const serverPath = pagePath.replace(/\.js$/, ".server.js");
   const dataPath = pagePath.replace(/\.js$/, ".data.js");
-  const clientPath = pagePath.replace(/\.js$/, ".client.js");
 
   return Promise.all(
     [serverPath, "_html.js", dataPath].map((p) =>
-      fs.existsSync(`_fuego/${p}`) ? import(`_fuego/${p}`) : Promise.resolve({})
+      fs.existsSync(`${INTERMEDIATE_DIR}/${p}`) ? import(appPath(`${INTERMEDIATE_DIR}/${p}`)) : Promise.resolve({})
     )
   )
     .then(async ([r, _html, data]) => {
@@ -109,9 +108,6 @@ export const outputHtmlFile = (
         parameterizedPath.replace(/\.js$/i, ".html")
       );
       const { props } = await getStaticProps({ params });
-      const clientContent = fs.readFileSync(`_fuego/${clientPath}`).toString();
-      // incorporate props
-      fs.writeFileSync(`out/${pagePath}`, clientContent);
       const body = ReactDOMServer.renderToString(
         React.createElement(ReactRoot, {}, React.createElement(Page, props))
       );
@@ -121,6 +117,7 @@ export const outputHtmlFile = (
           React.Fragment,
           {},
           React.createElement(Head),
+          React.createElement("script", {}, `window.FUEGO_PROPS=${JSON.stringify(props)}`),
           React.createElement("script", { src: `/${pagePath}` })
         )
       );
