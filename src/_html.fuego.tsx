@@ -3,7 +3,6 @@ import ReactDOMServer from "react-dom/server";
 import fs from "fs";
 import path from "path";
 
-
 const page = process.argv[2];
 const params = Object.fromEntries(
   process.argv
