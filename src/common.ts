@@ -85,7 +85,9 @@ export const outputHtmlFile = (
 
   return Promise.all(
     [serverPath, "_html.js", dataPath].map((p) =>
-      fs.existsSync(`${INTERMEDIATE_DIR}/${p}`) ? import(appPath(`${INTERMEDIATE_DIR}/${p}`)) : Promise.resolve({})
+      fs.existsSync(`${INTERMEDIATE_DIR}/${p}`)
+        ? import(appPath(`${INTERMEDIATE_DIR}/${p}`))
+        : Promise.resolve({})
     )
   )
     .then(async ([r, _html, data]) => {
@@ -117,7 +119,11 @@ export const outputHtmlFile = (
           React.Fragment,
           {},
           React.createElement(Head),
-          React.createElement("script", {}, `window.FUEGO_PROPS=${JSON.stringify(props)}`),
+          React.createElement(
+            "script",
+            {},
+            `window.FUEGO_PROPS=${JSON.stringify(props)}`
+          ),
           React.createElement("script", { src: `/${pagePath}` })
         )
       );

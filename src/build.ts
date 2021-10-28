@@ -60,19 +60,17 @@ const buildDir = ({ path = "" }: BuildArgs): Promise<number> => {
   process.env.NODE_ENV = process.env.NODE_ENV || "production";
   const clientEntries = Array.from(
     new Set(entryPoints.map(({ entry }) => entry))
-  )
-    .map((e) => appPath(`${e.replace(/^pages[/\\]/, `${INTERMEDIATE_DIR}/`)}`));
-  clientEntries
-    .forEach((e) =>
-      fs.writeFileSync(
-        appPath(`${INTERMEDIATE_DIR}/${e.replace(/^pages[/\\]/, "")}`),
-        `import React from 'react';
+  ).map((e) => appPath(`${e.replace(/^pages[/\\]/, `${INTERMEDIATE_DIR}/`)}`));
+  clientEntries.forEach((e) =>
+    fs.writeFileSync(
+      appPath(`${INTERMEDIATE_DIR}/${e.replace(/^pages[/\\]/, "")}`),
+      `import React from 'react';
 import ReactDOM from 'react-dom';
 import Page from '${appPath(e)}';
 const props = window.FUEGO_PROPS || {};
 window.onload = () => ReactDOM.hydrate(<Page {...props}/>, document.body.firstElementChild);`
-      )
-    );
+    )
+  );
   return Promise.all([
     esbuild({
       entryPoints: Object.fromEntries(
