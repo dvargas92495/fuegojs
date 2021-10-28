@@ -75,7 +75,6 @@ window.onload = () => ReactDOM.hydrate(<Page {...props}/>, document.body.firstEl
         outfile: outfile.replace(/\.html$/, ".js"),
         entryPoints: [clientEntry],
         minify: process.env.NODE_ENV === "production",
-        external: ["react", "react-dom"],
       }).then(() =>
         headChildren.push(<script src={`/${parameterizedPath}`} />)
       );
