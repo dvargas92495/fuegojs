@@ -105,11 +105,11 @@ export const outputHtmlFile = (
   });
 
 const COMMON_REGEX = /^pages[/\\]_/;
-export const outputHtmlFiles = (entryPoints: string[]): Promise<number> =>
+export const outputHtmlFiles = (entryPoints: {entry: string, params: Record<string, string>}[]): Promise<number> =>
   Promise.all(
     entryPoints
-      .filter((t) => !COMMON_REGEX.test(t))
-      .map((s) => outputHtmlFile(s))
+      .filter((t) => !COMMON_REGEX.test(t.entry))
+      .map((s) => outputHtmlFile(s.entry, s.params))
   ).then((codes) => (codes.some((c) => c > 0) ? 1 : 0));
 
 export const setupServer = ({
