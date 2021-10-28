@@ -38,7 +38,6 @@ export const getDotEnvObject = (): Record<string, string> => {
 export const feBuildOpts = {
   bundle: true,
   outdir: INTERMEDIATE_DIR,
-  external: ["react", "react-dom"],
   define: getDotEnvObject(),
 };
 

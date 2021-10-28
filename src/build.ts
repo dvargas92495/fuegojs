@@ -73,22 +73,23 @@ const buildDir = ({ path = "" }: BuildArgs): Promise<number> => {
         ).map((e) => [
           e
             .replace(/^pages[/\\]/, "")
-            .replace(/\.[t|j]sx?$/, ".server.js")
-            .replace(/\.data\.server\.js$/, ".data.js"),
+            .replace(/\.[t|j]sx?$/, ".server")
+            .replace(/\.data\.server$/, ".data"),
           e,
         ])
       ),
       platform: "node",
+      external: ["react", "react-dom"],
       ...feBuildOpts,
     }),
     esbuild({
       entryPoints: Object.fromEntries(
         Array.from(new Set(entryPoints.map(({ entry }) => entry))).map((e) => [
-          e.replace(/^pages[/\\]/, "").replace(/\.[t|j]sx?/, ".client.js"),
+          e.replace(/^pages[/\\]/, "").replace(/\.[t|j]sx?/, ".client"),
           e,
         ])
       ),
-      platform: "node",
+      platform: "browser",
       ...feBuildOpts,
     }),
   ]).then(([serverResults, clientResults]) => {
