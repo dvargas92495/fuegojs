@@ -84,8 +84,8 @@ const buildDir = ({ path = "" }: BuildArgs): Promise<number> => {
       ...feBuildOpts,
     }),*/
     esbuild({
-      entryPoints: entryPoints.map(e => feMapFile(e.entry)),
-      ...feBuildOpts
+      entryPoints: entryPoints.map((e) => feMapFile(e.entry)),
+      ...feBuildOpts,
     }),
   ]).then(([clientResults]) => {
     /*if (serverResults.errors.length) {
