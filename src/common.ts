@@ -10,6 +10,8 @@ import ReactDOMServer from "react-dom/server";
 dotenv.config();
 
 export const INTERMEDIATE_DIR = "_fuego";
+export const relativeToIntermediate = (s: string): string =>
+  path.relative(INTERMEDIATE_DIR, s).replace(/\\/g, "/");
 
 export const appPath = (p: string): string =>
   path.resolve(fs.realpathSync(process.cwd()), p);
@@ -36,9 +38,26 @@ export const getDotEnvObject = (): Record<string, string> => {
 };
 
 export const feBuildOpts = {
+  platform: "browser" as const,
+  minify: true,
   bundle: true,
-  outdir: INTERMEDIATE_DIR,
+  outdir: "out",
   define: getDotEnvObject(),
+};
+
+export const feMapFile = (s: string): string => {
+  const newEntry = appPath(
+    `${s.replace(/^pages[/\\]/, `${INTERMEDIATE_DIR}/`)}`
+  );
+  fs.writeFileSync(
+    newEntry,
+    `import React from 'react';
+import ReactDOM from 'react-dom';
+import Page from '${relativeToIntermediate(s)}';
+const props = window.FUEGO_PROPS || {};
+window.onload = () => ReactDOM.hydrate(<Page {...props}/>, document.body.firstElementChild);`
+  );
+  return newEntry;
 };
 
 export const promiseRimraf = (s: string): Promise<null | void | Error> =>
@@ -49,15 +68,7 @@ export const prepareFeBuild = (): Promise<void> =>
     () => {
       fs.mkdirSync(INTERMEDIATE_DIR);
       fs.mkdirSync("out");
-      return Promise.resolve(); /*new Promise((resolve, reject) =>
-        fs
-          .createReadStream(appPath("node_modules/fuegojs/dist/_html.fuego.js"))
-          .pipe(
-            fs.createWriteStream(path.join(INTERMEDIATE_DIR, "_html.fuego.js"))
-          )
-          .once("error", reject)
-          .once("finish", resolve)
-      );*/
+      return Promise.resolve();
     }
   );
 
@@ -78,16 +89,13 @@ export const outputHtmlFile = (
 ): Promise<number> => {
   const pagePath = page
     .replace(/^pages[/\\]/, "")
-    .replace(/\.tsx$/, ".js")
+    .replace(/\.[t|j]sx?$/, ".js")
     .replace(/\\/g, "/");
-  const serverPath = pagePath.replace(/\.js$/, ".server.js");
-  const dataPath = pagePath.replace(/\.js$/, ".data.js");
+  const dataPath = page.replace(/\.([t|j])sx?$/, ".data.$1s");
 
   return Promise.all(
-    [serverPath, "_html.js", dataPath].map((p) =>
-      fs.existsSync(`${INTERMEDIATE_DIR}/${p}`)
-        ? import(appPath(`${INTERMEDIATE_DIR}/${p}`))
-        : Promise.resolve({})
+    [page, "_html.js", dataPath].map((p) =>
+      fs.existsSync(p) ? import(appPath(p)) : Promise.resolve({})
     )
   )
     .then(async ([r, _html, data]) => {
@@ -186,11 +194,13 @@ export const esbuildWatch = ({
   opts,
   entryRegex,
   rebuildCallback,
+  mapFile = (s) => s,
 }: {
   paths: string[];
   opts: Partial<BuildOptions>;
   entryRegex: RegExp;
   rebuildCallback: (s: string) => Promise<void | number>;
+  mapFile?: (s: string) => string;
 }): void => {
   const rebuilders: Record<string, BuildInvalidate> = {};
   const dependencies: Record<string, Set<string>> = {};
@@ -202,7 +212,7 @@ export const esbuildWatch = ({
         console.log(`building ${file}...`);
         build({
           ...restOpts,
-          entryPoints: [file],
+          entryPoints: [mapFile(file)],
           outfile: path.join(
             outdir,
             file

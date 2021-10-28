@@ -2,6 +2,7 @@ import {
   appPath,
   esbuildWatch,
   feBuildOpts,
+  feMapFile,
   outputHtmlFile,
   prepareFeBuild,
   setupServer,
@@ -55,7 +56,8 @@ const fe = (): Promise<number> =>
             })
           : outputHtmlFile(s),
       opts: feBuildOpts,
-      entryRegex: /^pages[\\/]([^_]+|_html)\.[j|t]sx?$/,
+      entryRegex: /^pages[\\/]([a-z0-9-]+|_html)(\/[a-z0-9-]+)*\.[j|t]sx?$/,
+      mapFile: feMapFile,
     });
     return setupServer({ app, port: 3000, label: "Web" });
   });

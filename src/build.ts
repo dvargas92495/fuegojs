@@ -1,9 +1,7 @@
 import { build as esbuild } from "esbuild";
-import fs from "fs";
 import {
-  appPath,
   feBuildOpts,
-  getDotEnvObject,
+  feMapFile,
   INTERMEDIATE_DIR,
   outputHtmlFiles,
   prepareFeBuild,
@@ -58,21 +56,8 @@ const buildDir = ({ path = "" }: BuildArgs): Promise<number> => {
   const paths = typeof path === "object" ? path : path ? [path] : [];
   const entryPoints = getEntryPoints(paths);
   process.env.NODE_ENV = process.env.NODE_ENV || "production";
-  const clientEntries = Array.from(
-    new Set(entryPoints.map(({ entry }) => entry))
-  ).map((e) => appPath(`${e.replace(/^pages[/\\]/, `${INTERMEDIATE_DIR}/`)}`));
-  clientEntries.forEach((e) =>
-    fs.writeFileSync(
-      appPath(`${INTERMEDIATE_DIR}/${e.replace(/^pages[/\\]/, "")}`),
-      `import React from 'react';
-import ReactDOM from 'react-dom';
-import Page from '${appPath(e)}';
-const props = window.FUEGO_PROPS || {};
-window.onload = () => ReactDOM.hydrate(<Page {...props}/>, document.body.firstElementChild);`
-    )
-  );
   return Promise.all([
-    esbuild({
+    /*esbuild({
       entryPoints: Object.fromEntries(
         Array.from(
           new Set(
@@ -97,24 +82,20 @@ window.onload = () => ReactDOM.hydrate(<Page {...props}/>, document.body.firstEl
       platform: "node",
       external: ["react", "react-dom"],
       ...feBuildOpts,
-    }),
+    }),*/
     esbuild({
-      entryPoints: clientEntries,
-      platform: "browser",
-      minify: true,
-      bundle: true,
-      outdir: "out",
-      define: getDotEnvObject(),
+      entryPoints: entryPoints.map(e => feMapFile(e.entry)),
+      ...feBuildOpts
     }),
-  ]).then(([serverResults, clientResults]) => {
-    if (serverResults.errors.length) {
+  ]).then(([clientResults]) => {
+    /*if (serverResults.errors.length) {
       throw new Error(
         `Server Side Failed: ${JSON.stringify(serverResults.errors)}`
       );
-    }
+    }*/
     if (clientResults.errors.length) {
       throw new Error(
-        `Client Side Failed: ${JSON.stringify(serverResults.errors)}`
+        `Client Side Failed: ${JSON.stringify(clientResults.errors)}`
       );
     }
     return outputHtmlFiles(entryPoints);
