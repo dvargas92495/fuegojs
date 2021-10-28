@@ -9,15 +9,16 @@ import {
   readDir,
 } from "./common";
 
-type BuildArgs = { path?: string };
+type BuildArgs = { path?: string | string[] };
 
 const commonRegex = /^pages[/\\]_common/;
-const dynamicRegex = /[[]]/;
+const dynamicRegex = /[[\]]/;
 const buildDir = ({ path = "" }: BuildArgs): Promise<number> => {
-  const entryPoints = path
-    ? [`pages/${path}`].concat(
-        fs.existsSync("pages/_html.tsx") ? ["pages/_html.tsx"] : []
-      )
+  const paths = typeof path === "object" ? path : path ? [path] : [];
+  const entryPoints = paths.length
+    ? paths
+        .map((p) => `pages/${p}`)
+        .concat(fs.existsSync("pages/_html.tsx") ? ["pages/_html.tsx"] : [])
     : readDir("pages")
         .filter((p) => !commonRegex.test(p))
         .filter((p) => !dynamicRegex.test(p));
