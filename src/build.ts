@@ -50,7 +50,7 @@ const getEntryPoints = (paths: string[]) => {
 const buildDir = ({ path = "" }: BuildArgs): Promise<number> => {
   const paths = typeof path === "object" ? path : path ? [path] : [];
   const entryPoints = getEntryPoints(paths);
-  process.env.NODE_ENV = "production";
+  process.env.NODE_ENV = process.env.NODE_ENV || "production";
   return esbuild({
     entryPoints: Array.from(new Set(entryPoints.map(({ entry }) => entry))),
     ...feBuildOpts,
