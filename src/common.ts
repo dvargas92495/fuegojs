@@ -1,11 +1,12 @@
 import fs from "fs";
 import path from "path";
 import rimraf from "rimraf";
-import childProcess from "child_process";
 import dotenv from "dotenv";
 import type { Express } from "express";
 import { build, BuildInvalidate, BuildOptions } from "esbuild";
 import chokidar from "chokidar";
+import React from "react";
+import ReactDOMServer from "react-dom/server";
 dotenv.config();
 
 export const INTERMEDIATE_DIR = "_fuego";
@@ -35,7 +36,6 @@ export const getDotEnvObject = (): Record<string, string> => {
 };
 
 export const feBuildOpts = {
-  platform: "node" as const,
   bundle: true,
   outdir: INTERMEDIATE_DIR,
   external: ["react", "react-dom"],
@@ -50,7 +50,7 @@ export const prepareFeBuild = (): Promise<void> =>
     () => {
       fs.mkdirSync(INTERMEDIATE_DIR);
       fs.mkdirSync("out");
-      return new Promise((resolve, reject) =>
+      return Promise.resolve(); /*new Promise((resolve, reject) =>
         fs
           .createReadStream(appPath("node_modules/fuegojs/dist/_html.fuego.js"))
           .pipe(
@@ -58,7 +58,7 @@ export const prepareFeBuild = (): Promise<void> =>
           )
           .once("error", reject)
           .once("finish", resolve)
-      );
+      );*/
     }
   );
 
@@ -76,33 +76,79 @@ export const prepareApiBuild = (): Promise<Partial<BuildOptions>> =>
 export const outputHtmlFile = (
   page: string,
   params: Record<string, string> = {}
-): Promise<number> =>
-  new Promise<number>((resolve, reject) => {
-    const args = Object.entries(params).flatMap(([k, v]) => [`--${k}`, v]);
-    const ls = childProcess.spawn("node", [
-      path.join("_fuego", "_html.fuego.js").replace(/\\/g, "/"),
-      page,
-      ...args,
-    ]);
-    let loggedErrors = false;
-    ls.stdout.on("data", (data) => {
-      console.log(`Log from building ${page}: ${data}`);
-    });
+): Promise<number> => {
+  const pagePath = page
+    .replace(/^pages[/\\]/, "")
+    .replace(/\.tsx$/, ".js")
+    .replace(/\\/g, "/");
+  const serverPath = pagePath.replace(/\.js$/, ".server.js");
+  const dataPath = pagePath.replace(/\.js$/, ".data.js");
+  const clientPath = pagePath.replace(/\.js$/, ".client.js");
 
-    ls.stderr.on("data", (data) => {
-      console.error(`Error building ${page}: ${data}`);
-      loggedErrors = true;
-    });
+  return Promise.all(
+    [serverPath, "_html.js", dataPath].map((p) =>
+      fs.existsSync(`_fuego/${p}`) ? import(`_fuego/${p}`) : Promise.resolve({})
+    )
+  )
+    .then(async ([r, _html, data]) => {
+      const Page = r.default;
+      const Head = (r.Head as React.FC) || React.Fragment;
+      const ReactRoot =
+        (_html.default as React.FC) ||
+        (({ children }) => React.createElement("div", {}, children));
+      const getStaticProps =
+        (data.default as (p: {
+          params: Record<string, string>;
+        }) => Promise<{ props: Record<string, unknown> }>) ||
+        (() => Promise.resolve({ props: {} }));
+      const parameterizedPath = pagePath.replace(
+        /\[([a-z0-9-]+)\]/g,
+        (_, param) => params[param]
+      );
+      const outfile = path.join(
+        "out",
+        parameterizedPath.replace(/\.js$/i, ".html")
+      );
+      const { props } = await getStaticProps({ params });
+      const clientContent = fs.readFileSync(`_fuego/${clientPath}`).toString();
+      // incorporate props
+      fs.writeFileSync(`out/${pagePath}`, clientContent);
+      const body = ReactDOMServer.renderToString(
+        React.createElement(ReactRoot, {}, React.createElement(Page, props))
+      );
 
-    ls.on("close", (code) => {
-      code || loggedErrors
-        ? reject(new Error(`Failed to build ${page}`))
-        : resolve(0);
+      const head = ReactDOMServer.renderToString(
+        React.createElement(
+          React.Fragment,
+          {},
+          React.createElement(Head),
+          React.createElement("script", { src: `/${pagePath}` })
+        )
+      );
+      const transformHead = (_html.transformHead || ((h) => h)) as (
+        head: string,
+        body: string
+      ) => string;
+      fs.writeFileSync(
+        outfile,
+        `<!DOCTYPE html>
+<html>
+  <head>
+    ${transformHead(head, body)}
+  </head>
+  <body>
+    ${body}
+  </body>
+</html>
+`
+      );
+      return 0;
+    })
+    .catch((e) => {
+      console.error(e.message);
+      return 1;
     });
-  }).catch((e) => {
-    console.error(e.message);
-    return 1;
-  });
+};
 
 const COMMON_REGEX = /^pages[/\\]_/;
 export const outputHtmlFiles = (
