@@ -1,15 +1,14 @@
 import {
   appPath,
-  esbuildWatch,
   feBuildOpts,
   feMapFile,
-  outputHtmlFile,
   prepareFeBuild,
   setupServer,
 } from "./common";
 import express from "express";
 import fs from "fs";
 import path from "path";
+import { esbuildWatch, outputHtmlFile } from "./esbuild-helpers";
 
 const DYNAMIC_ROUTES = new Set<string>();
 

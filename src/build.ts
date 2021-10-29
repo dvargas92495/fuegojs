@@ -3,11 +3,11 @@ import {
   feBuildOpts,
   feMapFile,
   INTERMEDIATE_DIR,
-  outputHtmlFiles,
   prepareFeBuild,
   promiseRimraf,
   readDir,
 } from "./common";
+import { outputHtmlFiles } from "./esbuild-helpers";
 
 type BuildArgs = { path?: string | string[] };
 

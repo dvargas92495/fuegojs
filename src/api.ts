@@ -8,13 +8,8 @@ import addSeconds from "date-fns/addSeconds";
 import differenceInMilliseconds from "date-fns/differenceInMilliseconds";
 import format from "date-fns/format";
 import cuid from "cuid";
-import {
-  appPath,
-  esbuildWatch,
-  prepareApiBuild,
-  readDir,
-  setupServer,
-} from "./common";
+import { appPath, prepareApiBuild, readDir, setupServer } from "./common";
+import { esbuildWatch } from "./esbuild-helpers";
 
 const METHODS = ["get", "post", "put", "delete", "options"] as const;
 const METHOD_SET = new Set<string>(METHODS);
