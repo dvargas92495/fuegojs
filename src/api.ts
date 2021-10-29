@@ -57,7 +57,8 @@ const inlineTryCatch = <T extends unknown>(
   }
 };
 
-const entryRegex = /^functions[\\/](([a-z-]+[/\\])*(get|post|put|delete)|[a-z-]+)\.ts$/;
+const entryRegex =
+  /^functions[\\/](([a-z-]+[/\\])*(get|post|put|delete)|[a-z-]+)\.ts$/;
 
 const api = (): Promise<number> =>
   prepareApiBuild().then((opts) => {
@@ -68,8 +69,8 @@ const api = (): Promise<number> =>
         extended: true,
       })
     );
-    const apiCount = readDir("functions").filter(
-      (f) => entryRegex.test(f)
+    const apiCount = readDir("functions").filter((f) =>
+      entryRegex.test(f)
     ).length;
     let currentCount = 0;
     return new Promise<void>((resolve) =>
