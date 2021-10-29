@@ -20,15 +20,13 @@ const fe = (): Promise<number> =>
     app.use(express.static(appPath("out"), { extensions: ["html"] }));
     esbuildWatch({
       paths: ["pages"],
-      rebuildCallback: (s) =>
-        /(_html|\.data)\.[j|t]sx?$/.test(s)
-          ? Promise.resolve(0)
-          : /\[[a-z0-9-]+\]\.[j|t]sx?/.test(s)
+      rebuildCallback: (s) => {
+        const file = s.replace(/\\/g, "/");
+        return /\[[a-z0-9-]+\]\.[j|t]sx?/.test(file)
           ? new Promise<number>((resolve) => {
-              if (DYNAMIC_ROUTES.has(s)) return resolve(0);
-              const fileRoute = s
+              if (DYNAMIC_ROUTES.has(file)) return resolve(0);
+              const fileRoute = file
                 .replace(/^pages/, "")
-                .replace(/\\/g, "/")
                 .replace(/\.[j|t]sx?$/, "");
               app.get(
                 fileRoute.replace(/\[([a-z0-9-]+)\]/g, ":$1"),
@@ -45,7 +43,7 @@ const fe = (): Promise<number> =>
                     : `${reqPath}.html`;
                   if (fs.existsSync(fileLocation)) res.sendFile(fileLocation);
                   else
-                    outputHtmlFile(s, req.params).then(() =>
+                    outputHtmlFile(file, req.params).then(() =>
                       res.sendFile(fileLocation)
                     );
                 }
@@ -54,9 +52,10 @@ const fe = (): Promise<number> =>
               console.error(e.message);
               return 1;
             })
-          : outputHtmlFile(s),
+          : outputHtmlFile(file);
+      },
       opts: feBuildOpts,
-      entryRegex: /^pages[\\/]([a-z0-9-]+|_html)(\/[a-z0-9-]+)*\.[j|t]sx?$/,
+      entryRegex: /^pages[\\/][a-z0-9-]+(\/[a-z0-9-]+)*\.[j|t]sx?$/,
       mapFile: feMapFile,
     });
     return setupServer({ app, port: 3000, label: "Web" });
