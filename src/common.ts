@@ -5,8 +5,7 @@ import dotenv from "dotenv";
 import type { Express } from "express";
 import { build, BuildInvalidate, BuildOptions } from "esbuild";
 import chokidar from "chokidar";
-import React from "react";
-import ReactDOMServer from "react-dom/server";
+import isr from "./isr";
 dotenv.config();
 
 export const INTERMEDIATE_DIR = "_fuego";
@@ -92,68 +91,29 @@ export const outputHtmlFile = (
     .replace(/\.[t|j]sx?$/, ".js")
     .replace(/\\/g, "/");
   const dataPath = page.replace(/\.([t|j])sx?$/, ".data.$1s");
-
-  return Promise.all(
-    [page, "_html.js", dataPath].map((p) =>
-      fs.existsSync(p) ? import(appPath(p)) : Promise.resolve({})
+  const entryPoints = [page, "pages/_html.tsx", dataPath];
+  return build({
+    entryPoints: entryPoints.filter((p) => fs.existsSync(p)),
+    platform: "node",
+    define: getDotEnvObject(),
+    outdir: "out",
+  })
+    .then(() =>
+      Promise.all(
+        entryPoints
+          .map((p) =>
+            p
+              .replace(/^pages[/\\]/, `${INTERMEDIATE_DIR}/`)
+              .replace(/\.[t|j]sx?$/, ".js")
+          )
+          .map((p) =>
+            fs.existsSync(p) ? import(appPath(p)) : Promise.resolve({})
+          )
+      )
     )
-  )
-    .then(async ([r, _html, data]) => {
-      const Page = r.default;
-      const Head = (r.Head as React.FC) || React.Fragment;
-      const ReactRoot =
-        (_html.default as React.FC) ||
-        (({ children }) => React.createElement("div", {}, children));
-      const getStaticProps =
-        (data.default as (p: {
-          params: Record<string, string>;
-        }) => Promise<{ props: Record<string, unknown> }>) ||
-        (() => Promise.resolve({ props: {} }));
-      const parameterizedPath = pagePath.replace(
-        /\[([a-z0-9-]+)\]/g,
-        (_, param) => params[param]
-      );
-      const outfile = path.join(
-        "out",
-        parameterizedPath.replace(/\.js$/i, ".html")
-      );
-      const { props } = await getStaticProps({ params });
-      const body = ReactDOMServer.renderToString(
-        React.createElement(ReactRoot, {}, React.createElement(Page, props))
-      );
-
-      const head = ReactDOMServer.renderToString(
-        React.createElement(
-          React.Fragment,
-          {},
-          React.createElement(Head),
-          React.createElement(
-            "script",
-            {},
-            `window.FUEGO_PROPS=${JSON.stringify(props)}`
-          ),
-          React.createElement("script", { src: `/${pagePath}` })
-        )
-      );
-      const transformHead = (_html.transformHead || ((h) => h)) as (
-        head: string,
-        body: string
-      ) => string;
-      fs.writeFileSync(
-        outfile,
-        `<!DOCTYPE html>
-<html>
-  <head>
-    ${transformHead(head, body)}
-  </head>
-  <body>
-    ${body}
-  </body>
-</html>
-`
-      );
-      return 0;
-    })
+    .then(([Page, _html, data]) =>
+      isr({ Page, _html, data, params, path: pagePath })
+    )
     .catch((e) => {
       console.error(e.message);
       return 1;
