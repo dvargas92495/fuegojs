@@ -60,7 +60,7 @@ const isr = async <
     )
   );
   const transformHead = _html?.transformHead || ((h) => h);
-  const outfileBase = nodepath.basename(outfile);
+  const outfileBase = nodepath.dirname(outfile);
   if (!fs.existsSync(outfileBase))
     fs.mkdirSync(outfileBase, { recursive: true });
   fs.writeFileSync(

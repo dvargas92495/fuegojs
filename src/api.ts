@@ -45,7 +45,6 @@ const generateContext = ({
 };
 const handlersByRoute: { [key: string]: APIGatewayProxyHandler | Handler } = {};
 const optionRoutes = new Set();
-const commonRegex = /^functions[/\\]_common/;
 
 const inlineTryCatch = <T extends unknown>(
   tryFcn: () => T,
@@ -58,6 +57,8 @@ const inlineTryCatch = <T extends unknown>(
   }
 };
 
+const entryRegex = /^functions[\\/](([a-z-]+[/\\])*(get|post|put|delete)|[a-z-]+)\.ts$/;
+
 const api = (): Promise<number> =>
   prepareApiBuild().then((opts) => {
     const app = express();
@@ -68,7 +69,7 @@ const api = (): Promise<number> =>
       })
     );
     const apiCount = readDir("functions").filter(
-      (f) => !commonRegex.test(f)
+      (f) => entryRegex.test(f)
     ).length;
     let currentCount = 0;
     return new Promise<void>((resolve) =>
@@ -331,8 +332,7 @@ const api = (): Promise<number> =>
               resolve();
             }
           }),
-        entryRegex:
-          /^functions[\\/](([a-z-]+[/\\])*(get|post|put|delete)|[a-z-]+)\.ts$/,
+        entryRegex,
       })
     ).then(() => {
       app.use((req, res) =>
