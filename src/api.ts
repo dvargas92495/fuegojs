@@ -73,7 +73,7 @@ const api = (): Promise<number> =>
     let currentCount = 0;
     return new Promise<void>((resolve) =>
       esbuildWatch({
-        paths: ["functions", "src"],
+        paths: ["functions"],
         opts,
         rebuildCallback: (file) =>
           import(
@@ -331,7 +331,7 @@ const api = (): Promise<number> =>
               resolve();
             }
           }),
-        entryRegex: /^functions[\\/]([a-z-]+[/\\])*(get|post|put|delete)\.ts$/,
+        entryRegex: /^functions[\\/](([a-z-]+[/\\])*(get|post|put|delete)|[a-z-]+)\.ts$/,
       })
     ).then(() => {
       app.use((req, res) =>
