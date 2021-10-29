@@ -331,7 +331,8 @@ const api = (): Promise<number> =>
               resolve();
             }
           }),
-        entryRegex: /^functions[\\/](([a-z-]+[/\\])*(get|post|put|delete)|[a-z-]+)\.ts$/,
+        entryRegex:
+          /^functions[\\/](([a-z-]+[/\\])*(get|post|put|delete)|[a-z-]+)\.ts$/,
       })
     ).then(() => {
       app.use((req, res) =>
