@@ -56,7 +56,7 @@ const publish = ({
               .replace(/[\\/]/g, "_")
               .replace(/^build_/, "");
             // including a date in the zip produces consistent hashes
-            zip.file(functionName, content, { date: new Date("09-24-1995") });
+            zip.file(`${functionName}.js`, content, { date: new Date("09-24-1995") });
             const shasum = crypto.createHash("sha256");
             const data: Uint8Array[] = [];
             return new Promise<void>((resolve, reject) =>
