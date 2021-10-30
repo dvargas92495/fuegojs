@@ -18,12 +18,7 @@ const compile = (): Promise<number> =>
                   `./${f}`,
                 ])
             ),
-            // mysql npm package has a bug when function names are minified -.-
-            // issue: https://github.com/mysqljs/mysql/issues/1655
-            // PR: https://github.com/mysqljs/mysql/pull/2375/files
-            // minify: true,
-            minifySyntax: true,
-            minifyWhitespace: true,
+            minify: true,
           })
         )
         .then((r) => {
