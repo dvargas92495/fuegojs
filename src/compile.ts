@@ -7,8 +7,9 @@ const commonRegex = /^functions[/\\]_common/;
 const compile = (): Promise<number> =>
   fs.existsSync("functions")
     ? prepareApiBuild()
-        .then((opts) =>
-          esbuild({
+        .then((opts) => {
+          process.env.NODE_ENV = process.env.NODE_ENV || "production";
+          return esbuild({
             ...opts,
             entryPoints: Object.fromEntries(
               readDir("functions")
@@ -19,8 +20,8 @@ const compile = (): Promise<number> =>
                 ])
             ),
             minify: true,
-          })
-        )
+          });
+        })
         .then((r) => {
           if (r.errors.length) {
             throw new Error(JSON.stringify(r.errors));
