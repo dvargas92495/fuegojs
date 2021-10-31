@@ -4,12 +4,12 @@ import { prepareApiBuild, readDir } from "./common";
 
 const commonRegex = /^functions[/\\]_common/;
 
-const compile = (): Promise<number> =>
-  fs.existsSync("functions")
+const compile = (): Promise<number> => {
+  process.env.NODE_ENV = process.env.NODE_ENV || "production";
+  return fs.existsSync("functions")
     ? prepareApiBuild()
-        .then((opts) => {
-          process.env.NODE_ENV = process.env.NODE_ENV || "production";
-          return esbuild({
+        .then((opts) =>
+          esbuild({
             ...opts,
             entryPoints: Object.fromEntries(
               readDir("functions")
@@ -20,8 +20,8 @@ const compile = (): Promise<number> =>
                 ])
             ),
             minify: true,
-          });
-        })
+          })
+        )
         .then((r) => {
           if (r.errors.length) {
             throw new Error(JSON.stringify(r.errors));
@@ -33,5 +33,6 @@ const compile = (): Promise<number> =>
         console.log("No `functions` directory to compile. Exiting...");
         return 0;
       });
+};
 
 export default compile;

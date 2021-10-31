@@ -60,8 +60,9 @@ const inlineTryCatch = <T extends unknown>(
 const entryRegex =
   /^functions[\\/](([a-z-]+[/\\])*(get|post|put|delete)|[a-z-]+)\.ts$/;
 
-const api = (): Promise<number> =>
-  prepareApiBuild().then((opts) => {
+const api = (): Promise<number> => {
+  process.env.NODE_ENV = process.env.NODE_ENV || "development";
+  return prepareApiBuild().then((opts) => {
     const app = express();
     app.use(express.json());
     app.use(
@@ -73,7 +74,6 @@ const api = (): Promise<number> =>
       entryRegex.test(f)
     ).length;
     let currentCount = 0;
-    process.env.NODE_ENV = process.env.NODE_ENV || "development";
     return new Promise<void>((resolve) =>
       esbuildWatch({
         paths: ["functions"],
@@ -354,5 +354,6 @@ const api = (): Promise<number> =>
       return setupServer({ app, port: 3003, label: "App" });
     });
   });
+};
 
 export default api;
