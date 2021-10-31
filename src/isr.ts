@@ -38,6 +38,7 @@ const isr = async <
     (_, param) => params[param]
   );
   const outfile = nodepath.join(
+    process.env.FE_DIR_PREFIX || '.',
     "out",
     parameterizedPath.replace(/\.js$/i, ".html")
   );

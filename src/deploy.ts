@@ -68,7 +68,7 @@ const deploy = ({
 }): Promise<number> => {
   console.log(`Deploying to bucket at ${domain}`);
   return Promise.all(
-    readDir("out").map((p) => {
+    readDir(path.join(process.env.FE_DIR_PREFIX || "", "out")).map((p) => {
       const Key = p.substring("out/".length);
       const uploadProps = {
         Bucket: domain,
