@@ -67,9 +67,10 @@ const deploy = ({
   domain?: string;
 }): Promise<number> => {
   console.log(`Deploying to bucket at ${domain}`);
+  const outDir = path.join(process.env.FE_DIR_PREFIX || "", "out");
   return Promise.all(
-    readDir(path.join(process.env.FE_DIR_PREFIX || "", "out")).map((p) => {
-      const Key = p.substring("out/".length);
+    readDir(outDir).map((p) => {
+      const Key = p.substring(outDir.length + 1);
       const uploadProps = {
         Bucket: domain,
         ContentType: mime.lookup(Key) || undefined,
