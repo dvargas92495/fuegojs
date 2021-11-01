@@ -1,7 +1,7 @@
 {
   "name": "fuegojs",
   "description": "Opinionated static site generation framework built on React, Esbuild, and AWS",
-  "version": "0.14.11",
+  "version": "0.14.12",
   "license": "MIT",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
