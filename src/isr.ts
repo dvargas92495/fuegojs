@@ -52,11 +52,11 @@ const isr = async <
       React.Fragment,
       {},
       React.createElement(Head),
-      React.createElement(
-        "script",
-        {},
-        `window.FUEGO_PROPS=${JSON.stringify(props)}`
-      ),
+      React.createElement("script", {
+        dangerouslySetInnerHTML: {
+          __html: `window.FUEGO_PROPS=${JSON.stringify(props)}`,
+        },
+      }),
       React.createElement("script", { src: `/${path}` })
     )
   );
