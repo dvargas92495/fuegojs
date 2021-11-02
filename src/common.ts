@@ -46,6 +46,8 @@ export const feMapFile = (s: string): string => {
   const newEntry = appPath(
     `${s.replace(/^pages[/\\]/, `${INTERMEDIATE_DIR}/`)}`
   );
+  const newDir = path.dirname(newEntry);
+  if (fs.existsSync(newDir)) fs.mkdirSync(newDir, { recursive: true });
   fs.writeFileSync(
     newEntry,
     `import React from 'react';

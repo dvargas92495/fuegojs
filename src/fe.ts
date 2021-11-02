@@ -54,7 +54,7 @@ const fe = (): Promise<number> =>
           : outputHtmlFile(file);
       },
       opts: feBuildOpts,
-      entryRegex: /^pages[\\/][a-z0-9-]+(\/[a-z0-9-]+)*\.[j|t]sx?$/,
+      entryRegex: /^pages[\\/][a-z0-9-]+([\\/][a-z0-9-[\]]+)*\.[j|t]sx?$/,
       mapFile: feMapFile,
     });
     return setupServer({ app, port: 3000, label: "Web" });
