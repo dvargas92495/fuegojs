@@ -7,9 +7,6 @@ import type { BuildOptions } from "esbuild";
 dotenv.config();
 
 export const INTERMEDIATE_DIR = "_fuego";
-export const relativeToIntermediate = (s: string): string =>
-  path.relative(INTERMEDIATE_DIR, s).replace(/\\/g, "/");
-
 export const appPath = (p: string): string =>
   path.resolve(fs.realpathSync(process.cwd()), p);
 
@@ -52,7 +49,7 @@ export const feMapFile = (s: string): string => {
     newEntry,
     `import React from 'react';
 import ReactDOM from 'react-dom';
-import Page from '${relativeToIntermediate(s)}';
+import Page from '${path.relative(newDir, s).replace(/\\/g, "/")}';
 const props = window.FUEGO_PROPS || {};
 window.onload = () => ReactDOM.hydrate(<Page {...props}/>, document.body.firstElementChild);`
   );
