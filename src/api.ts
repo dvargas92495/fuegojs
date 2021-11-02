@@ -10,6 +10,7 @@ import format from "date-fns/format";
 import cuid from "cuid";
 import { appPath, prepareApiBuild, readDir, setupServer } from "./common";
 import { esbuildWatch } from "./esbuild-helpers";
+import ngrok from "ngrok";
 
 const METHODS = ["get", "post", "put", "delete", "options"] as const;
 const METHOD_SET = new Set<string>(METHODS);
@@ -60,7 +61,7 @@ const inlineTryCatch = <T extends unknown>(
 const entryRegex =
   /^functions[\\/](([a-z-]+[/\\])*(get|post|put|delete)|[a-z-]+)\.ts$/;
 
-const api = (): Promise<number> => {
+const api = ({tunnel}: {tunnel:string}): Promise<number> => {
   process.env.NODE_ENV = process.env.NODE_ENV || "development";
   return prepareApiBuild().then((opts) => {
     const app = express();
@@ -351,7 +352,22 @@ const api = (): Promise<number> => {
             statusCode: 404,
           })
       );
-      return setupServer({ app, port: 3003, label: "App" });
+      const port = 3003;
+      return setupServer({ app, port, label: "App" }).then((code) => {
+        if (tunnel && code === 0) {
+          return ngrok
+            .connect({
+              addr: port,
+              subdomain: tunnel,
+            })
+            .then((url) => {
+              console.log("Started local ngrok tunneling:");
+              console.log(url);
+              return 0;
+            });
+        }
+        return code;
+      });
     });
   });
 };
