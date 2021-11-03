@@ -48,7 +48,7 @@ const fe = (): Promise<number> =>
                 }
               );
               DYNAMIC_ROUTES.add(file);
-              return resolve(0)
+              return resolve(0);
             }).catch((e) => {
               console.error(e.message);
               return 1;
