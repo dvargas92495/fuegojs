@@ -353,20 +353,26 @@ const api = ({ tunnel }: { tunnel?: string }): Promise<number> => {
           })
       );
       const port = 3003;
-      return setupServer({ app, port, label: "App" }).then((code) => {
-        if (tunnel && code === 0) {
-          return ngrok
-            .connect({
-              addr: port,
-              subdomain: tunnel,
-            })
-            .then((url) => {
-              console.log("Started local ngrok tunneling:");
-              console.log(url);
-              return 0;
-            });
-        }
-        return code;
+      return setupServer({
+        app,
+        port,
+        label: "App",
+        ...(tunnel
+          ? {
+              onListen: () => {
+                ngrok
+                  .connect({
+                    addr: port,
+                    subdomain: tunnel,
+                  })
+                  .then((url) => {
+                    console.log("Started local ngrok tunneling:");
+                    console.log(url);
+                    return 0;
+                  });
+              },
+            }
+          : {}),
       });
     });
   });

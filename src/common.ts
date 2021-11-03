@@ -83,14 +83,17 @@ export const setupServer = ({
   app,
   port,
   label,
+  onListen,
 }: {
   app: Express;
   port: number;
   label: string;
+  onListen?: () => void;
 }): Promise<number> =>
   new Promise((resolve) => {
     app.listen(port, () => {
       console.log(`${label} server listening on port ${port}...`);
+      onListen?.();
     });
     process.on("exit", () => {
       console.log("Closing...");
