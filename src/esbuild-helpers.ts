@@ -70,7 +70,6 @@ export const esbuildWatch = ({
 }): void => {
   const rebuilders: Record<string, BuildInvalidate> = {};
   const dependencies: Record<string, Set<string>> = {};
-  const entryPointByFile: Record<string, string> = {};
   chokidar
     .watch(paths)
     .on("add", (file) => {
