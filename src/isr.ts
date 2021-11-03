@@ -51,7 +51,7 @@ const isr = async <
     React.createElement(
       React.Fragment,
       {},
-      React.createElement(Head),
+      React.createElement(Head, props),
       React.createElement("script", {
         dangerouslySetInnerHTML: {
           __html: `window.FUEGO_PROPS=${JSON.stringify(props)}`,
