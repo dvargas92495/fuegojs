@@ -15,7 +15,7 @@ const isr = async <
 }: {
   Page: {
     default: (props: T) => React.ReactElement;
-    Head?: (props?: T) => React.ReactElement;
+    Head?: (props: T) => React.ReactElement;
   };
   _html?: {
     default?: React.FC;
