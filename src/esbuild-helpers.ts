@@ -70,6 +70,7 @@ export const esbuildWatch = ({
 }): void => {
   const rebuilders: Record<string, BuildInvalidate> = {};
   const dependencies: Record<string, Set<string>> = {};
+  const entryPointByFile: Record<string, string> = {};
   chokidar
     .watch(paths)
     .on("add", (file) => {
@@ -91,12 +92,11 @@ export const esbuildWatch = ({
             {
               name: "dependency-watch",
               setup: (build) => {
-                const entry = (build.initialOptions.entryPoints as string[])[0];
                 build.onLoad({ filter: /^.*$/s }, async (args) => {
                   const dep = path.relative(process.cwd(), args.path);
                   dependencies[dep] = dependencies[dep] || new Set();
-                  if (!dependencies[dep].has(entry)) {
-                    dependencies[dep].add(entry);
+                  if (!dependencies[dep].has(file)) {
+                    dependencies[dep].add(file);
                   }
                   return undefined;
                 });
