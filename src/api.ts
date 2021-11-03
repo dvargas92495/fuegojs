@@ -61,7 +61,7 @@ const inlineTryCatch = <T extends unknown>(
 const entryRegex =
   /^functions[\\/](([a-z-]+[/\\])*(get|post|put|delete)|[a-z-]+)\.ts$/;
 
-const api = ({ tunnel }: { tunnel: string }): Promise<number> => {
+const api = ({ tunnel }: { tunnel?: string }): Promise<number> => {
   process.env.NODE_ENV = process.env.NODE_ENV || "development";
   return prepareApiBuild().then((opts) => {
     const app = express();

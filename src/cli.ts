@@ -58,7 +58,7 @@ const run = async (command: string, args: string[]): Promise<number> => {
     case "publish":
       return publish(opts);
     case "api":
-      return api();
+      return api(opts);
     /**
      * TODO
      * - start - both
