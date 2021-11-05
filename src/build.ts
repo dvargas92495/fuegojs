@@ -8,6 +8,8 @@ import {
   readDir,
 } from "./common";
 import { outputHtmlFiles } from "./esbuild-helpers";
+import fs from 'fs';
+import nodepath from 'path';
 
 type BuildArgs = { path?: string | string[] };
 
@@ -58,6 +60,10 @@ const buildDir = ({ path = "" }: BuildArgs): Promise<number> => {
         `Client Side Failed: ${JSON.stringify(clientResults.errors)}`
       );
     }
+    readDir('files').forEach(f => {
+      const base = f.replace(/^files\//, '');
+      fs.copyFileSync(f, nodepath.join('out', base));
+    })
     return outputHtmlFiles(entryPoints);
   });
 };

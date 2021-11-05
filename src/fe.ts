@@ -17,6 +17,7 @@ const fe = (): Promise<number> =>
     process.env.NODE_ENV = "development";
     const app = express();
     app.use(express.static(appPath("out"), { extensions: ["html"] }));
+    app.use(express.static("files"));
     esbuildWatch({
       paths: ["pages"],
       rebuildCallback: (s) => {

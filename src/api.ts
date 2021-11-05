@@ -312,7 +312,11 @@ const api = ({ tunnel }: { tunnel?: string }): Promise<number> => {
                   return res.status(202).json({});
                 });
               }
-              console.log(`Added Route ${method.toUpperCase()} ${route}`);
+              console.log(
+                `Added Route ${
+                  METHOD_SET.has(method) ? method.toUpperCase() : "POST"
+                } ${route}`
+              );
             }
             handlersByRoute[functionName] = handler;
             if (!optionRoutes.has(route)) {
