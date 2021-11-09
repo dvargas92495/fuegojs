@@ -14,7 +14,6 @@ import nodepath from "path";
 type BuildArgs = { path?: string | string[] };
 
 const commonRegex = /^pages[/\\]_/;
-const dynamicRegex = /[[\]]/;
 const dataRegex = /\.data\.[t|j]sx?/;
 const getEntryPoints = (paths: string[]) => {
   const pages = readDir("pages")
