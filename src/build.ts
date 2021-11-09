@@ -14,22 +14,23 @@ import nodepath from "path";
 type BuildArgs = { path?: string | string[] };
 
 const commonRegex = /^pages[/\\]_/;
+const dynamicRegex = /[[\]]/;
 const dataRegex = /\.data\.[t|j]sx?/;
 const getEntryPoints = (paths: string[]) => {
-  const pages = readDir("pages").filter((p) => !commonRegex.test(p));
+  const pages = readDir("pages")
+    .filter((p) => !commonRegex.test(p))
+    .filter((p) => !dataRegex.test(p));
   if (paths.length) {
-    const pageRegexes = pages
-      .filter((p) => !dataRegex.test(p))
-      .map((page) => ({
-        page,
-        regex: new RegExp(
-          `^${page
-            .replace(/^pages[/\\]/, "")
-            .replace(/[/\\]/g, "\\/")
-            .replace(/\[([a-z0-9-]+)\]/, (_, name) => `(?<${name}>[a-z0-9-]+)`)
-            .replace(/\.[t|j]sx?/, "")}$`
-        ),
-      }));
+    const pageRegexes = pages.map((page) => ({
+      page,
+      regex: new RegExp(
+        `^${page
+          .replace(/^pages[/\\]/, "")
+          .replace(/[/\\]/g, "\\/")
+          .replace(/\[([a-z0-9-]+)\]/, (_, name) => `(?<${name}>[a-z0-9-]+)`)
+          .replace(/\.[t|j]sx?/, "")}$`
+      ),
+    }));
     return paths
       .map((path) => ({
         result: pageRegexes.find(({ regex }) => regex.test(path)),
