@@ -41,8 +41,7 @@ const getEntryPoints = (paths: string[]) => {
         params: result?.regex.exec(path)?.groups || {},
       }));
   }
-  return pages
-    .map((entry) => ({ entry, params: {} }));
+  return pages.map((entry) => ({ entry, params: {} }));
 };
 
 const buildDir = ({ path = "" }: BuildArgs): Promise<number> => {
