@@ -59,7 +59,7 @@ const inlineTryCatch = <T extends unknown>(
 };
 
 const entryRegex =
-  /^functions[\\/](([a-z-]+[/\\])*(get|post|put|delete)|[a-z-]+)\.ts$/;
+  /^functions[\\/](([a-z0-9-]+[/\\])*(get|post|put|delete)|[a-z0-9-]+)\.ts$/;
 
 const api = ({ tunnel }: { tunnel?: string }): Promise<number> => {
   process.env.NODE_ENV = process.env.NODE_ENV || "development";

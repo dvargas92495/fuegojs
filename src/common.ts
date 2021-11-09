@@ -11,11 +11,13 @@ export const appPath = (p: string): string =>
   path.resolve(fs.realpathSync(process.cwd()), p);
 
 export const readDir = (s: string): string[] =>
-  fs
-    .readdirSync(s, { withFileTypes: true })
-    .flatMap((f) =>
-      f.isDirectory() ? readDir(`${s}/${f.name}`) : [`${s}/${f.name}`]
-    );
+  fs.existsSync(s)
+    ? fs
+        .readdirSync(s, { withFileTypes: true })
+        .flatMap((f) =>
+          f.isDirectory() ? readDir(`${s}/${f.name}`) : [`${s}/${f.name}`]
+        )
+    : [];
 
 const IGNORE_ENV = ["HOME"];
 export const getDotEnvObject = (): Record<string, string> => {
