@@ -59,7 +59,7 @@ const buildDir = ({ path = "" }: BuildArgs): Promise<number> => {
     }
     readDir("files").forEach((f) => {
       const base = f.replace(/^files\//, "");
-      fs.copyFileSync(f, nodepath.join("out", base));
+      fs.copyFileSync(f, nodepath.join(process.env.FE_DIR_PREFIX || "", "out", base));
     });
     return outputHtmlFiles(entryPoints);
   });

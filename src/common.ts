@@ -37,7 +37,7 @@ export const feBuildOpts = {
   platform: "browser" as const,
   minify: true,
   bundle: true,
-  outdir: "out",
+  outdir: path.join(process.env.FE_DIR_PREFIX || "", "out"),
   define: getDotEnvObject(),
 };
 
