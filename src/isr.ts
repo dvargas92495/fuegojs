@@ -42,7 +42,11 @@ const isr = async <
     "out",
     parameterizedPath.replace(/\.js$/i, ".html")
   );
-  const { props } = await getStaticProps({ params });
+  const { props } = await getStaticProps({ params }).catch((e) => {
+    console.error(`${path} failed to get static props:`);
+    console.error(e);
+    return { props: {} as T };
+  });
   const body = ReactDOMServer.renderToString(
     React.createElement(ReactRoot, {}, React.createElement(Page.default, props))
   );
