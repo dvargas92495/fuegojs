@@ -39,9 +39,14 @@ const getEntryPoints = (paths: string[]) => {
       .map(({ result, path }) => ({
         entry: result?.page || "",
         params: result?.regex.exec(path)?.groups || {},
+        exclude: false,
       }));
   }
-  return pages.map((entry) => ({ entry, params: {} }));
+  return pages.map((entry) => ({
+    entry,
+    params: {},
+    exclude: /\[[a-z0-9-]+\]/.test(entry),
+  }));
 };
 
 const buildDir = ({ path = "" }: BuildArgs): Promise<number> => {
@@ -64,7 +69,7 @@ const buildDir = ({ path = "" }: BuildArgs): Promise<number> => {
         nodepath.join(process.env.FE_DIR_PREFIX || "", "out", base)
       );
     });
-    return outputHtmlFiles(entryPoints);
+    return outputHtmlFiles(entryPoints.filter(({ exclude }) => !exclude));
   });
 };
 
