@@ -51,7 +51,7 @@ const fe = (): Promise<number> =>
               DYNAMIC_ROUTES.add(file);
               return resolve(0);
             }).catch((e) => {
-              console.error(e.message);
+              console.error(e);
               return 1;
             })
           : outputHtmlFile(file);

@@ -1,6 +1,7 @@
 import fs from "fs";
 import { build as esbuild } from "esbuild";
-import { prepareApiBuild, readDir } from "./common";
+import { readDir } from "./common";
+import { prepareApiBuild } from "./esbuild-helpers";
 
 const commonRegex = /^functions[/\\]_common/;
 

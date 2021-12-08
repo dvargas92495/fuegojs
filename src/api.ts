@@ -8,8 +8,8 @@ import addSeconds from "date-fns/addSeconds";
 import differenceInMilliseconds from "date-fns/differenceInMilliseconds";
 import format from "date-fns/format";
 import cuid from "cuid";
-import { appPath, prepareApiBuild, readDir, setupServer } from "./common";
-import { esbuildWatch } from "./esbuild-helpers";
+import { appPath, readDir, setupServer } from "./common";
+import { esbuildWatch, prepareApiBuild } from "./esbuild-helpers";
 import ngrok from "ngrok";
 
 const METHODS = ["get", "post", "put", "delete", "options"] as const;
@@ -54,7 +54,7 @@ const inlineTryCatch = <T extends unknown>(
   try {
     return tryFcn();
   } catch (e) {
-    return catchFcn(e);
+    return catchFcn(e as Error);
   }
 };
 

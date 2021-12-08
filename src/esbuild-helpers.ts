@@ -1,9 +1,18 @@
 import { build, BuildInvalidate, BuildOptions } from "esbuild";
 import chokidar from "chokidar";
 import isr from "./isr";
-import { appPath, getDotEnvObject, INTERMEDIATE_DIR } from "./common";
+import {
+  appPath,
+  getDotEnvObject,
+  INTERMEDIATE_DIR,
+  promiseRimraf,
+} from "./common";
 import fs from "fs";
 import path from "path";
+
+const API_INPUT_DIR = "functions";
+const API_OUTPUT_DIR = "build";
+const API_DYNAMIC_ENV_FILE = "_env.ts";
 
 export const outputHtmlFile = (
   page: string,
@@ -129,3 +138,61 @@ export const esbuildWatch = ({
       }
     });
 };
+
+export const prepareApiBuild = (): Promise<Partial<BuildOptions>> =>
+  promiseRimraf(API_OUTPUT_DIR).then(async () => {
+    const baseOpts = {
+      bundle: true,
+      outdir: appPath(API_OUTPUT_DIR),
+      platform: "node" as const,
+      external: ["aws-sdk", "canvas"],
+      define: getDotEnvObject(),
+    };
+    const dynamicEnv = fs.existsSync(
+      appPath(`${API_INPUT_DIR}/${API_DYNAMIC_ENV_FILE}`)
+    )
+      ? await build({
+          ...baseOpts,
+          entryPoints: [appPath(`${API_INPUT_DIR}/${API_DYNAMIC_ENV_FILE}`)],
+        })
+          .then(
+            () =>
+              import(
+                appPath(
+                  `${API_OUTPUT_DIR}/${API_DYNAMIC_ENV_FILE.replace(
+                    /\.ts/,
+                    ".js"
+                  )}`
+                )
+              )
+          )
+          .then((mod) => mod.default())
+          .then((env) => {
+            if (typeof env !== "object") {
+              console.warn(
+                "Incorrect type detected for dynamic env. Expected object, received",
+                typeof env
+              );
+              return {};
+            }
+            const invalidEntry = Object.entries(env).find(
+              ([v]) => typeof v !== "string"
+            );
+            if (invalidEntry) {
+              console.warn(
+                `Incorrect type detected for dynamic env for field ${invalidEntry[0]}. Expected string, received`,
+                typeof invalidEntry[1]
+              );
+              return {};
+            }
+            return env as Record<string, string>;
+          })
+      : {};
+    return {
+      ...baseOpts,
+      define: {
+        ...baseOpts.define,
+        ...dynamicEnv,
+      },
+    };
+  });

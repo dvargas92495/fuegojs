@@ -3,7 +3,6 @@ import path from "path";
 import rimraf from "rimraf";
 import dotenv from "dotenv";
 import type { Express } from "express";
-import type { BuildOptions } from "esbuild";
 dotenv.config();
 
 export const INTERMEDIATE_DIR = "_fuego";
@@ -69,17 +68,6 @@ export const prepareFeBuild = (): Promise<void> =>
       return Promise.resolve();
     }
   );
-
-export const prepareApiBuild = (): Promise<Partial<BuildOptions>> =>
-  promiseRimraf("build").then(() => {
-    return {
-      bundle: true,
-      outdir: appPath("build"),
-      platform: "node",
-      external: ["aws-sdk", "canvas"],
-      define: getDotEnvObject(),
-    };
-  });
 
 export const setupServer = ({
   app,
