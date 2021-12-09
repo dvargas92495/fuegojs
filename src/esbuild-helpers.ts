@@ -186,7 +186,10 @@ export const prepareApiBuild = (): Promise<Partial<BuildOptions>> =>
               return {};
             }
             return Object.fromEntries(
-              Object.entries(env).map(([k, v]) => [`process.env.${k}`, `"${v}"`])
+              Object.entries(env).map(([k, v]) => [
+                `process.env.${k}`,
+                `"${v}"`,
+              ])
             );
           })
       : {};

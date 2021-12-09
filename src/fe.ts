@@ -1,9 +1,4 @@
-import {
-  appPath,
-  feMapFile,
-  prepareFeBuild,
-  setupServer,
-} from "./common";
+import { appPath, feMapFile, prepareFeBuild, setupServer } from "./common";
 import express from "express";
 import fs from "fs";
 import path from "path";
@@ -61,6 +56,6 @@ const fe = (): Promise<number> => {
     });
     return setupServer({ app, port: 3000, label: "Web" });
   });
-}
+};
 
 export default fe;
