@@ -1,6 +1,5 @@
 import {
   appPath,
-  feBuildOpts,
   feMapFile,
   prepareFeBuild,
   setupServer,
@@ -12,9 +11,9 @@ import { esbuildWatch, outputHtmlFile } from "./esbuild-helpers";
 
 const DYNAMIC_ROUTES = new Set<string>();
 
-const fe = (): Promise<number> =>
-  prepareFeBuild().then(() => {
-    process.env.NODE_ENV = "development";
+const fe = (): Promise<number> => {
+  process.env.NODE_ENV = process.env.NODE_ENV || "development";
+  return prepareFeBuild().then((opts) => {
     const app = express();
     app.use(express.static(appPath("out"), { extensions: ["html"] }));
     app.use(express.static("files"));
@@ -56,11 +55,12 @@ const fe = (): Promise<number> =>
             })
           : outputHtmlFile(file);
       },
-      opts: feBuildOpts,
+      opts,
       entryRegex: /^pages[\\/][a-z0-9-]+([\\/][a-z0-9-[\]]+)*\.[j|t]sx?$/,
       mapFile: feMapFile,
     });
     return setupServer({ app, port: 3000, label: "Web" });
   });
+}
 
 export default fe;

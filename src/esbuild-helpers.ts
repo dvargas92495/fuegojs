@@ -185,7 +185,9 @@ export const prepareApiBuild = (): Promise<Partial<BuildOptions>> =>
               );
               return {};
             }
-            return env as Record<string, string>;
+            return Object.fromEntries(
+              Object.entries(env).map(([k, v]) => [`process.env.${k}`, `"${v}"`])
+            );
           })
       : {};
     return {

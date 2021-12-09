@@ -1,6 +1,5 @@
-import { build as esbuild } from "esbuild";
+import { build as esbuild, BuildOptions } from "esbuild";
 import {
-  feBuildOpts,
   feMapFile,
   INTERMEDIATE_DIR,
   prepareFeBuild,
@@ -49,10 +48,12 @@ const getEntryPoints = (paths: string[]) => {
   }));
 };
 
-const buildDir = ({ path = "" }: BuildArgs): Promise<number> => {
+const buildDir = (
+  { path = "" }: BuildArgs,
+  feBuildOpts: BuildOptions
+): Promise<number> => {
   const paths = typeof path === "object" ? path : path ? [path] : [];
   const entryPoints = getEntryPoints(paths);
-  process.env.NODE_ENV = process.env.NODE_ENV || "production";
   return esbuild({
     entryPoints: entryPoints.map((e) => feMapFile(e.entry)),
     ...feBuildOpts,
@@ -73,9 +74,10 @@ const buildDir = ({ path = "" }: BuildArgs): Promise<number> => {
   });
 };
 
-const build = (args: BuildArgs = {}): Promise<number> =>
-  prepareFeBuild()
-    .then(() => buildDir(args))
+const build = (args: BuildArgs = {}): Promise<number> => {
+  process.env.NODE_ENV = process.env.NODE_ENV || "production";
+  return prepareFeBuild()
+    .then((opts) => buildDir(args, opts))
     .then((code) =>
       promiseRimraf(INTERMEDIATE_DIR).then(() => {
         console.log("Finished!");
@@ -88,5 +90,6 @@ const build = (args: BuildArgs = {}): Promise<number> =>
         return 1;
       })
     );
+};
 
 export default build;

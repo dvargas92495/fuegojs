@@ -3,6 +3,7 @@ import path from "path";
 import rimraf from "rimraf";
 import dotenv from "dotenv";
 import type { Express } from "express";
+import type { BuildOptions } from "esbuild";
 dotenv.config();
 
 export const INTERMEDIATE_DIR = "_fuego";
@@ -32,14 +33,6 @@ export const getDotEnvObject = (): Record<string, string> => {
   );
 };
 
-export const feBuildOpts = {
-  platform: "browser" as const,
-  minify: true,
-  bundle: true,
-  outdir: path.join(process.env.FE_DIR_PREFIX || "", "out"),
-  define: getDotEnvObject(),
-};
-
 export const feMapFile = (s: string): string => {
   const newEntry = appPath(
     `${s.replace(/^pages[/\\]/, `${INTERMEDIATE_DIR}/`)}`
@@ -60,12 +53,18 @@ window.onload = () => ReactDOM.hydrate(<Page {...props}/>, document.body.firstEl
 export const promiseRimraf = (s: string): Promise<null | void | Error> =>
   new Promise((resolve) => rimraf(s, resolve));
 
-export const prepareFeBuild = (): Promise<void> =>
+export const prepareFeBuild = (): Promise<BuildOptions> =>
   Promise.all([promiseRimraf(INTERMEDIATE_DIR), promiseRimraf("out")]).then(
     () => {
       fs.mkdirSync(INTERMEDIATE_DIR);
       fs.mkdirSync("out");
-      return Promise.resolve();
+      return Promise.resolve({
+        platform: "browser" as const,
+        minify: true,
+        bundle: true,
+        outdir: path.join(process.env.FE_DIR_PREFIX || "", "out"),
+        define: getDotEnvObject(),
+      });
     }
   );
 
