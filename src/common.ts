@@ -60,7 +60,7 @@ export const prepareFeBuild = (): Promise<BuildOptions> =>
       fs.mkdirSync("out");
       return Promise.resolve({
         platform: "browser" as const,
-        minify: true,
+        minify: process.env.NODE_ENV === "production",
         bundle: true,
         outdir: path.join(process.env.FE_DIR_PREFIX || "", "out"),
         define: getDotEnvObject(),
