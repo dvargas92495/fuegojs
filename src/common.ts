@@ -89,3 +89,15 @@ export const setupServer = ({
       resolve(0);
     });
   });
+
+export type json =
+  | string
+  | number
+  | boolean
+  | null
+  | { toJSON: () => string }
+  | json[]
+  | { [key: string]: json };
+
+export const getFuegoConfig = (): { [key: string]: json } =>
+  JSON.parse(fs.readFileSync(appPath("package.json")).toString())?.fuego || {};

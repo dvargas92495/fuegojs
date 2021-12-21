@@ -4,6 +4,7 @@ import isr from "./isr";
 import {
   appPath,
   getDotEnvObject,
+  getFuegoConfig,
   INTERMEDIATE_DIR,
   promiseRimraf,
 } from "./common";
@@ -148,6 +149,30 @@ export const prepareApiBuild = (): Promise<Partial<BuildOptions>> =>
       external: ["aws-sdk", "canvas"],
       define: getDotEnvObject(),
     };
+    const { functionFileDependencies = null } = getFuegoConfig();
+    if (
+      typeof functionFileDependencies === "object" &&
+      functionFileDependencies
+    ) {
+      const filesToCopy = Object.values(functionFileDependencies)
+        .filter((files): files is string | string[] => !!files)
+        .flatMap((files) =>
+          typeof files === "string"
+            ? [files]
+            : typeof files === "object"
+            ? Object.values(files)
+            : []
+        ) as string[];
+      if (filesToCopy.length) {
+        fs.mkdirSync(appPath(API_OUTPUT_DIR));
+        Array.from(new Set(filesToCopy)).forEach((f) =>
+          fs.copyFileSync(
+            f,
+            path.join(appPath(API_OUTPUT_DIR), path.basename(f))
+          )
+        );
+      }
+    }
     const dynamicEnv = fs.existsSync(
       appPath(`${API_INPUT_DIR}/${API_DYNAMIC_ENV_FILE}`)
     )

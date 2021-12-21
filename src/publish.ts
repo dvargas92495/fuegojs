@@ -1,5 +1,5 @@
 import fs from "fs";
-import { appPath, readDir } from "./common";
+import { appPath, getFuegoConfig, readDir } from "./common";
 import JSZip from "jszip";
 import path from "path";
 import crypto from "crypto";
@@ -41,8 +41,13 @@ const publish = ({
   name = path.basename(process.cwd()),
 }: {
   name?: string;
-}): Promise<number> =>
-  fs.existsSync("build")
+}): Promise<number> => {
+  const { functionFileDependencies = null } = getFuegoConfig();
+  // including a date in the zip produces consistent hashes
+  const options = {
+    date: new Date("09-24-1995"),
+  };
+  return fs.existsSync("build")
     ? Promise.all(
         readDir("build")
           .filter((f) => /\.js$/.test(f))
@@ -55,10 +60,19 @@ const publish = ({
               .replace(/\.js$/, "")
               .replace(/[\\/]/g, "_")
               .replace(/^build_/, "");
-            // including a date in the zip produces consistent hashes
-            zip.file(`${functionName}.js`, content, {
-              date: new Date("09-24-1995"),
-            });
+            zip.file(`${functionName}.js`, content, options);
+            const deps = (
+              functionFileDependencies as { [key: string]: string[] | string }
+            )?.[functionName];
+            if (deps) {
+              (typeof deps === "string" ? [deps] : deps).forEach((d) => {
+                zip.file(
+                  path.basename(d),
+                  fs.readFileSync(d).toString(),
+                  options
+                );
+              });
+            }
             const shasum = crypto.createHash("sha256");
             const data: Uint8Array[] = [];
             return new Promise<void>((resolve, reject) =>
@@ -105,5 +119,6 @@ const publish = ({
         console.log("No `build` directory to compile. Exiting...");
         return 0;
       });
+};
 
 export default publish;
