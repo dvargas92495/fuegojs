@@ -155,22 +155,30 @@ export const prepareApiBuild = (): Promise<Partial<BuildOptions>> =>
       functionFileDependencies
     ) {
       const filesToCopy = Object.values(functionFileDependencies)
-        .filter((files): files is string | string[] => !!files)
+        .filter((files) => !!files)
         .flatMap((files) =>
           typeof files === "string"
-            ? [files]
+            ? [{ from: files, to: path.basename(files) }]
             : typeof files === "object"
             ? Object.values(files)
+                .map((f) =>
+                  typeof f === "string"
+                    ? { from: f, to: path.basename(f) }
+                    : typeof f === "object" && f
+                    ? { from: (f as string[])[0], to: (f as string[])[1] }
+                    : undefined
+                )
+                .filter((f) => !!f)
             : []
-        ) as string[];
+        ) as { from: string; to: string }[];
       if (filesToCopy.length) {
         fs.mkdirSync(appPath(API_OUTPUT_DIR));
-        Array.from(new Set(filesToCopy)).forEach((f) =>
-          fs.copyFileSync(
-            f,
-            path.join(appPath(API_OUTPUT_DIR), path.basename(f))
-          )
-        );
+        Array.from(new Set(filesToCopy)).forEach(({ from, to }) => {
+          const out = path.join(appPath(API_OUTPUT_DIR), to);
+          if (!fs.existsSync(path.dirname(out)))
+            fs.mkdirSync(path.dirname(out));
+          fs.copyFileSync(from, out);
+        });
       }
     }
     const dynamicEnv = fs.existsSync(

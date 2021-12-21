@@ -62,16 +62,18 @@ const publish = ({
               .replace(/^build_/, "");
             zip.file(`${functionName}.js`, content, options);
             const deps = (
-              functionFileDependencies as { [key: string]: string[] | string }
+              functionFileDependencies as {
+                [key: string]: string[] | string | [string, string][];
+              }
             )?.[functionName];
             if (deps) {
-              (typeof deps === "string" ? [deps] : deps).forEach((d) => {
-                zip.file(
-                  path.basename(d),
-                  fs.readFileSync(d).toString(),
-                  options
-                );
-              });
+              (typeof deps === "string" ? [deps] : deps)
+                .map((d) =>
+                  Array.isArray(d) ? d.slice(-1)[0] : path.basename(d)
+                )
+                .forEach((d) => {
+                  zip.file(d, fs.readFileSync(d).toString(), options);
+                });
             }
             const shasum = crypto.createHash("sha256");
             const data: Uint8Array[] = [];
