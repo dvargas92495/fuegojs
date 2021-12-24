@@ -31,7 +31,8 @@ export const outputHtmlFile = (
     define: getDotEnvObject(),
     outdir: INTERMEDIATE_DIR,
     bundle: true,
-    external: ["react", "react-dom"],
+    external: ["react", "react-dom", "canvas"],
+    target: "node14",
   })
     .then(() =>
       Promise.all(
@@ -50,7 +51,7 @@ export const outputHtmlFile = (
       isr({ Page, _html, data, params, path: pagePath })
     )
     .catch((e) => {
-      console.error(e.message);
+      console.error(e);
       return 1;
     });
 };
@@ -148,6 +149,7 @@ export const prepareApiBuild = (): Promise<Partial<BuildOptions>> =>
       platform: "node" as const,
       external: ["aws-sdk", "canvas"],
       define: getDotEnvObject(),
+      target: "node14",
     };
     const { functionFileDependencies = null } = getFuegoConfig();
     if (
