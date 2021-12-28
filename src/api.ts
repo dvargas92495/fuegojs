@@ -79,10 +79,10 @@ const api = ({ tunnel }: { tunnel?: string }): Promise<number> => {
       esbuildWatch({
         paths: ["functions"],
         opts,
-        rebuildCallback: (file) =>
-          import(
-            appPath(file.replace(/^functions/, "build").replace(/\.ts$/, ".js"))
-          ).then(({ handler }) => {
+        rebuildCallback: (file) => {
+          const filePath = appPath(file.replace(/^functions/, "build").replace(/\.ts$/, ".js"));
+          return import(filePath).then(({ handler }) => {
+            delete require.cache[filePath];
             const functionName = file
               .replace(/^functions[\\/]/, "")
               .replace(/\.[t|j]s$/, "");
@@ -338,7 +338,8 @@ const api = ({ tunnel }: { tunnel?: string }): Promise<number> => {
             if (apiCount === ++currentCount) {
               resolve();
             }
-          }),
+          });
+        },
         entryRegex,
       })
     ).then(() => {
