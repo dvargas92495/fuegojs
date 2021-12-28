@@ -80,7 +80,9 @@ const api = ({ tunnel }: { tunnel?: string }): Promise<number> => {
         paths: ["functions"],
         opts,
         rebuildCallback: (file) => {
-          const filePath = appPath(file.replace(/^functions/, "build").replace(/\.ts$/, ".js"));
+          const filePath = appPath(
+            file.replace(/^functions/, "build").replace(/\.ts$/, ".js")
+          );
           return import(filePath).then(({ handler }) => {
             delete require.cache[filePath];
             const functionName = file

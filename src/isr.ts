@@ -61,7 +61,7 @@ const isr = async <
           __html: `window.FUEGO_PROPS=${JSON.stringify(props)}`,
         },
       }),
-      React.createElement("script", { src: `/${path}` }),
+      React.createElement("script", { src: `/${path}` })
     )
   );
   const transformHead = _html?.transformHead || ((h) => h);
