@@ -77,7 +77,7 @@ const api = ({ tunnel }: { tunnel?: string }): Promise<number> => {
     let currentCount = 0;
     return new Promise<void>((resolve) =>
       esbuildWatch({
-        paths: ["functions"],
+        paths: ["functions", "db"],
         opts,
         rebuildCallback: (file) => {
           const filePath = appPath(
