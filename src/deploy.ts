@@ -1,7 +1,7 @@
 import AWS from "aws-sdk";
 import fs from "fs";
 import mime from "mime-types";
-import { readDir } from "./common";
+import { readDir, FE_OUT_DIR } from "./common";
 import path from "path";
 
 const s3 = new AWS.S3({
@@ -63,14 +63,15 @@ const waitForCloudfront = (props: {
 
 const deploy = ({
   domain = path.basename(process.cwd()),
+  keys,
 }: {
   domain?: string;
+  keys?: string[];
 }): Promise<number> => {
   console.log(`Deploying to bucket at ${domain}`);
-  const outDir = path.join(process.env.FE_DIR_PREFIX || "", "out");
   return Promise.all(
-    readDir(outDir).map((p) => {
-      const Key = p.substring(outDir.length + 1);
+    (keys ? keys : readDir(FE_OUT_DIR)).map((p) => {
+      const Key = p.substring(FE_OUT_DIR.length + 1);
       const uploadProps = {
         Bucket: domain,
         ContentType: mime.lookup(Key) || undefined,
@@ -85,7 +86,11 @@ const deploy = ({
         .promise();
     })
   )
-    .then(() => getDistributionIdByDomain(domain))
+    .then(
+      () =>
+        process.env.CLOUDFRONT_DISTRIBUTION_ID ||
+        getDistributionIdByDomain(domain)
+    )
     .then((DistributionId) => {
       if (DistributionId) {
         console.log(`Invalidating cache for ${domain}`);
@@ -121,5 +126,13 @@ const deploy = ({
       process.exit(1);
     });
 };
+
+export const targetedDeploy = (keys?: string[]): void | Promise<void> =>
+  process.env.NODE_ENV === "production"
+    ? deploy({
+        keys,
+        domain: (process.env.HOST || "").replace(/^https?:\/\//, ""),
+      }).then(() => console.log("deployed successfully"))
+    : console.log("Wrote locally");
 
 export default deploy;

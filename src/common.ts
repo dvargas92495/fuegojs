@@ -7,6 +7,7 @@ import type { BuildOptions } from "esbuild";
 dotenv.config();
 
 export const INTERMEDIATE_DIR = "_fuego";
+export const FE_OUT_DIR = path.join(process.env.FE_DIR_PREFIX || "", "out");
 export const appPath = (p: string): string =>
   path.resolve(fs.realpathSync(process.cwd()), p);
 
