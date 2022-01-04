@@ -42,7 +42,7 @@ const publish = ({
 }: {
   name?: string;
 }): Promise<number> => {
-  const { functionFileDependencies = null } = getFuegoConfig();
+  const { functionFileDependencies = {} } = getFuegoConfig();
   // including a date in the zip produces consistent hashes
   const options = {
     date: new Date("09-24-1995"),
@@ -61,20 +61,20 @@ const publish = ({
               .replace(/[\\/]/g, "_")
               .replace(/^build_/, "");
             zip.file(`${functionName}.js`, content, options);
-            const deps = (
-              functionFileDependencies as {
-                [key: string]: string[] | string | [string, string][];
-              }
-            )?.[functionName];
+            const deps = Object.entries(functionFileDependencies)
+              .filter(([regex]) => new RegExp(regex).test(functionName))
+              .flatMap(([, deps]) =>
+                typeof deps === "string"
+                  ? [path.basename(deps)]
+                  : deps.map((d) =>
+                      Array.isArray(d) ? d.slice(-1)[0] : path.basename(d)
+                    )
+              );
             if (deps) {
-              (typeof deps === "string" ? [deps] : deps)
-                .map((d) =>
-                  Array.isArray(d) ? d.slice(-1)[0] : path.basename(d)
-                )
-                .forEach((d) => {
-                  const filePath = appPath(path.join("build", d));
-                  zip.file(d, fs.readFileSync(filePath).toString(), options);
-                });
+              deps.forEach((d) => {
+                const filePath = appPath(path.join("build", d));
+                zip.file(d, fs.readFileSync(filePath).toString(), options);
+              });
             }
             const shasum = crypto.createHash("sha256");
             const data: Uint8Array[] = [];

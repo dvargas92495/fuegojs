@@ -100,5 +100,9 @@ export type json =
   | json[]
   | { [key: string]: json };
 
-export const getFuegoConfig = (): { [key: string]: json } =>
+export const getFuegoConfig = (): {
+  functionFileDependencies?: {
+    [key: string]: string[] | string | [string, string][];
+  };
+} =>
   JSON.parse(fs.readFileSync(appPath("package.json")).toString())?.fuego || {};
