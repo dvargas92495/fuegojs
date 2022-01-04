@@ -72,7 +72,8 @@ const publish = ({
                   Array.isArray(d) ? d.slice(-1)[0] : path.basename(d)
                 )
                 .forEach((d) => {
-                  zip.file(d, fs.readFileSync(d).toString(), options);
+                  const filePath = appPath(path.join('build', d))
+                  zip.file(d, fs.readFileSync(filePath).toString(), options);
                 });
             }
             const shasum = crypto.createHash("sha256");
