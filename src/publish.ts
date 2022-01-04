@@ -72,7 +72,7 @@ const publish = ({
                   Array.isArray(d) ? d.slice(-1)[0] : path.basename(d)
                 )
                 .forEach((d) => {
-                  const filePath = appPath(path.join('build', d))
+                  const filePath = appPath(path.join("build", d));
                   zip.file(d, fs.readFileSync(filePath).toString(), options);
                 });
             }
