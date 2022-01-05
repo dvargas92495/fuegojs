@@ -1,6 +1,7 @@
 import fs from "fs";
 import { appPath, getFuegoConfig, readDir } from "./common";
-import JSZip from "jszip";
+//import JSZip from "jszip";
+import archiver from "archiver";
 import path from "path";
 import crypto from "crypto";
 import AWS from "aws-sdk";
@@ -53,14 +54,16 @@ const publish = ({
           .filter((f) => /\.js$/.test(f))
           .map((f) => {
             const apiName = name.replace(/\./g, "-");
-            const zip = new JSZip();
+            // const zip = new JSZip();
+            // const content = fs.readFileSync(appPath(f));
+            const zip = archiver("zip", { gzip: true, zlib: { level: 9 } });
             console.log(`Zipping ${f}...`);
-            const content = fs.readFileSync(appPath(f));
             const functionName = f
               .replace(/\.js$/, "")
               .replace(/[\\/]/g, "_")
               .replace(/^build_/, "");
-            zip.file(`${functionName}.js`, content, options);
+            //zip.file(`${functionName}.js`, content, options);
+            zip.file(appPath(f), { name: `${functionName}.js`, ...options });
             const deps = Object.entries(functionFileDependencies)
               .filter(([regex]) => new RegExp(regex).test(functionName))
               .flatMap(([, deps]) =>
@@ -73,14 +76,14 @@ const publish = ({
             if (deps) {
               deps.forEach((d) => {
                 const filePath = appPath(path.join("build", d));
-                zip.file(d, fs.readFileSync(filePath).toString(), options);
+                // zip.file(d, fs.readFileSync(filePath).toString(), options);
+                zip.file(filePath, { name: d, ...options });
               });
             }
             const shasum = crypto.createHash("sha256");
             const data: Uint8Array[] = [];
             return new Promise<void>((resolve, reject) =>
               zip
-                .generateNodeStream({ type: "nodebuffer", streamFiles: true })
                 .on("data", (d) => {
                   data.push(d);
                   shasum.update(d);
@@ -113,8 +116,12 @@ const publish = ({
                     })
                     .then(console.log)
                     .then(resolve)
-                    .catch(reject);
+                    .catch((e) => {
+                      console.error(`deploy of ${functionName} failed:`);
+                      reject(e);
+                    });
                 })
+                .finalize()
             );
           })
       ).then(() => 0)

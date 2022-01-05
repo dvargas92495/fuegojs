@@ -179,7 +179,12 @@ export const prepareApiBuild = (): Promise<Partial<BuildOptions>> =>
           const out = path.join(appPath(API_OUTPUT_DIR), to);
           if (!fs.existsSync(path.dirname(out)))
             fs.mkdirSync(path.dirname(out));
-          fs.copyFileSync(from, out);
+          try {
+            fs.copyFileSync(from, out);
+          } catch (e) {
+            console.error(`Failed to copy file from ${from} to ${out}`);
+            console.error(e);
+          }
         });
       }
     }
