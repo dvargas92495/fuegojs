@@ -5,7 +5,11 @@ import { prepareApiBuild } from "./esbuild-helpers";
 
 const commonRegex = /^functions[/\\]_common/;
 
-const compile = (): Promise<number> => {
+const compile = ({
+  readable = false,
+}: {
+  readable?: boolean;
+}): Promise<number> => {
   process.env.NODE_ENV = process.env.NODE_ENV || "production";
   return fs.existsSync("functions")
     ? prepareApiBuild()
@@ -20,7 +24,7 @@ const compile = (): Promise<number> => {
                   `./${f}`,
                 ])
             ),
-            minify: true,
+            minify: !readable,
           })
         )
         .then((r) => {

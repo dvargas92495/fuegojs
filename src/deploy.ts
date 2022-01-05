@@ -64,27 +64,31 @@ const waitForCloudfront = (props: {
 const deploy = ({
   domain = path.basename(process.cwd()),
   keys,
+  impatient = false,
 }: {
   domain?: string;
   keys?: string[];
+  impatient?: boolean;
 }): Promise<number> => {
   console.log(`Deploying to bucket at ${domain}`);
   return Promise.all(
-    (keys ? keys : readDir(FE_OUT_DIR)).map((p) => {
-      const Key = p.substring(FE_OUT_DIR.length + 1);
-      const uploadProps = {
-        Bucket: domain,
-        ContentType: mime.lookup(Key) || undefined,
-      };
-      console.log(`Uploading ${p} to ${Key}...`);
-      return s3
-        .upload({
-          Key,
-          ...uploadProps,
-          Body: fs.createReadStream(p),
-        })
-        .promise();
-    })
+    (keys ? keys.filter((k) => fs.existsSync(k)) : readDir(FE_OUT_DIR)).map(
+      (p) => {
+        const Key = p.substring(FE_OUT_DIR.length + 1);
+        const uploadProps = {
+          Bucket: domain,
+          ContentType: mime.lookup(Key) || undefined,
+        };
+        console.log(`Uploading ${p} to ${Key}...`);
+        return s3
+          .upload({
+            Key,
+            ...uploadProps,
+            Body: fs.createReadStream(p),
+          })
+          .promise();
+      }
+    )
   )
     .then(
       () =>
@@ -115,9 +119,10 @@ const deploy = ({
         new Error(`Could not find cloudfront distribution for domain ${domain}`)
       );
     })
-    .then(
-      (props) =>
-        new Promise((resolve) => waitForCloudfront({ ...props, resolve }))
+    .then((props) =>
+      impatient
+        ? Promise.resolve("Skipped waiting...")
+        : new Promise((resolve) => waitForCloudfront({ ...props, resolve }))
     )
     .then((msg) => console.log(msg))
     .then(() => 0)
@@ -127,11 +132,15 @@ const deploy = ({
     });
 };
 
-export const targetedDeploy = (keys?: string[]): void | Promise<void> =>
+export const targetedDeploy = (
+  keys?: string[],
+  impatient?: boolean
+): void | Promise<void> =>
   process.env.NODE_ENV === "production"
     ? deploy({
         keys,
         domain: (process.env.HOST || "").replace(/^https?:\/\//, ""),
+        impatient,
       }).then(() => console.log("deployed successfully"))
     : console.log("Wrote locally");
 
