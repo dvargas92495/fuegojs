@@ -65,10 +65,14 @@ const buildDir = (
     }
     readDir("files").forEach((f) => {
       const base = f.replace(/^files\//, "");
-      fs.copyFileSync(
-        f,
-        nodepath.join(process.env.FE_DIR_PREFIX || "", "out", base)
+      const outfile = nodepath.join(
+        process.env.FE_DIR_PREFIX || "",
+        "out",
+        base
       );
+      const baseDir = nodepath.dirname(outfile);
+      if (!fs.existsSync(baseDir)) fs.mkdirSync(baseDir, { recursive: true });
+      fs.copyFileSync(f, outfile);
     });
     return outputHtmlFiles(entryPoints.filter(({ exclude }) => !exclude));
   });
