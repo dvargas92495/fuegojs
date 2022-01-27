@@ -32,28 +32,33 @@ const getDistributionIdByDomain = async (domain: string) => {
 const waitForCloudfrontInvalidation = (props: {
   trial?: number;
   DistributionId: string;
-  resolve: (s: string) => void;
   Id: string;
-}) => {
-  const { trial = 0, resolve, ...args } = props;
-  cloudfront
+}): Promise<string> => {
+  const { trial = 0, ...args } = props;
+  return cloudfront
     .getInvalidation(args)
     .promise()
     .then((r) => r.Invalidation?.Status)
     .then((status) => {
       if (status === "Completed") {
-        resolve("Done!");
+        return "Done!";
       } else if (trial === 60) {
-        resolve("Ran out of time waiting for cloudfront...");
+        return "Ran out of time waiting for cloudfront...";
       } else {
-        setTimeout(
-          () =>
-            waitForCloudfrontInvalidation({
-              ...args,
-              trial: trial + 1,
-              resolve,
-            }),
-          5000
+        console.log(
+          `Distribution had status ${status} on trial ${trial}. Trying again...`
+        );
+        return new Promise((resolve) =>
+          setTimeout(
+            () =>
+              resolve(
+                waitForCloudfrontInvalidation({
+                  ...args,
+                  trial: trial + 1,
+                })
+              ),
+            5000
+          )
         );
       }
     });
@@ -109,7 +114,7 @@ const waitForCloudfront = (trial = 0): Promise<string> => {
           `Distribution had status ${status} on trial ${trial}. Trying again...`
         );
         return new Promise<string>((resolve) =>
-          setTimeout(() => resolve(waitForCloudfront(trial + 1)), 1000)
+          setTimeout(() => resolve(waitForCloudfront(trial + 1)), 5000)
         );
       }
     });
@@ -229,7 +234,29 @@ const deployWithRemix = ({ domain }: { domain: string }): Promise<number> => {
                           `Updated. Current Status: ${r.Distribution?.Status}`
                         );
                         return waitForCloudfront().then(console.log);
-                      });
+                      })
+                      .then(() =>
+                        cloudfront
+                          .createInvalidation({
+                            DistributionId:
+                              process.env.CLOUDFRONT_DISTRIBUTION_ID || "",
+                            InvalidationBatch: {
+                              CallerReference: new Date().toJSON(),
+                              Paths: {
+                                Quantity: 1,
+                                Items: [`/*`],
+                              },
+                            },
+                          })
+                          .promise()
+                          .then((i) => ({
+                            Id: i.Invalidation?.Id || "",
+                            DistributionId:
+                              process.env.CLOUDFRONT_DISTRIBUTION_ID || "",
+                          }))
+                          .then(waitForCloudfrontInvalidation)
+                          .then(console.log)
+                      );
                   });
               });
           }
@@ -310,9 +337,7 @@ const deploy = ({
     .then((props) =>
       impatient
         ? Promise.resolve("Skipped waiting...")
-        : new Promise((resolve) =>
-            waitForCloudfrontInvalidation({ ...props, resolve })
-          )
+        : waitForCloudfrontInvalidation(props)
     )
     .then((msg) => console.log(msg))
     .then(() => 0)
