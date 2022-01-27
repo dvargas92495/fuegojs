@@ -121,7 +121,7 @@ module.exports = ${JSON.stringify(newRemixConfig, null, 4)};`
 const build = (args: BuildArgs = {}): Promise<number> => {
   process.env.NODE_ENV = process.env.NODE_ENV || "production";
   if (args.remix) {
-    return buildWithRemix({readable: args.readable});
+    return buildWithRemix({ readable: args.readable });
   }
   return prepareFeBuild()
     .then((opts) => buildDir(args, opts))

@@ -191,7 +191,7 @@ const deployWithRemix = ({ domain }: { domain: string }): Promise<number> => {
                             ?.Items || []
                         ).map((l) =>
                           l.LambdaFunctionARN.includes("origin-request")
-                            ? { ...l, LambdaFunctionARN: upd.FunctionArn || '' }
+                            ? { ...l, LambdaFunctionARN: upd.FunctionArn || "" }
                             : l
                         ),
                       },
@@ -200,7 +200,7 @@ const deployWithRemix = ({ domain }: { domain: string }): Promise<number> => {
                   return cloudfront
                     .updateDistribution({
                       DistributionConfig,
-                      Id: process.env.CLOUDFRONT_DISTRIBUTION_ID || '',
+                      Id: process.env.CLOUDFRONT_DISTRIBUTION_ID || "",
                       IfMatch: config.ETag,
                     })
                     .promise()
