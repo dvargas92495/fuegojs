@@ -220,7 +220,7 @@ const deployWithRemix = ({ domain }: { domain: string }): Promise<number> => {
                     return cloudfront
                       .updateDistribution({
                         DistributionConfig,
-                        Id: process.env.CLOUDFRONT_DISTRIBUTION_ID || '',
+                        Id: process.env.CLOUDFRONT_DISTRIBUTION_ID || "",
                         IfMatch: config.ETag,
                       })
                       .promise()
