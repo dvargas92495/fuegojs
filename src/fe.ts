@@ -3,11 +3,21 @@ import express from "express";
 import fs from "fs";
 import path from "path";
 import { esbuildWatch, outputHtmlFile } from "./esbuild-helpers";
+import { dev } from "@remix-run/dev/cli/commands";
+
+type FeArgs = { remix?: boolean };
 
 const DYNAMIC_ROUTES = new Set<string>();
 
-const fe = (): Promise<number> => {
+const feWithRemix = () => {
+  return new Promise<number>(() => dev(process.cwd(), process.env.NODE_ENV));
+};
+
+const fe = (args: FeArgs = {}): Promise<number> => {
   process.env.NODE_ENV = process.env.NODE_ENV || "development";
+  if (args.remix) {
+    return feWithRemix();
+  }
   return prepareFeBuild().then((opts) => {
     const app = express();
     app.use(express.static(appPath("out"), { extensions: ["html"] }));

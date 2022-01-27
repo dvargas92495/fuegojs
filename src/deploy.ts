@@ -1,16 +1,14 @@
 import AWS from "aws-sdk";
 import fs from "fs";
 import mime from "mime-types";
-import { readDir, FE_OUT_DIR } from "./common";
+import { readDir, FE_OUT_DIR, appPath } from "./common";
 import path from "path";
+import archiver from "archiver";
+import crypto from "crypto";
 
-const s3 = new AWS.S3({
-  apiVersion: "2006-03-01",
-});
-
-const cloudfront = new AWS.CloudFront({
-  apiVersion: "2020-05-31",
-});
+const s3 = new AWS.S3();
+const cloudfront = new AWS.CloudFront();
+const lambda = new AWS.Lambda();
 
 const getDistributionIdByDomain = async (domain: string) => {
   let finished = false;
@@ -31,7 +29,7 @@ const getDistributionIdByDomain = async (domain: string) => {
   return null;
 };
 
-const waitForCloudfront = (props: {
+const waitForCloudfrontInvalidation = (props: {
   trial?: number;
   DistributionId: string;
   resolve: (s: string) => void;
@@ -50,7 +48,7 @@ const waitForCloudfront = (props: {
       } else {
         setTimeout(
           () =>
-            waitForCloudfront({
+            waitForCloudfrontInvalidation({
               ...args,
               trial: trial + 1,
               resolve,
@@ -61,15 +59,203 @@ const waitForCloudfront = (props: {
     });
 };
 
+const waitForLambda = ({
+  trial = 0,
+  Qualifier,
+  FunctionName,
+}: {
+  trial?: number;
+  Qualifier: string;
+  FunctionName: string;
+}): Promise<string> => {
+  return lambda
+    .getFunction({ FunctionName, Qualifier })
+    .promise()
+    .then((r) => r.Configuration?.State)
+    .then((status) => {
+      if (status === "Active") {
+        return "Done, Lambda is Active!";
+      } else if (trial === 60) {
+        return "Ran out of time waiting for lambda...";
+      } else {
+        console.log(
+          `Lambda had state ${status} on trial ${trial}. Trying again...`
+        );
+        return new Promise((resolve) =>
+          setTimeout(
+            () =>
+              resolve(
+                waitForLambda({ trial: trial + 1, Qualifier, FunctionName })
+              ),
+            6000
+          )
+        );
+      }
+    });
+};
+
+const waitForCloudfront = (trial = 0): Promise<string> => {
+  return cloudfront
+    .getDistribution({ Id: process.env.CLOUDFRONT_DISTRIBUTION_ID || "" })
+    .promise()
+    .then((r) => r.Distribution?.Status)
+    .then((status) => {
+      if (status === "Enabled") {
+        return "Done, Cloudfront is Enabled!";
+      } else if (trial === 60) {
+        return "Ran out of time waiting for cloudfront...";
+      } else {
+        console.log(
+          `Distribution had status ${status} on trial ${trial}. Trying again...`
+        );
+        return new Promise<string>((resolve) =>
+          setTimeout(() => resolve(waitForCloudfront(trial + 1)), 1000)
+        );
+      }
+    });
+};
+
+const options = {
+  date: new Date("09-24-1995"),
+};
+
+const deployWithRemix = ({ domain }: { domain: string }): Promise<number> => {
+  const zip = archiver("zip", { gzip: true, zlib: { level: 9 } });
+  readDir("out").forEach((f) =>
+    zip.file(appPath(f), { name: `origin-request.js`, ...options })
+  );
+  const FunctionName = `${domain.replace(/\./g, "-")}_origin-request.js`;
+  return new Promise<{ sha256: string; data: Uint8Array[] }>((resolve) => {
+    const shasum = crypto.createHash("sha256");
+    const data: Uint8Array[] = [];
+    zip
+      .on("data", (d) => {
+        data.push(d);
+        shasum.update(d);
+      })
+      .on("end", () => {
+        const sha256 = shasum.digest("base64");
+        resolve({ sha256, data });
+      })
+      .finalize();
+  }).then(({ sha256, data }) =>
+    lambda
+      .getFunction({
+        FunctionName,
+      })
+      .promise()
+      .then((l) => {
+        if (sha256 === l.Configuration?.CodeSha256) {
+          console.log(`No need to upload ${FunctionName}, shas match.`);
+          return Promise.resolve();
+        } else {
+          return lambda
+            .updateFunctionCode({
+              FunctionName,
+              Publish: true,
+              ZipFile: Buffer.concat(data),
+            })
+            .promise()
+            .then((upd) => {
+              console.log(
+                `Succesfully uploaded ${FunctionName} V${upd.Version} at ${upd.LastModified}`
+              );
+              return waitForLambda({
+                Qualifier: upd.Version || "",
+                FunctionName,
+              })
+                .then(console.log)
+                .then(() =>
+                  cloudfront
+                    .getDistribution({
+                      Id: process.env.CLOUDFRONT_DISTRIBUTION_ID || "",
+                    })
+                    .promise()
+                )
+                .then((config) => {
+                  if (!config.Distribution)
+                    throw new Error("No Distribution Found");
+                  const DistributionConfig = {
+                    ...config.Distribution.DistributionConfig,
+                    DefaultCacheBehavior: {
+                      ...config.Distribution.DistributionConfig
+                        .DefaultCacheBehavior,
+                      LambdaFunctionAssociations: {
+                        Quantity:
+                          config.Distribution.DistributionConfig
+                            .DefaultCacheBehavior.LambdaFunctionAssociations
+                            ?.Quantity || 0,
+                        Items: (
+                          config.Distribution.DistributionConfig
+                            .DefaultCacheBehavior.LambdaFunctionAssociations
+                            ?.Items || []
+                        ).map((l) =>
+                          l.LambdaFunctionARN.includes("origin-request")
+                            ? { ...l, LambdaFunctionARN: upd.FunctionArn || '' }
+                            : l
+                        ),
+                      },
+                    },
+                  };
+                  return cloudfront
+                    .updateDistribution({
+                      DistributionConfig,
+                      Id: process.env.CLOUDFRONT_DISTRIBUTION_ID || '',
+                      IfMatch: config.ETag,
+                    })
+                    .promise()
+                    .then((r) => {
+                      console.log(
+                        `Updated. Current Status: ${r.Distribution?.Status}`
+                      );
+                      return waitForCloudfront().then(console.log);
+                    });
+                });
+            });
+        }
+      })
+      .then(() =>
+        Promise.all(
+          readDir(FE_OUT_DIR).map((p) => {
+            const Key = p.substring(FE_OUT_DIR.length + 1);
+            const uploadProps = {
+              Bucket: domain,
+              ContentType: mime.lookup(Key) || undefined,
+            };
+            console.log(`Uploading ${p} to ${Key}...`);
+            return s3
+              .upload({
+                Key,
+                ...uploadProps,
+                Body: fs.createReadStream(p),
+              })
+              .promise();
+          })
+        )
+      )
+      .then(() => 0)
+      .catch((e) => {
+        console.error(`deploy failed:`);
+        console.error(e);
+        return 1;
+      })
+  );
+};
+
 const deploy = ({
   domain = path.basename(process.cwd()),
   keys,
   impatient = false,
+  remix = false,
 }: {
   domain?: string;
   keys?: string[];
   impatient?: boolean;
+  remix?: boolean;
 }): Promise<number> => {
+  if (remix) {
+    return deployWithRemix({ domain });
+  }
   console.log(`Deploying to bucket at ${domain}`);
   return Promise.all(
     (keys ? keys.filter((k) => fs.existsSync(k)) : readDir(FE_OUT_DIR)).map(
@@ -122,7 +308,9 @@ const deploy = ({
     .then((props) =>
       impatient
         ? Promise.resolve("Skipped waiting...")
-        : new Promise((resolve) => waitForCloudfront({ ...props, resolve }))
+        : new Promise((resolve) =>
+            waitForCloudfrontInvalidation({ ...props, resolve })
+          )
     )
     .then((msg) => console.log(msg))
     .then(() => 0)

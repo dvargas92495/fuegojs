@@ -54,15 +54,12 @@ const publish = ({
           .filter((f) => /\.js$/.test(f))
           .map((f) => {
             const apiName = name.replace(/\./g, "-");
-            // const zip = new JSZip();
-            // const content = fs.readFileSync(appPath(f));
             const zip = archiver("zip", { gzip: true, zlib: { level: 9 } });
             console.log(`Zipping ${f}...`);
             const functionName = f
               .replace(/\.js$/, "")
               .replace(/[\\/]/g, "_")
               .replace(/^build_/, "");
-            //zip.file(`${functionName}.js`, content, options);
             zip.file(appPath(f), { name: `${functionName}.js`, ...options });
             const deps = Object.entries(functionFileDependencies)
               .filter(([regex]) => new RegExp(regex).test(functionName))

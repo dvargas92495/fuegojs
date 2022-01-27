@@ -1,5 +1,6 @@
 import { build as esbuild, BuildOptions } from "esbuild";
 import {
+  appPath,
   feMapFile,
   INTERMEDIATE_DIR,
   prepareFeBuild,
@@ -9,8 +10,13 @@ import {
 import { outputHtmlFiles } from "./esbuild-helpers";
 import fs from "fs";
 import nodepath from "path";
+import { build as remixBuild } from "@remix-run/dev/cli/commands";
 
-type BuildArgs = { path?: string | string[] };
+type BuildArgs = {
+  path?: string | string[];
+  remix?: boolean;
+  readable?: boolean;
+};
 
 const commonRegex = /^pages[/\\]_/;
 const dataRegex = /\.data\.[t|j]sx?/;
@@ -78,8 +84,45 @@ const buildDir = (
   });
 };
 
+const buildWithRemix = ({ readable = false } = {}) => {
+  const fuegoRemixConfig =
+    JSON.parse(fs.readFileSync(appPath("package.json")).toString())?.fuego
+      ?.remixConfig || {};
+  const remixConfigFile = appPath("remix.config.js");
+  const existingRemixConfig = fs.existsSync(remixConfigFile)
+    ? require(remixConfigFile)
+    : {};
+  const newRemixConfig = {
+    ...existingRemixConfig,
+    serverBuildDirectory: "server/build",
+    ...fuegoRemixConfig,
+  };
+  fs.writeFileSync(
+    remixConfigFile,
+    `/**
+ * @type {import('@remix-run/dev/config').AppConfig}
+ */
+module.exports = ${JSON.stringify(newRemixConfig, null, 4)};`
+  );
+  return remixBuild(process.cwd(), process.env.NODE_ENV)
+    .then(() =>
+      esbuild({
+        bundle: true,
+        outdir: "out",
+        platform: "node",
+        target: "node14",
+        entryPoints: ["server/index.ts"],
+        minify: !readable,
+      })
+    )
+    .then(() => 0);
+};
+
 const build = (args: BuildArgs = {}): Promise<number> => {
   process.env.NODE_ENV = process.env.NODE_ENV || "production";
+  if (args.remix) {
+    return buildWithRemix({readable: args.readable});
+  }
   return prepareFeBuild()
     .then((opts) => buildDir(args, opts))
     .then((code) =>

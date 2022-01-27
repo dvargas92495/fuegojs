@@ -174,11 +174,11 @@ export const prepareApiBuild = (): Promise<Partial<BuildOptions>> =>
             : []
         ) as { from: string; to: string }[];
       if (filesToCopy.length) {
-        fs.mkdirSync(appPath(API_OUTPUT_DIR));
+        fs.mkdirSync(appPath(API_OUTPUT_DIR), { recursive: true });
         Array.from(new Set(filesToCopy)).forEach(({ from, to }) => {
           const out = path.join(appPath(API_OUTPUT_DIR), to);
           if (!fs.existsSync(path.dirname(out)))
-            fs.mkdirSync(path.dirname(out));
+            fs.mkdirSync(path.dirname(out), { recursive: true });
           try {
             fs.copyFileSync(from, out);
           } catch (e) {

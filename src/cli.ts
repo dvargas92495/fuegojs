@@ -52,7 +52,7 @@ const run = async (command: string, args: string[]): Promise<number> => {
     case "deploy":
       return deploy(opts);
     case "fe":
-      return fe();
+      return fe(opts);
     case "compile":
       return compile(opts);
     case "publish":
