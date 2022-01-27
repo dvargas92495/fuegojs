@@ -53,7 +53,7 @@ const waitForCloudfrontInvalidation = (props: {
               trial: trial + 1,
               resolve,
             }),
-          1000
+          5000
         );
       }
     });
@@ -87,7 +87,7 @@ const waitForLambda = ({
               resolve(
                 waitForLambda({ trial: trial + 1, Qualifier, FunctionName })
               ),
-            6000
+            1000
           )
         );
       }
@@ -120,126 +120,128 @@ const options = {
 };
 
 const deployWithRemix = ({ domain }: { domain: string }): Promise<number> => {
-  const zip = archiver("zip", { gzip: true, zlib: { level: 9 } });
-  readDir("out").forEach((f) =>
-    zip.file(appPath(f), { name: `origin-request.js`, ...options })
-  );
-  const FunctionName = `${domain.replace(/\./g, "-")}_origin-request.js`;
-  return new Promise<{ sha256: string; data: Uint8Array[] }>((resolve) => {
-    const shasum = crypto.createHash("sha256");
-    const data: Uint8Array[] = [];
-    zip
-      .on("data", (d) => {
-        data.push(d);
-        shasum.update(d);
-      })
-      .on("end", () => {
-        const sha256 = shasum.digest("base64");
-        resolve({ sha256, data });
-      })
-      .finalize();
-  }).then(({ sha256, data }) =>
-    lambda
-      .getFunction({
-        FunctionName,
-      })
-      .promise()
-      .then((l) => {
-        if (sha256 === l.Configuration?.CodeSha256) {
-          console.log(`No need to upload ${FunctionName}, shas match.`);
-          return Promise.resolve();
-        } else {
-          return lambda
-            .updateFunctionCode({
-              FunctionName,
-              Publish: true,
-              ZipFile: Buffer.concat(data),
-            })
-            .promise()
-            .then((upd) => {
-              console.log(
-                `Succesfully uploaded ${FunctionName} V${upd.Version} at ${upd.LastModified}`
-              );
-              return waitForLambda({
-                Qualifier: upd.Version || "",
+  return Promise.all(
+    readDir(FE_OUT_DIR).map((p) => {
+      const Key = p.substring(FE_OUT_DIR.length + 1);
+      const uploadProps = {
+        Bucket: domain,
+        ContentType: mime.lookup(Key) || undefined,
+      };
+      console.log(`Uploading ${p} to ${Key}...`);
+      return s3
+        .upload({
+          Key,
+          ...uploadProps,
+          Body: fs.createReadStream(p),
+        })
+        .promise();
+    })
+  ).then(() => {
+    const zip = archiver("zip", { gzip: true, zlib: { level: 9 } });
+    readDir("out").forEach((f) =>
+      zip.file(appPath(f), { name: `origin-request.js`, ...options })
+    );
+    const FunctionName = `${domain.replace(/\./g, "-")}_origin-request.js`;
+    return new Promise<{ sha256: string; data: Uint8Array[] }>((resolve) => {
+      const shasum = crypto.createHash("sha256");
+      const data: Uint8Array[] = [];
+      zip
+        .on("data", (d) => {
+          data.push(d);
+          shasum.update(d);
+        })
+        .on("end", () => {
+          const sha256 = shasum.digest("base64");
+          resolve({ sha256, data });
+        })
+        .finalize();
+    }).then(({ sha256, data }) =>
+      lambda
+        .getFunction({
+          FunctionName,
+        })
+        .promise()
+        .then((l) => {
+          if (sha256 === l.Configuration?.CodeSha256) {
+            console.log(`No need to upload ${FunctionName}, shas match.`);
+            return Promise.resolve();
+          } else {
+            return lambda
+              .updateFunctionCode({
                 FunctionName,
+                Publish: true,
+                ZipFile: Buffer.concat(data),
               })
-                .then(console.log)
-                .then(() =>
-                  cloudfront
-                    .getDistribution({
-                      Id: process.env.CLOUDFRONT_DISTRIBUTION_ID || "",
-                    })
-                    .promise()
-                )
-                .then((config) => {
-                  if (!config.Distribution)
-                    throw new Error("No Distribution Found");
-                  const DistributionConfig = {
-                    ...config.Distribution.DistributionConfig,
-                    DefaultCacheBehavior: {
-                      ...config.Distribution.DistributionConfig
-                        .DefaultCacheBehavior,
-                      LambdaFunctionAssociations: {
-                        Quantity:
-                          config.Distribution.DistributionConfig
-                            .DefaultCacheBehavior.LambdaFunctionAssociations
-                            ?.Quantity || 0,
-                        Items: (
-                          config.Distribution.DistributionConfig
-                            .DefaultCacheBehavior.LambdaFunctionAssociations
-                            ?.Items || []
-                        ).map((l) =>
-                          l.LambdaFunctionARN.includes("origin-request")
-                            ? { ...l, LambdaFunctionARN: upd.FunctionArn || "" }
-                            : l
-                        ),
+              .promise()
+              .then((upd) => {
+                console.log(
+                  `Succesfully uploaded ${FunctionName} V${upd.Version} at ${upd.LastModified}`
+                );
+                return waitForLambda({
+                  Qualifier: upd.Version || "",
+                  FunctionName,
+                })
+                  .then(console.log)
+                  .then(() =>
+                    cloudfront
+                      .getDistribution({
+                        Id: process.env.CLOUDFRONT_DISTRIBUTION_ID || "",
+                      })
+                      .promise()
+                  )
+                  .then((config) => {
+                    if (!config.Distribution)
+                      throw new Error("Failed to find Distribution");
+                    const DistributionConfig = {
+                      ...config.Distribution.DistributionConfig,
+                      DefaultCacheBehavior: {
+                        ...config.Distribution.DistributionConfig
+                          .DefaultCacheBehavior,
+                        LambdaFunctionAssociations: {
+                          Quantity:
+                            config.Distribution.DistributionConfig
+                              .DefaultCacheBehavior.LambdaFunctionAssociations
+                              ?.Quantity || 0,
+                          Items: (
+                            config.Distribution.DistributionConfig
+                              .DefaultCacheBehavior.LambdaFunctionAssociations
+                              ?.Items || []
+                          ).map((l) =>
+                            l.LambdaFunctionARN.includes("origin-request")
+                              ? {
+                                  ...l,
+                                  LambdaFunctionARN: upd.FunctionArn || "",
+                                }
+                              : l
+                          ),
+                        },
                       },
-                    },
-                  };
-                  return cloudfront
-                    .updateDistribution({
-                      DistributionConfig,
-                      Id: process.env.CLOUDFRONT_DISTRIBUTION_ID || "",
-                      IfMatch: config.ETag,
-                    })
-                    .promise()
-                    .then((r) => {
-                      console.log(
-                        `Updated. Current Status: ${r.Distribution?.Status}`
-                      );
-                      return waitForCloudfront().then(console.log);
-                    });
-                });
-            });
-        }
-      })
-      .then(() =>
-        Promise.all(
-          readDir(FE_OUT_DIR).map((p) => {
-            const Key = p.substring(FE_OUT_DIR.length + 1);
-            const uploadProps = {
-              Bucket: domain,
-              ContentType: mime.lookup(Key) || undefined,
-            };
-            console.log(`Uploading ${p} to ${Key}...`);
-            return s3
-              .upload({
-                Key,
-                ...uploadProps,
-                Body: fs.createReadStream(p),
-              })
-              .promise();
-          })
-        )
-      )
-      .then(() => 0)
-      .catch((e) => {
-        console.error(`deploy failed:`);
-        console.error(e);
-        return 1;
-      })
-  );
+                    };
+                    return cloudfront
+                      .updateDistribution({
+                        DistributionConfig,
+                        Id: process.env.CLOUDFRONT_DISTRIBUTION_ID || '',
+                        IfMatch: config.ETag,
+                      })
+                      .promise()
+                      .then((r) => {
+                        console.log(
+                          `Updated. Current Status: ${r.Distribution?.Status}`
+                        );
+                        return waitForCloudfront().then(console.log);
+                      });
+                  });
+              });
+          }
+        })
+        .then(() => 0)
+        .catch((e) => {
+          console.error(`deploy failed:`);
+          console.error(e);
+          return 1;
+        })
+    );
+  });
 };
 
 const deploy = ({
