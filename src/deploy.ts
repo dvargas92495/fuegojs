@@ -126,7 +126,7 @@ const options = {
 
 const deployWithRemix = ({ domain }: { domain: string }): Promise<number> => {
   const publicAssets = readDir(FE_PUBLIC_DIR);
-  console.log('uploading', publicAssets.length, 'to S3', publicAssets[0]);
+  console.log("uploading", publicAssets.length, "to S3", publicAssets[0]);
   return Promise.all(
     publicAssets.map((p) => {
       const Key = p.substring(FE_PUBLIC_DIR.length + 1);
