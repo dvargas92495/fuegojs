@@ -10,7 +10,9 @@ type FeArgs = { remix?: boolean };
 const DYNAMIC_ROUTES = new Set<string>();
 
 const devWithRemix = () => {
-  return new Promise<number>(() => remixDev(process.cwd(), process.env.NODE_ENV));
+  return new Promise<number>(() =>
+    remixDev(process.cwd(), process.env.NODE_ENV)
+  );
 };
 
 const dev = (args: FeArgs = {}): Promise<number> => {
