@@ -1,10 +1,22 @@
 # 🔥 FuegoJS 🔥
 
-Opinionated static site generation framework built on [React](https://reactjs.org/), [Esbuild](https://esbuild.github.io/), and [AWS](https://aws.amazon.com/). The goal is to make your full stack web application and your experience developing it _blazing_ fast!
+Opinionated static site generation framework built on [React](https://reactjs.org/), [Remix](https://remix.run/), and [AWS](https://aws.amazon.com/). The goal is to make your full stack web application and your experience developing it _blazing_ fast!
 
 **Project is still under heavy development. APIs are subject to change and there are bugs. Lots of them.**.
 
-The package exposes its commands as both a CLI and as a module to be imported in your script files.
+The package exposes its commands as both a CLI and as a module to be imported in your script files. It's core commands could be thought of as the following 3x3 matrix:
+
++-----------+--------------+------------------+-----------------+
+|    🔥     |   Develop    |     Package      |      Ship       |
++-----------+--------------+------------------+-----------------+
+| Front End | `fuego dev`  |  `fuego build`   | `fuego deploy`  |
++-----------+--------------+------------------+-----------------+
+| Back End  | `fuego api`  | `fuego compile`  | `fuego publish` |
++-----------+--------------+------------------+-----------------+
+| Database  | `fuego sync` | `fuego generate` | `fuego migrate` |
++-----------+--------------+------------------+-----------------+
+
+This table represents the goal. The documentation below and current api is out of date with this vision. Like I said, project is still under heavy development!
 
 ## Build
 

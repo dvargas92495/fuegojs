@@ -1,7 +1,7 @@
 import AWS from "aws-sdk";
 import fs from "fs";
 import mime from "mime-types";
-import { readDir, FE_OUT_DIR, appPath } from "./common";
+import { readDir, FE_OUT_DIR, appPath, FE_PUBLIC_DIR } from "./common";
 import path from "path";
 import archiver from "archiver";
 import crypto from "crypto";
@@ -126,8 +126,8 @@ const options = {
 
 const deployWithRemix = ({ domain }: { domain: string }): Promise<number> => {
   return Promise.all(
-    readDir(FE_OUT_DIR).map((p) => {
-      const Key = p.substring(FE_OUT_DIR.length + 1);
+    readDir(FE_PUBLIC_DIR).map((p) => {
+      const Key = p.substring(FE_PUBLIC_DIR.length + 1);
       const uploadProps = {
         Bucket: domain,
         ContentType: mime.lookup(Key) || undefined,
@@ -143,7 +143,7 @@ const deployWithRemix = ({ domain }: { domain: string }): Promise<number> => {
     })
   ).then(() => {
     const zip = archiver("zip", { gzip: true, zlib: { level: 9 } });
-    readDir("out").forEach((f) =>
+    readDir(FE_OUT_DIR).forEach((f) =>
       zip.file(appPath(f), { name: `origin-request.js`, ...options })
     );
     const FunctionName = `${domain.replace(/\./g, "-")}_origin-request.js`;
@@ -287,9 +287,9 @@ const deploy = ({
   }
   console.log(`Deploying to bucket at ${domain}`);
   return Promise.all(
-    (keys ? keys.filter((k) => fs.existsSync(k)) : readDir(FE_OUT_DIR)).map(
+    (keys ? keys.filter((k) => fs.existsSync(k)) : readDir(FE_PUBLIC_DIR)).map(
       (p) => {
-        const Key = p.substring(FE_OUT_DIR.length + 1);
+        const Key = p.substring(FE_PUBLIC_DIR.length + 1);
         const uploadProps = {
           Bucket: domain,
           ContentType: mime.lookup(Key) || undefined,
