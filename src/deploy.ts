@@ -146,7 +146,7 @@ const deployWithRemix = ({ domain }: { domain: string }): Promise<number> => {
     readDir(FE_OUT_DIR).forEach((f) =>
       zip.file(appPath(f), { name: `origin-request.js`, ...options })
     );
-    const FunctionName = `${domain.replace(/\./g, "-")}_origin-request.js`;
+    const FunctionName = `${domain.replace(/\./g, "-")}_origin-request`;
     return new Promise<{ sha256: string; data: Uint8Array[] }>((resolve) => {
       const shasum = crypto.createHash("sha256");
       const data: Uint8Array[] = [];
