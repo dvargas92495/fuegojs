@@ -40,7 +40,7 @@ const postinstall = (modulesToTranspile: string[]): Promise<number> => {
         format: "cjs",
         allowOverwrite: true,
         target: "node14",
-        plugins: [canvasPatch]
+        plugins: [canvasPatch],
       }).then(() => {
         count++;
         if (count % 500 === 0) {
