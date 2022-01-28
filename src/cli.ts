@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 import build from "./build";
 import deploy from "./deploy";
-import fe from "./fe";
+import dev from "./dev";
 import compile from "./compile";
 import publish from "./publish";
 import api from "./api";
+import postinstall from "./postinstall";
 
 const run = async (command: string, args: string[]): Promise<number> => {
   const opts = args
@@ -51,14 +52,16 @@ const run = async (command: string, args: string[]): Promise<number> => {
       return build(opts);
     case "deploy":
       return deploy(opts);
-    case "fe":
-      return fe(opts);
+    case "dev":
+      return dev(opts);
     case "compile":
       return compile(opts);
     case "publish":
       return publish(opts);
     case "api":
       return api(opts);
+    case "postinstall":
+      return postinstall(process.argv.slice(2));
     /**
      * TODO
      * - start - both
