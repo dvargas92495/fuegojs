@@ -46,7 +46,7 @@ const waitForCloudfrontInvalidation = (props: {
         return "Ran out of time waiting for cloudfront...";
       } else {
         console.log(
-          `Distribution had status ${status} on trial ${trial}. Trying again...`
+          `Invalidation had status ${status} on trial ${trial}. Trying again...`
         );
         return new Promise((resolve) =>
           setTimeout(
@@ -105,7 +105,7 @@ const waitForCloudfront = (trial = 0): Promise<string> => {
     .promise()
     .then((r) => r.Distribution?.Status)
     .then((status) => {
-      if (status === "Enabled") {
+      if (status === "Deployed") {
         return "Done, Cloudfront is Enabled!";
       } else if (trial === 60) {
         return "Ran out of time waiting for cloudfront...";

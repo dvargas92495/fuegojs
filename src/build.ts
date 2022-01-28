@@ -3,6 +3,7 @@ import {
   appPath,
   feMapFile,
   FE_OUT_DIR,
+  getDotEnvObject,
   INTERMEDIATE_DIR,
   prepareFeBuild,
   promiseRimraf,
@@ -114,6 +115,7 @@ module.exports = ${JSON.stringify(newRemixConfig, null, 4)};`
         target: "node14",
         entryPoints: ["server/index.ts"],
         minify: !readable,
+        define: getDotEnvObject(),
       })
     )
     .then(() => 0);
