@@ -1,7 +1,23 @@
 import { setupRemix, SetupPlatform } from "@remix-run/dev/setup";
-import { build as esbuild } from "esbuild";
+import { build as esbuild, Plugin } from "esbuild";
 import fs from "fs";
 import { readDir } from "./common";
+
+const canvasPatch: Plugin = {
+  name: "canvas-patch",
+  setup: (build) => {
+    build.onLoad({ filter: /.*\.js$/ }, async (args) => {
+      let contents = await fs.promises.readFile(args.path, "utf8");
+
+      contents = contents.replace(
+        'const Canvas = require("canvas");',
+        `const Canvas = null;`
+      );
+
+      return { contents, loader: "js" };
+    });
+  },
+};
 
 const postinstall = (modulesToTranspile: string[]): Promise<number> => {
   console.log(
@@ -24,6 +40,7 @@ const postinstall = (modulesToTranspile: string[]): Promise<number> => {
         format: "cjs",
         allowOverwrite: true,
         target: "node14",
+        plugins: [canvasPatch]
       }).then(() => {
         count++;
         if (count % 500 === 0) {
