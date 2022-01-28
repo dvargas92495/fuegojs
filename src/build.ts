@@ -2,6 +2,7 @@ import { build as esbuild, BuildOptions } from "esbuild";
 import {
   appPath,
   feMapFile,
+  FE_OUT_DIR,
   INTERMEDIATE_DIR,
   prepareFeBuild,
   promiseRimraf,
@@ -108,7 +109,7 @@ module.exports = ${JSON.stringify(newRemixConfig, null, 4)};`
     .then(() =>
       esbuild({
         bundle: true,
-        outdir: "out",
+        outdir: FE_OUT_DIR,
         platform: "node",
         target: "node14",
         entryPoints: ["server/index.ts"],

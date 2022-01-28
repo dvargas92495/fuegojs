@@ -1,6 +1,5 @@
 import fs from "fs";
 import { appPath, getFuegoConfig, readDir } from "./common";
-//import JSZip from "jszip";
 import archiver from "archiver";
 import path from "path";
 import crypto from "crypto";
@@ -73,7 +72,6 @@ const publish = ({
             if (deps) {
               deps.forEach((d) => {
                 const filePath = appPath(path.join("build", d));
-                // zip.file(d, fs.readFileSync(filePath).toString(), options);
                 zip.file(filePath, { name: d, ...options });
               });
             }
