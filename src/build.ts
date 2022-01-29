@@ -13,7 +13,7 @@ import { outputHtmlFiles } from "./esbuild-helpers";
 import fs from "fs";
 import nodepath from "path";
 import { build as remixBuild } from "@remix-run/dev/cli/commands";
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 
 type BuildArgs = {
   path?: string | string[];
