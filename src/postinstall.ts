@@ -28,28 +28,28 @@ const postinstall = (modulesToTranspile: string[]): Promise<number> => {
   const files = modulesToTranspile.flatMap((m) =>
     readDir(`./node_modules/${m}`)
   );
-  const jsFiles = files.filter((s) => /\.js$/.test(s));
+  const jsFiles = files
+    .filter((s) => /\.js$/.test(s))
+    .filter((f) => fs.readFileSync(f).toString().includes("import"));
   const jsonFiles = files.filter((s) => /\.json$/.test(s));
   console.log("transpiling", jsFiles.length, "files now...");
   let count = 0;
   return Promise.all(
-    jsFiles
-      .filter((f) => fs.readFileSync(f).toString().includes("import"))
-      .map((s) =>
-        esbuild({
-          entryPoints: [s],
-          outfile: s,
-          format: "cjs",
-          allowOverwrite: true,
-          target: "node14",
-          plugins: [canvasPatch],
-        }).then(() => {
-          count++;
-          if (count % 500 === 0) {
-            console.log("done transpiling", count, "files...");
-          }
-        })
-      )
+    jsFiles.map((s) =>
+      esbuild({
+        entryPoints: [s],
+        outfile: s,
+        format: "cjs",
+        allowOverwrite: true,
+        target: "node14",
+        plugins: [canvasPatch],
+      }).then(() => {
+        count++;
+        if (count % 500 === 0) {
+          console.log("done transpiling", count, "files...");
+        }
+      })
+    )
   )
     .then((s) => console.log("transpiled", s.length, "files"))
     .then(() => {
