@@ -13,7 +13,6 @@ import { outputHtmlFiles } from "./esbuild-helpers";
 import fs from "fs";
 import nodepath from "path";
 import { build as remixBuild } from "@remix-run/dev/cli/commands";
-import dotenv from "dotenv";
 
 type BuildArgs = {
   path?: string | string[];
@@ -107,7 +106,6 @@ const buildWithRemix = ({ readable = false } = {}) => {
  */
 module.exports = ${JSON.stringify(newRemixConfig, null, 4)};`
   );
-  dotenv.config();
   return remixBuild(process.cwd(), process.env.NODE_ENV)
     .then(() =>
       esbuild({
@@ -116,6 +114,7 @@ module.exports = ${JSON.stringify(newRemixConfig, null, 4)};`
         platform: "node",
         target: "node14",
         entryPoints: ["server/index.ts"],
+        external: ["aws-sdk"],
         minify: !readable,
         define: getDotEnvObject(),
       })
