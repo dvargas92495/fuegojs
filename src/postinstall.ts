@@ -43,6 +43,7 @@ const postinstall = (modulesToTranspile: string[]): Promise<number> => {
         allowOverwrite: true,
         target: "node14",
         plugins: [canvasPatch],
+        platform: "neutral",
       }).then(() => {
         count++;
         if (count % 500 === 0) {
