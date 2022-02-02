@@ -28,9 +28,15 @@ const postinstall = (modulesToTranspile: string[]): Promise<number> => {
   const files = modulesToTranspile.flatMap((m) =>
     readDir(`./node_modules/${m}`)
   );
+  
   const jsFiles = files
-    .filter((s) => /\.js$/.test(s))
-    .filter((f) => fs.readFileSync(f).toString().includes("import"));
+    .filter((s) => /\.js$/.test(s));
+    // Doesn't make much of a perf difference I think...
+   /* .filter((f) => {
+      const ESM_KEYWORDS = ["import", "export default"];
+      const content = fs.readFileSync(f).toString();
+      return ESM_KEYWORDS.some((k) => content.includes(k));
+    });*/
   const jsonFiles = files.filter((s) => /\.json$/.test(s));
   console.log("transpiling", jsFiles.length, "files now...");
   let count = 0;
