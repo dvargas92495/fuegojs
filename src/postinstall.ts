@@ -81,7 +81,10 @@ const postinstall = (modulesToTranspile: string[]): Promise<number> => {
         fs.existsSync("./node_modules/react-router-dom")
       ) {
         // need to have one version of react router - not sure why this is happening
-        fs.rmdirSync("./node_modules/@remix-run/react/node_modules");
+        fs.rmSync("./node_modules/@remix-run/react/node_modules", {
+          recursive: true,
+          force: true,
+        });
       }
     })
     .then(() => console.log("done!"))
