@@ -114,7 +114,7 @@ module.exports = ${JSON.stringify(newRemixConfig, null, 4)};`
         platform: "node",
         target: "node14",
         entryPoints: ["server/index.ts"],
-        external: ["aws-sdk"],
+        external: ["aws-sdk", "@aws-sdk/*"],
         minify: !readable,
         define: getDotEnvObject(),
       })
