@@ -40,6 +40,7 @@
     "@types/react": "^17.0.19",
     "@types/react-dom": "^17.0.9",
     "@types/rimraf": "^3.0.2",
+    "@types/uuid": "^8.3.4",
     "@typescript-eslint/eslint-plugin": "^4.29.3",
     "@typescript-eslint/parser": "^4.29.3",
     "cross-env": "^7.0.3",
@@ -65,11 +66,13 @@
     "express": "^4.17.1",
     "jszip": "^3.7.1",
     "mime-types": "^2.1.32",
+    "mysql2": "^2.3.3",
     "ngrok": "^4.2.2",
     "pluralize": "^8.0.0",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "rimraf": "^3.0.2"
+    "rimraf": "^3.0.2",
+    "uuid": "^8.3.2"
   },
   "bin": {
     "fuego": "./dist/cli.js"
