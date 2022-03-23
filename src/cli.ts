@@ -6,6 +6,7 @@ import compile from "./compile";
 import publish from "./publish";
 import api from "./api";
 import postinstall from "./postinstall";
+import migrate from "./migrate";
 
 const run = async (command: string, args: string[]): Promise<number> => {
   const opts = args
@@ -62,6 +63,8 @@ const run = async (command: string, args: string[]): Promise<number> => {
       return api(opts);
     case "postinstall":
       return postinstall(process.argv.slice(2));
+    case "migrate":
+      return migrate(opts);
     /**
      * TODO
      * - start - both

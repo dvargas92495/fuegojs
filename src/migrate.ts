@@ -13,6 +13,10 @@ type MigrationArgs = {
   path?: string;
 };
 
+type MigrationProps = {
+  connection: mysql.Connection;
+};
+
 const migrate = ({
   path = "app/migrations",
 }: MigrationArgs = {}): Promise<number> => {
@@ -76,47 +80,53 @@ const migrate = ({
           );
         }
       });
-      const migrationsToRun = local.slice(applied.length).map((m) => () => {
-        console.log(`Running migration ${m.migrationName}`);
-        return new Promise((resolve) =>
-          connection.execute(
-            `INSERT INTO _migrations (uuid, migration_name, checksum, started_at) VALUES (?, ?, ?, ?)`,
-            [m.uuid, m.migrationName, m.checksum, new Date()],
-            resolve
-          )
-        )
-          .then(() =>
-            import(m.filename).then(
-              (mod) => mod.migrate as () => Promise<unknown>
+      const migrationsToRun = local
+        .slice(applied.length)
+        .map((m) => (props: MigrationProps) => {
+          console.log(`Running migration ${m.migrationName}`);
+          return new Promise((resolve) =>
+            connection.execute(
+              `INSERT INTO _migrations (uuid, migration_name, checksum, started_at) VALUES (?, ?, ?, ?)`,
+              [m.uuid, m.migrationName, m.checksum, new Date()],
+              resolve
             )
           )
-          .then((mig) =>
-            mig().catch((e) => {
-              console.error(`Failed to run migration ${m.migrationName}`);
-              throw e;
-            })
-          )
-          .then(
-            () =>
-              new Promise((resolve) =>
-                connection.execute(
-                  `UPDATE _migrations SET finished_at = ? WHERE uuid = ?`,
-                  [new Date(), m.uuid],
-                  resolve
-                )
+            .then(() =>
+              import(m.filename).then(
+                (mod) =>
+                  mod.migrate as (props: MigrationProps) => Promise<unknown>
               )
-          )
-          .then(() => {
-            console.log(`Finished running migration ${m.migrationName}`);
-          });
-      });
+            )
+            .then((mig) =>
+              mig(props).catch((e) => {
+                console.error(`Failed to run migration ${m.migrationName}`);
+                throw e;
+              })
+            )
+            .then(
+              () =>
+                new Promise((resolve) =>
+                  connection.execute(
+                    `UPDATE _migrations SET finished_at = ? WHERE uuid = ?`,
+                    [new Date(), m.uuid],
+                    resolve
+                  )
+                )
+            )
+            .then(() => {
+              console.log(`Finished running migration ${m.migrationName}`);
+            });
+        });
       if (!migrationsToRun.length) {
         console.log("No new migrations to run. Exiting...");
         return 0;
       }
       return migrationsToRun
-        .reduce((p, c) => p.then(() => c()), Promise.resolve())
-        .then(() => 0);
+        .reduce((p, c) => p.then(() => c({ connection })), Promise.resolve())
+        .then(() => {
+          connection.destroy();
+          return 0;
+        });
     });
 };
 
