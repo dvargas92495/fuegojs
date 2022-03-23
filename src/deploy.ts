@@ -215,7 +215,9 @@ const deploy = ({
   keys?: string[];
   impatient?: boolean;
 }): Promise<number> => {
-  const publicAssets = keys ? keys.filter((k) => fs.existsSync(k)) : readDir(FE_PUBLIC_DIR);
+  const publicAssets = keys
+    ? keys.filter((k) => fs.existsSync(k))
+    : readDir(FE_PUBLIC_DIR);
   console.log("uploading", publicAssets.length, "assets to S3");
   return Promise.all(
     publicAssets.map((p) => {
@@ -234,7 +236,7 @@ const deploy = ({
         .promise();
     })
   )
-    .then(() => impatient ? Promise.resolve() : deployRemixServer(domain))
+    .then(() => (impatient ? Promise.resolve() : deployRemixServer(domain)))
     .then(() =>
       cloudfront
         .createInvalidation({
@@ -252,7 +254,11 @@ const deploy = ({
           Id: i.Invalidation?.Id || "",
           DistributionId: process.env.CLOUDFRONT_DISTRIBUTION_ID || "",
         }))
-        .then((args) => impatient ? Promise.resolve('Invalidated cache') : waitForCloudfrontInvalidation(args))
+        .then((args) =>
+          impatient
+            ? Promise.resolve("Invalidated cache")
+            : waitForCloudfrontInvalidation(args)
+        )
         .then(console.log)
     )
     .then(() => 0)
@@ -263,9 +269,7 @@ const deploy = ({
     });
 };
 
-export const targetedDeploy = (
-  keys?: string[]
-): void | Promise<void> =>
+export const targetedDeploy = (keys?: string[]): void | Promise<void> =>
   process.env.NODE_ENV === "production"
     ? deploy({
         keys,
