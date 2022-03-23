@@ -13,7 +13,7 @@ type MigrationArgs = {
   path?: string;
 };
 
-type MigrationProps = {
+export type MigrationProps = {
   connection: mysql.Connection;
 };
 
@@ -49,7 +49,7 @@ const migrate = ({
         )
     )
     .then((results) => {
-      const applied = results as {
+      const applied = (results || []) as {
         uuid: string;
         migration_name: string;
         started_at: string;
