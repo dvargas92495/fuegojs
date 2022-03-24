@@ -1,4 +1,4 @@
-import { setupRemix, SetupPlatform } from "@remix-run/dev/setup";
+import { setupRemix, SetupPlatform } from "@remix-run/dev/cli/setup";
 import { build as esbuild, Plugin } from "esbuild";
 import fs from "fs";
 import { readDir } from "./common";
