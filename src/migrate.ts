@@ -4,7 +4,7 @@ import fs from "fs";
 import crypto from "crypto";
 import nodePath from "path";
 import { v4 } from "uuid";
-import esbuild from "esbuild";
+import { build as esbuild } from "esbuild";
 
 const DATABASE_URL_REGEX =
   /^mysql:\/\/([a-z0-9_]+):(.{16})@([a-z0-9.-]+):(\d{3,5})\/([a-z_]+)$/;
@@ -81,6 +81,7 @@ const migrate = ({
           );
         }
       });
+      const outDir = appPath(nodePath.join(".cache", "migrations"));
       const migrationsToRun = local
         .slice(applied.length)
         .map((m) => (props: MigrationProps) => {
@@ -93,19 +94,15 @@ const migrate = ({
             )
           )
             .then(() => {
-              const outfile = appPath(
-                nodePath.join(".cache", "migrations", `${m.migrationName}.js`)
-              );
-              return esbuild
-                .build({
-                  outfile,
-                  entryPoints: [appPath(nodePath.join(dir, m.filename))],
-                  platform: "node",
-                  bundle: true,
-                  define: getDotEnvObject(),
-                  target: "node14",
-                })
-                .then(() => import(outfile));
+              const outfile = nodePath.join(outDir, `${m.migrationName}.js`);
+              return esbuild({
+                outfile,
+                entryPoints: [appPath(nodePath.join(dir, m.filename))],
+                platform: "node",
+                bundle: true,
+                define: getDotEnvObject(),
+                target: "node14",
+              }).then(() => import(outfile));
             })
             .then(
               (mod) =>
@@ -134,6 +131,8 @@ const migrate = ({
       if (!migrationsToRun.length) {
         console.log("No new migrations to run. Exiting...");
         return 0;
+      } else if (!fs.existsSync(outDir)) {
+        fs.mkdirSync(outDir, { recursive: true });
       }
       return migrationsToRun
         .reduce((p, c) => p.then(() => c({ connection })), Promise.resolve())
