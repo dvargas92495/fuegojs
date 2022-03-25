@@ -10,41 +10,6 @@ const s3 = new AWS.S3();
 const cloudfront = new AWS.CloudFront();
 const lambda = new AWS.Lambda();
 
-const waitForCloudfrontInvalidation = (props: {
-  trial?: number;
-  DistributionId: string;
-  Id: string;
-}): Promise<string> => {
-  const { trial = 0, ...args } = props;
-  return cloudfront
-    .getInvalidation(args)
-    .promise()
-    .then((r) => r.Invalidation?.Status)
-    .then((status) => {
-      if (status === "Completed") {
-        return "Done!";
-      } else if (trial === 60) {
-        return "Ran out of time waiting for cloudfront...";
-      } else {
-        console.log(
-          `Invalidation had status ${status} on trial ${trial}. Trying again...`
-        );
-        return new Promise((resolve) =>
-          setTimeout(
-            () =>
-              resolve(
-                waitForCloudfrontInvalidation({
-                  ...args,
-                  trial: trial + 1,
-                })
-              ),
-            5000
-          )
-        );
-      }
-    });
-};
-
 const waitForLambda = ({
   trial = 0,
   Qualifier,
@@ -237,30 +202,6 @@ const deploy = ({
     })
   )
     .then(() => (impatient ? Promise.resolve() : deployRemixServer(domain)))
-    .then(() =>
-      cloudfront
-        .createInvalidation({
-          DistributionId: process.env.CLOUDFRONT_DISTRIBUTION_ID || "",
-          InvalidationBatch: {
-            CallerReference: new Date().toJSON(),
-            Paths: {
-              Quantity: 1,
-              Items: [`/*`],
-            },
-          },
-        })
-        .promise()
-        .then((i) => ({
-          Id: i.Invalidation?.Id || "",
-          DistributionId: process.env.CLOUDFRONT_DISTRIBUTION_ID || "",
-        }))
-        .then((args) =>
-          impatient
-            ? Promise.resolve("Invalidated cache")
-            : waitForCloudfrontInvalidation(args)
-        )
-        .then(console.log)
-    )
     .then(() => 0)
     .catch((e) => {
       console.error(`deploy failed:`);

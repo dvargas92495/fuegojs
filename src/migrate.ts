@@ -92,7 +92,7 @@ const migrate = ({
             )
           )
             .then(() =>
-              import(`./${nodePath.join(dir, m.filename)}`).then(
+              import(nodePath.join(dir, m.filename)).then(
                 (mod) =>
                   mod.migrate as (props: MigrationProps) => Promise<unknown>
               )
