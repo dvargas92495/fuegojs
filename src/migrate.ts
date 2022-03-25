@@ -1,9 +1,10 @@
 import mysql from "mysql2";
-import { appPath } from "./common";
+import { appPath, getDotEnvObject } from "./common";
 import fs from "fs";
 import crypto from "crypto";
 import nodePath from "path";
 import { v4 } from "uuid";
+import esbuild from "esbuild";
 
 const DATABASE_URL_REGEX =
   /^mysql:\/\/([a-z0-9_]+):(.{16})@([a-z0-9.-]+):(\d{3,5})\/([a-z_]+)$/;
@@ -91,11 +92,24 @@ const migrate = ({
               resolve
             )
           )
-            .then(() =>
-              import(nodePath.join(dir, m.filename)).then(
-                (mod) =>
-                  mod.migrate as (props: MigrationProps) => Promise<unknown>
-              )
+            .then(() => {
+              const outfile = appPath(
+                nodePath.join(".cache", "migrations", `${m.migrationName}.js`)
+              );
+              return esbuild
+                .build({
+                  outfile,
+                  entryPoints: [appPath(nodePath.join(dir, m.filename))],
+                  platform: "node",
+                  bundle: true,
+                  define: getDotEnvObject(),
+                  target: "node14",
+                })
+                .then(() => import(outfile));
+            })
+            .then(
+              (mod) =>
+                mod.migrate as (props: MigrationProps) => Promise<unknown>
             )
             .then((mig) =>
               mig(props).catch((e) => {
