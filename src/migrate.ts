@@ -80,6 +80,11 @@ const migrate = ({
             `Attempted to change applied migration ${a.migration_name} locally.`
           );
         }
+        if (!a.finished_at) {
+          throw new Error(
+            `Tried to run migration that had already started but failed. Please first remove migration record ${a.uuid} before attempting to apply migrations again.`
+          );
+        }
       });
       const outDir = appPath(nodePath.join(".cache", "migrations"));
       const migrationsToRun = local

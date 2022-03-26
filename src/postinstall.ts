@@ -22,20 +22,14 @@ const canvasPatch: Plugin = {
 const postinstall = (modulesToTranspile: string[]): Promise<number> => {
   console.log(
     "About to transpile",
-    modulesToTranspile.length,
+    modulesToTranspile.length - 1,
     "modules from esm to cjs"
   );
-  const files = modulesToTranspile.flatMap((m) =>
-    readDir(`./node_modules/${m}`)
-  );
+  const files = modulesToTranspile
+    .slice(1)
+    .flatMap((m) => readDir(`./node_modules/${m}`));
 
   const jsFiles = files.filter((s) => /\.js$/.test(s));
-  // Doesn't make much of a perf difference I think...
-  /* .filter((f) => {
-      const ESM_KEYWORDS = ["import", "export default"];
-      const content = fs.readFileSync(f).toString();
-      return ESM_KEYWORDS.some((k) => content.includes(k));
-    });*/
   const jsonFiles = files.filter((s) => /\.json$/.test(s));
   console.log("transpiling", jsFiles.length, "files now...");
   let count = 0;
