@@ -12,6 +12,7 @@ const matches = DATABASE_URL_REGEX.exec(process.env.DATABASE_URL || "");
 
 type MigrationArgs = {
   path?: string;
+  revert?: boolean | string;
 };
 
 export type MigrationProps = {
@@ -20,6 +21,7 @@ export type MigrationProps = {
 
 const migrate = ({
   path = "app/migrations",
+  revert,
 }: MigrationArgs = {}): Promise<number> => {
   if (!matches) return Promise.reject("Failed to parse `DATABASE_URL`");
   const connection = mysql.createConnection({
@@ -29,7 +31,7 @@ const migrate = ({
     database: matches[5],
     password: matches[2],
   });
-  return new Promise((resolve) =>
+  return new Promise((resolve, reject) =>
     connection.execute(
       `CREATE TABLE IF NOT EXISTS _migrations (
         uuid           VARCHAR(36)  NOT NULL,
@@ -40,13 +42,16 @@ const migrate = ({
 
         PRIMARY KEY (uuid)
     )`,
-      resolve
+      (err, result) => (err ? reject(err) : resolve(result))
     )
   )
     .then(
       () =>
-        new Promise((resolve) =>
-          connection.execute(`SELECT * FROM _migrations`, resolve)
+        new Promise((resolve, reject) =>
+          connection.execute(
+            `SELECT * FROM _migrations SORT BY started_at`,
+            (err, result) => (err ? reject(err) : resolve(result))
+          )
         )
     )
     .then((results) => {
@@ -57,7 +62,90 @@ const migrate = ({
         finished_at: string;
         checksum: string;
       }[];
+      const runMigrations = (
+        migrationsToRun: ((props: MigrationProps) => Promise<void>)[]
+      ) =>
+        migrationsToRun
+          .reduce((p, c) => p.then(() => c({ connection })), Promise.resolve())
+          .then(() => {
+            connection.destroy();
+            return 0;
+          });
       const dir = appPath(path);
+      const reverting = !revert
+        ? 0
+        : typeof revert === "boolean"
+        ? 1
+        : Number(revert);
+      if (reverting) {
+        console.log("Reverting", reverting, "migrations...");
+        if (reverting > applied.length) {
+          return Promise.reject(
+            `Attempted to revert ${reverting} migrations but only ${applied.length} are applied`
+          );
+        } else if (reverting < 0) {
+          return Promise.reject(
+            `Cannot revert a negative number of migrations.`
+          );
+        }
+        const migrationsToRevert = applied
+          .slice(-reverting)
+          .reverse()
+          .map((m) => (props: MigrationProps) => {
+            console.log(`reverting migration`, m.migration_name);
+            return (
+              new Promise((resolve, reject) =>
+                connection.execute(
+                  `DELETE FROM _migrations WHERE uuid = ?`,
+                  [m.uuid],
+                  (err, result) => (err ? reject(err) : resolve(result))
+                )
+              )
+                /* TODO: disambiguate between the following cases:
+                - failed migration
+                - successful migration but mismatched checksum
+                - successful migration with and without `revert` method
+                
+                .then(() => {
+                const outfile = nodePath.join(outDir, `${m.migrationName}.js`);
+                return esbuild({
+                  outfile,
+                  entryPoints: [appPath(nodePath.join(dir, m.filename))],
+                  platform: "node",
+                  bundle: true,
+                  define: getDotEnvObject(),
+                  target: "node14",
+                }).then(() => import(outfile));
+              })
+              .then(
+                (mod) =>
+                  mod.migrate as (props: MigrationProps) => Promise<unknown>
+              )
+              .then((mig) =>
+                mig(props).catch((e) => {
+                  console.error(`Failed to run migration ${m.migrationName}`);
+                  throw e;
+                })
+              )
+              .then(
+                () =>
+                  new Promise((resolve) =>
+                    connection.execute(
+                      `UPDATE _migrations SET finished_at = ? WHERE uuid = ?`,
+                      [new Date(), m.uuid],
+                      resolve
+                    )
+                  )
+              )*/
+                .then(() => {
+                  console.log(
+                    `Finished reverting migration ${m.migration_name}`
+                  );
+                })
+            );
+          });
+        return runMigrations(migrationsToRevert);
+      }
       const local = fs.existsSync(dir)
         ? fs.readdirSync(dir).map((f) => ({
             filename: f,
@@ -91,11 +179,11 @@ const migrate = ({
         .slice(applied.length)
         .map((m) => (props: MigrationProps) => {
           console.log(`Running migration ${m.migrationName}`);
-          return new Promise((resolve) =>
+          return new Promise((resolve, reject) =>
             connection.execute(
               `INSERT INTO _migrations (uuid, migration_name, checksum, started_at) VALUES (?, ?, ?, ?)`,
               [m.uuid, m.migrationName, m.checksum, new Date()],
-              resolve
+              (err, result) => (err ? reject(err) : resolve(result))
             )
           )
             .then(() => {
@@ -139,12 +227,7 @@ const migrate = ({
       } else if (!fs.existsSync(outDir)) {
         fs.mkdirSync(outDir, { recursive: true });
       }
-      return migrationsToRun
-        .reduce((p, c) => p.then(() => c({ connection })), Promise.resolve())
-        .then(() => {
-          connection.destroy();
-          return 0;
-        });
+      return runMigrations(migrationsToRun);
     });
 };
 
