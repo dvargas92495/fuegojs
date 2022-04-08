@@ -106,6 +106,7 @@ export const revert = (args: MigrationProps) => {
         : typeof revert === "boolean"
         ? 1
         : Number(revert);
+      const outDir = appPath(nodePath.join(".cache", "migrations"));
       if (reverting) {
         console.log("Reverting", reverting, "migrations...");
         if (reverting > applied.length) {
@@ -176,7 +177,6 @@ export const revert = (args: MigrationProps) => {
         typeof overwrite === "string"
           ? new Set([overwrite])
           : new Set(overwrite);
-      const outDir = appPath(nodePath.join(".cache", "migrations"));
       const migrationsToRun = local.map((m, index) =>
         index < applied.length
           ? () => {
