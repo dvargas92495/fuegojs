@@ -15,6 +15,7 @@ type MigrationArgs = {
   path?: string;
   revert?: boolean | string;
   generate?: string;
+  overwrite?: string | string[];
 };
 
 export type MigrationProps = {
@@ -24,9 +25,10 @@ export type MigrationProps = {
 const MIGRATION_REGEX = /[a-z-]+/;
 
 const migrate = ({
-  path = "app/migrations",
+  path = "migrations",
   revert,
   generate,
+  overwrite,
 }: MigrationArgs = {}): Promise<number> => {
   const dir = appPath(path);
   if (generate) {
@@ -48,6 +50,7 @@ export const revert = (args: MigrationProps) => {
 };
 `
     );
+    console.log(`Generated migration: `, filename);
     return Promise.resolve(0);
   }
   if (!matches) return Promise.reject("Failed to parse `DATABASE_URL`");
@@ -183,70 +186,88 @@ export const revert = (args: MigrationProps) => {
             uuid: v4(),
           }))
         : [];
-      applied.forEach((a, index) => {
-        if (a.migration_name !== local[index].migrationName) {
-          throw new Error(
-            `Could not find applied migration ${a.migration_name} locally.`
-          );
-        }
-        if (a.checksum !== local[index].checksum) {
-          throw new Error(
-            `Attempted to change applied migration ${a.migration_name} locally.`
-          );
-        }
-        if (!a.finished_at) {
-          throw new Error(
-            `Tried to run migration that had already started but failed. Please first remove migration record ${a.uuid} before attempting to apply migrations again.`
-          );
-        }
-      });
+      const filesToOverwrite =
+        typeof overwrite === "string"
+          ? new Set([overwrite])
+          : new Set(overwrite);
       const outDir = appPath(nodePath.join(".cache", "migrations"));
-      const migrationsToRun = local
-        .slice(applied.length)
-        .map((m) => (props: MigrationProps) => {
-          console.log(`Running migration ${m.migrationName}`);
-          return new Promise((resolve, reject) =>
-            connection.execute(
-              `INSERT INTO _migrations (uuid, migration_name, checksum, started_at) VALUES (?, ?, ?, ?)`,
-              [m.uuid, m.migrationName, m.checksum, new Date()],
-              (err, result) => (err ? reject(err) : resolve(result))
-            )
-          )
-            .then(() => {
-              const outfile = nodePath.join(outDir, `${m.migrationName}.js`);
-              return esbuild({
-                outfile,
-                entryPoints: [appPath(nodePath.join(dir, m.filename))],
-                platform: "node",
-                bundle: true,
-                define: getDotEnvObject(),
-                target: "node14",
-              }).then(() => import(outfile));
-            })
-            .then(
-              (mod) =>
-                mod.migrate as (props: MigrationProps) => Promise<unknown>
-            )
-            .then((mig) =>
-              mig(props).catch((e) => {
-                console.error(`Failed to run migration ${m.migrationName}`);
-                throw e;
-              })
-            )
-            .then(
-              () =>
-                new Promise((resolve) =>
+      const migrationsToRun = local.map((m, index) =>
+        index < applied.length
+          ? () => {
+              const a = applied[index];
+              if (a.migration_name !== m.migrationName) {
+                return Promise.reject(
+                  `Could not find applied migration ${a.migration_name} locally. Instead found ${m.migrationName}`
+                );
+              }
+              if (!a.finished_at) {
+                return Promise.reject(
+                  `Tried to run migration that had already started but failed. Please first remove migration record ${a.uuid} before attempting to apply migrations again.`
+                );
+              }
+              if (filesToOverwrite.has(m.migrationName)) {
+                return new Promise<void>((resolve, reject) =>
                   connection.execute(
-                    `UPDATE _migrations SET finished_at = ? WHERE uuid = ?`,
-                    [new Date(), m.uuid],
-                    resolve
+                    `UPDATE _migrations SET checksum = ? WHERE uuid = ?`,
+                    [m.checksum, m.uuid],
+                    (err) => (err ? reject(err) : resolve())
                   )
+                );
+              } else if (a.checksum !== m.checksum) {
+                return Promise.reject(
+                  `Attempted to change applied migration ${a.migration_name} locally.`
+                );
+              }
+              return Promise.resolve();
+            }
+          : (props: MigrationProps) => {
+              console.log(`Running migration ${m.migrationName}`);
+              return new Promise((resolve, reject) =>
+                connection.execute(
+                  `INSERT INTO _migrations (uuid, migration_name, checksum, started_at) VALUES (?, ?, ?, ?)`,
+                  [m.uuid, m.migrationName, m.checksum, new Date()],
+                  (err, result) => (err ? reject(err) : resolve(result))
                 )
-            )
-            .then(() => {
-              console.log(`Finished running migration ${m.migrationName}`);
-            });
-        });
+              )
+                .then(() => {
+                  const outfile = nodePath.join(
+                    outDir,
+                    `${m.migrationName}.js`
+                  );
+                  return esbuild({
+                    outfile,
+                    entryPoints: [appPath(nodePath.join(dir, m.filename))],
+                    platform: "node",
+                    bundle: true,
+                    define: getDotEnvObject(),
+                    target: "node14",
+                  }).then(() => import(outfile));
+                })
+                .then(
+                  (mod) =>
+                    mod.migrate as (props: MigrationProps) => Promise<unknown>
+                )
+                .then((mig) =>
+                  mig(props).catch((e) => {
+                    console.error(`Failed to run migration ${m.migrationName}`);
+                    throw e;
+                  })
+                )
+                .then(
+                  () =>
+                    new Promise((resolve) =>
+                      connection.execute(
+                        `UPDATE _migrations SET finished_at = ? WHERE uuid = ?`,
+                        [new Date(), m.uuid],
+                        resolve
+                      )
+                    )
+                )
+                .then(() => {
+                  console.log(`Finished running migration ${m.migrationName}`);
+                });
+            }
+      );
       if (!migrationsToRun.length) {
         console.log("No new migrations to run. Exiting...");
         return 0;
