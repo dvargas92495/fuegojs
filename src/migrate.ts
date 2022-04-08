@@ -5,6 +5,7 @@ import crypto from "crypto";
 import nodePath from "path";
 import { v4 } from "uuid";
 import { build as esbuild } from "esbuild";
+import format from "date-fns/format";
 
 const DATABASE_URL_REGEX =
   /^mysql:\/\/([a-z0-9_]+):(.{16})@([a-z0-9.-]+):(\d{3,5})\/([a-z_]+)$/;
@@ -13,16 +14,36 @@ const matches = DATABASE_URL_REGEX.exec(process.env.DATABASE_URL || "");
 type MigrationArgs = {
   path?: string;
   revert?: boolean | string;
+  generate?: string;
 };
 
 export type MigrationProps = {
   connection: mysql.Connection;
 };
 
+const MIGRATION_REGEX= /[a-z-]+/;
+
 const migrate = ({
   path = "app/migrations",
   revert,
+  generate,
 }: MigrationArgs = {}): Promise<number> => {
+  const dir = appPath(path);
+  if (generate) {
+    if (!MIGRATION_REGEX.test(generate)) return Promise.reject(`Invalid migration name. Expected regex: ${MIGRATION_REGEX.source}`);
+    const filename = `${format(new Date(), 'yyyy-MM-dd-hh-mm')}-${generate}.ts`;
+    fs.writeFileSync(nodePath.join(dir, filename), `import type { MigrationProps } from "fuegojs/dist/migrate";
+
+export const migrate = (args: MigrationProps) => {
+  return Promise.reject('Migration Not Implemented');
+};
+
+export const revert = (args: MigrationProps) => {
+  return Promise.reject('Revert Not Implemented');
+};
+`)
+    return Promise.resolve(0);
+  }
   if (!matches) return Promise.reject("Failed to parse `DATABASE_URL`");
   const connection = mysql.createConnection({
     host: matches[3],
@@ -49,7 +70,7 @@ const migrate = ({
       () =>
         new Promise((resolve, reject) =>
           connection.execute(
-            `SELECT * FROM _migrations SORT BY started_at`,
+            `SELECT * FROM _migrations ORDER BY started_at`,
             (err, result) => (err ? reject(err) : resolve(result))
           )
         )
@@ -71,7 +92,6 @@ const migrate = ({
             connection.destroy();
             return 0;
           });
-      const dir = appPath(path);
       const reverting = !revert
         ? 0
         : typeof revert === "boolean"
@@ -91,7 +111,7 @@ const migrate = ({
         const migrationsToRevert = applied
           .slice(-reverting)
           .reverse()
-          .map((m) => (props: MigrationProps) => {
+          .map((m) => () => {
             console.log(`reverting migration`, m.migration_name);
             return (
               new Promise((resolve, reject) =>
@@ -226,6 +246,7 @@ const migrate = ({
         return 0;
       } else if (!fs.existsSync(outDir)) {
         fs.mkdirSync(outDir, { recursive: true });
+        console.log("Running ", migrationsToRun.length, "migrations...");
       }
       return runMigrations(migrationsToRun);
     });
