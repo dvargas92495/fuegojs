@@ -120,58 +120,44 @@ export const revert = (args: MigrationProps) => {
         const migrationsToRevert = applied
           .slice(-reverting)
           .reverse()
-          .map((m) => () => {
+          .map((m) => (props: MigrationProps) => {
             console.log(`reverting migration`, m.migration_name);
-            return (
-              new Promise((resolve, reject) =>
-                connection.execute(
-                  `DELETE FROM _migrations WHERE uuid = ?`,
-                  [m.uuid],
-                  (err, result) => (err ? reject(err) : resolve(result))
-                )
-              )
-                /* TODO: disambiguate between the following cases:
-                - failed migration
-                - successful migration but mismatched checksum
-                - successful migration with and without `revert` method
-                
-                .then(() => {
-                const outfile = nodePath.join(outDir, `${m.migrationName}.js`);
-                return esbuild({
-                  outfile,
-                  entryPoints: [appPath(nodePath.join(dir, m.filename))],
-                  platform: "node",
-                  bundle: true,
-                  define: getDotEnvObject(),
-                  target: "node14",
-                }).then(() => import(outfile));
-              })
+            const outfile = nodePath.join(outDir, `${m.migration_name}.js`);
+            return esbuild({
+              outfile,
+              entryPoints: [
+                appPath(nodePath.join(dir, `${m.migration_name}.ts`)),
+              ],
+              platform: "node",
+              bundle: true,
+              define: getDotEnvObject(),
+              target: "node14",
+            })
+              .then(() => import(outfile))
               .then(
                 (mod) =>
-                  mod.migrate as (props: MigrationProps) => Promise<unknown>
+                  (mod.revert as (props: MigrationProps) => Promise<unknown>) ||
+                  (() => Promise.resolve())
               )
               .then((mig) =>
                 mig(props).catch((e) => {
-                  console.error(`Failed to run migration ${m.migrationName}`);
+                  console.error(`Failed to run revert ${m.migration_name}`);
                   throw e;
                 })
               )
-              .then(
-                () =>
-                  new Promise((resolve) =>
-                    connection.execute(
-                      `UPDATE _migrations SET finished_at = ? WHERE uuid = ?`,
-                      [new Date(), m.uuid],
-                      resolve
-                    )
+              .then(() =>
+                new Promise((resolve, reject) =>
+                  connection.execute(
+                    `DELETE FROM _migrations WHERE uuid = ?`,
+                    [m.uuid],
+                    (err, result) => (err ? reject(err) : resolve(result))
                   )
-              )*/
-                .then(() => {
+                ).then(() => {
                   console.log(
                     `Finished reverting migration ${m.migration_name}`
                   );
                 })
-            );
+              );
           });
         return runMigrations(migrationsToRevert);
       }
@@ -209,7 +195,7 @@ export const revert = (args: MigrationProps) => {
                 return new Promise<void>((resolve, reject) =>
                   connection.execute(
                     `UPDATE _migrations SET checksum = ? WHERE uuid = ?`,
-                    [m.checksum, m.uuid],
+                    [m.checksum, a.uuid],
                     (err) => (err ? reject(err) : resolve())
                   )
                 );
