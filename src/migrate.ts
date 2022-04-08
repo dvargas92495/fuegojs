@@ -21,7 +21,7 @@ export type MigrationProps = {
   connection: mysql.Connection;
 };
 
-const MIGRATION_REGEX= /[a-z-]+/;
+const MIGRATION_REGEX = /[a-z-]+/;
 
 const migrate = ({
   path = "app/migrations",
@@ -30,9 +30,14 @@ const migrate = ({
 }: MigrationArgs = {}): Promise<number> => {
   const dir = appPath(path);
   if (generate) {
-    if (!MIGRATION_REGEX.test(generate)) return Promise.reject(`Invalid migration name. Expected regex: ${MIGRATION_REGEX.source}`);
-    const filename = `${format(new Date(), 'yyyy-MM-dd-hh-mm')}-${generate}.ts`;
-    fs.writeFileSync(nodePath.join(dir, filename), `import type { MigrationProps } from "fuegojs/dist/migrate";
+    if (!MIGRATION_REGEX.test(generate))
+      return Promise.reject(
+        `Invalid migration name. Expected regex: ${MIGRATION_REGEX.source}`
+      );
+    const filename = `${format(new Date(), "yyyy-MM-dd-hh-mm")}-${generate}.ts`;
+    fs.writeFileSync(
+      nodePath.join(dir, filename),
+      `import type { MigrationProps } from "fuegojs/dist/migrate";
 
 export const migrate = (args: MigrationProps) => {
   return Promise.reject('Migration Not Implemented');
@@ -41,7 +46,8 @@ export const migrate = (args: MigrationProps) => {
 export const revert = (args: MigrationProps) => {
   return Promise.reject('Revert Not Implemented');
 };
-`)
+`
+    );
     return Promise.resolve(0);
   }
   if (!matches) return Promise.reject("Failed to parse `DATABASE_URL`");
