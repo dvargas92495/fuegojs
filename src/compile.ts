@@ -3,24 +3,25 @@ import { build as esbuild } from "esbuild";
 import { readDir } from "./common";
 import { prepareApiBuild } from "./esbuild-helpers";
 
-const commonRegex = /^functions[/\\]_common/;
-
 const compile = ({
   readable = false,
+  path = "api",
 }: {
   readable?: boolean;
+  path?: string;
 }): Promise<number> => {
   process.env.NODE_ENV = process.env.NODE_ENV || "production";
-  return fs.existsSync("functions")
+  const commonRegex = new RegExp(`^${path}[/\\\\]_common`);
+  return fs.existsSync(path)
     ? prepareApiBuild()
         .then((opts) =>
           esbuild({
             ...opts,
             entryPoints: Object.fromEntries(
-              readDir("functions")
+              readDir(path)
                 .filter((f) => !commonRegex.test(f))
                 .map((f) => [
-                  f.replace(/\.[t|j]s$/, "").replace(/^functions[/\\]/, ""),
+                  f.replace(/\.[t|j]s$/, "").replace(new RegExp(`^${path}[/\\\\]`), ""),
                   `./${f}`,
                 ])
             ),
@@ -35,7 +36,7 @@ const compile = ({
           }
         })
     : Promise.resolve().then(() => {
-        console.log("No `functions` directory to compile. Exiting...");
+        console.log(`No \`${path}\` directory to compile. Exiting...`);
         return 0;
       });
 };
