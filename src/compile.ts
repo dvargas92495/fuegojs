@@ -21,7 +21,9 @@ const compile = ({
               readDir(path)
                 .filter((f) => !commonRegex.test(f))
                 .map((f) => [
-                  f.replace(/\.[t|j]s$/, "").replace(new RegExp(`^${path}[/\\\\]`), ""),
+                  f
+                    .replace(/\.[t|j]s$/, "")
+                    .replace(new RegExp(`^${path}[/\\\\]`), ""),
                   `./${f}`,
                 ])
             ),
