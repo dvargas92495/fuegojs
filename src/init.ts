@@ -17,7 +17,9 @@ const init = ({ domain, template }: Args = {}): Promise<number> => {
   const remixVersion = (
     packageJson.dependencies["@remix-run/dev"] || ""
   ).replace(/^[~^]/, "");
-  const appTemplate = template.startsWith('https://github.com/') ? template : `https://github.com/${template}`
+  const appTemplate = template.startsWith("https://github.com/")
+    ? template
+    : `https://github.com/${template}`;
   return createApp({
     appTemplate,
     projectDir: path.resolve(process.cwd(), domain),
