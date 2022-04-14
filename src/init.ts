@@ -45,7 +45,7 @@ const init = ({ domain, template }: Args = {}): Promise<number> => {
 
     try {
       await import(outfile).then((initFn) =>
-        initFn({
+        initFn.default({
           rootDirectory: domain,
         })
       );
