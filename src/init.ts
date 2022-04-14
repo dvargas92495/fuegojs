@@ -25,7 +25,7 @@ const init = ({ domain, template }: Args = {}): Promise<number> => {
     appTemplate,
     projectDir: path.resolve(process.cwd(), domain),
     remixVersion,
-    packageManager: 'npm',
+    packageManager: "npm",
     installDeps: true,
     useTypeScript: true,
     githubToken: process.env.GITHUB_TOKEN,
