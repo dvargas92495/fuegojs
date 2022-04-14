@@ -1,11 +1,9 @@
 import { build, BuildInvalidate, BuildOptions } from "esbuild";
 import chokidar from "chokidar";
-import isr from "./isr";
 import {
   appPath,
   getDotEnvObject,
   getFuegoConfig,
-  INTERMEDIATE_DIR,
   promiseRimraf,
 } from "./common";
 import fs from "fs";
@@ -14,57 +12,6 @@ import path from "path";
 const API_INPUT_DIR = "functions";
 const API_OUTPUT_DIR = "build";
 const API_DYNAMIC_ENV_FILE = "_env.ts";
-
-export const outputHtmlFile = (
-  page: string,
-  params: Record<string, string> = {}
-): Promise<number> => {
-  const pagePath = page
-    .replace(/^pages[/\\]/, "")
-    .replace(/\.[t|j]sx?$/, ".js")
-    .replace(/\\/g, "/");
-  const dataPath = page.replace(/\.([t|j])sx?$/, ".data.$1s");
-  const entryPoints = [page, "pages/_html.tsx", dataPath];
-  return build({
-    entryPoints: entryPoints.filter((p) => fs.existsSync(p)),
-    platform: "node",
-    define: getDotEnvObject(),
-    outdir: INTERMEDIATE_DIR,
-    bundle: true,
-    external: ["react", "react-dom", "canvas"],
-    target: "node14",
-  })
-    .then(() =>
-      Promise.all(
-        entryPoints
-          .map((p) =>
-            p
-              .replace(/^pages[/\\]/, `${INTERMEDIATE_DIR}/`)
-              .replace(/\.[t|j]sx?$/, ".js")
-          )
-          .map((p) =>
-            fs.existsSync(p) ? import(appPath(p)) : Promise.resolve({})
-          )
-      )
-    )
-    .then(([Page, _html, data]) =>
-      isr({ Page, _html, data, params, path: pagePath })
-    )
-    .catch((e) => {
-      console.error(e);
-      return 1;
-    });
-};
-
-const COMMON_REGEX = /^pages[/\\]_/;
-export const outputHtmlFiles = (
-  entryPoints: { entry: string; params: Record<string, string> }[]
-): Promise<number> =>
-  Promise.all(
-    entryPoints
-      .filter((t) => !COMMON_REGEX.test(t.entry))
-      .map((s) => outputHtmlFile(s.entry, s.params))
-  ).then((codes) => (codes.some((c) => c > 0) ? 1 : 0));
 
 export const esbuildWatch = ({
   paths,

@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import init from "./init";
 import build from "./build";
 import deploy from "./deploy";
 import dev from "./dev";
@@ -49,6 +50,8 @@ const run = async (command: string, args: string[]): Promise<number> => {
       return prev;
     }, {} as Record<string, string | string[] | boolean>);
   switch (command) {
+    case "init":
+      return init(opts);
     case "build":
       return build(opts);
     case "deploy":
@@ -68,7 +71,6 @@ const run = async (command: string, args: string[]): Promise<number> => {
     /**
      * TODO
      * - start - both
-     * - init - create a new app, utilize create-vargas-npm,
      */
     default:
       console.error("Command", command, "is unsupported");
