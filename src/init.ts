@@ -11,12 +11,15 @@ type Args = {
 const init = ({ domain, template }: Args = {}): Promise<number> => {
   if (!domain) return Promise.reject("--domain is required");
   if (!template) return Promise.reject("--template is required");
-  const packageJson = JSON.parse(fs.readFileSync("../package.json").toString());
+  const packageJson = JSON.parse(
+    fs.readFileSync(path.join(__dirname, "../package.json")).toString()
+  );
   const remixVersion = (
     packageJson.dependencies["@remix-run/dev"] || ""
   ).replace(/^[~^]/, "");
+  const appTemplate = template.startsWith('https://github.com/') ? template : `https://github.com/${template}`
   return createApp({
-    appTemplate: template,
+    appTemplate,
     projectDir: path.resolve(process.cwd(), domain),
     remixVersion,
     installDeps: true,
