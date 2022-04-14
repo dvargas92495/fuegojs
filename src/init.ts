@@ -38,7 +38,7 @@ const init = ({ domain, template }: Args = {}): Promise<number> => {
     const outfile = path.resolve(initScriptDir, "index.js");
     await esbuild({
       entryPoints: [path.resolve(initScriptDir, "index.ts")],
-      format: 'cjs',
+      format: "cjs",
       platform: "node",
       outfile,
     });
