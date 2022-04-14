@@ -11,7 +11,7 @@ type Args = {
 const init = ({ domain, template }: Args = {}): Promise<number> => {
   if (!domain) return Promise.reject("--domain is required");
   if (!template) return Promise.reject("--template is required");
-  const packageJson = JSON.parse(fs.readFileSync("./package.json").toString());
+  const packageJson = JSON.parse(fs.readFileSync("../package.json").toString());
   const remixVersion = (
     packageJson.dependencies["@remix-run/dev"] || ""
   ).replace(/^[~^]/, "");
