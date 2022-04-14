@@ -2,6 +2,7 @@ import { createApp } from "@remix-run/dev/cli/create";
 import fs from "fs";
 import path from "path";
 import { build as esbuild } from "esbuild";
+import child_process from "child_process";
 
 type Args = {
   domain?: string;
@@ -30,6 +31,10 @@ const init = ({ domain, template }: Args = {}): Promise<number> => {
   }).then(async () => {
     console.log("💿 Running remix.init script");
     const initScriptDir = path.join(domain, "remix.init");
+    child_process.execSync("npm install", {
+      stdio: "ignore",
+      cwd: initScriptDir,
+    });
     const outfile = path.resolve(initScriptDir, "index.js");
     await esbuild({
       entryPoints: [path.resolve(initScriptDir, "index.ts")],
