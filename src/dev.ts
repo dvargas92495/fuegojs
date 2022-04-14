@@ -25,7 +25,7 @@ const dev = async (args: FeArgs = {}): Promise<number> => {
   //     minify: false,
   //   });
   // }
-  
+
   return new Promise<number>(() =>
     remixDev(process.cwd(), process.env.NODE_ENV)
   );

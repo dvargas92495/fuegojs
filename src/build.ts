@@ -29,7 +29,7 @@ const build = async (args: BuildArgs = {}): Promise<number> => {
  */
 module.exports = ${JSON.stringify(newRemixConfig, null, 4)};`
   );
-  
+
   // HOW WOULD I BUNDLE TAILWIND?
   //
   // const fuegoTailwindConfig = fuegoConfig?.tailwind;
