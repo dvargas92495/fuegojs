@@ -25,6 +25,8 @@ const init = ({ domain, template }: Args = {}): Promise<number> => {
     appTemplate,
     projectDir: path.resolve(process.cwd(), domain),
     remixVersion,
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-ignore can remove on remix >=v1.4.0
     packageManager: "npm",
     installDeps: true,
     useTypeScript: true,
