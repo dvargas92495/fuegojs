@@ -91,14 +91,18 @@ const postinstall = (modulesToTranspile: string[]): Promise<number> => {
         const compiler = fs
           .readFileSync("./node_modules/@remix-run/dev/compiler.js")
           .toString();
+        const inject = JSON.stringify(fuegoRemixConfig.externals);
         fs.writeFileSync(
           compilerFile,
-          compiler.replace(
-            "platform: config.serverPlatform,",
-            `platform: config.serverPlatform,\n    external: ${JSON.stringify(
-              fuegoRemixConfig.externals
-            )},`
-          )
+          compiler
+            .replace(
+              "platform: config.serverPlatform,",
+              `platform: config.serverPlatform,\n    external: ${inject},`
+            )
+            .replace(
+              "external: externals,",
+              `external: externals.concat(${inject}),`
+            )
         );
         console.log(
           "hacked modules",
