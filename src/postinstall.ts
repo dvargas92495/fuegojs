@@ -1,7 +1,7 @@
 import { setupRemix, SetupPlatform } from "@remix-run/dev/cli/setup";
 import { build as esbuild, Plugin } from "esbuild";
 import fs from "fs";
-import { readDir } from "./common";
+import { appPath, readDir } from "./common";
 
 const canvasPatch: Plugin = {
   name: "canvas-patch",
@@ -28,6 +28,10 @@ const postinstall = (modulesToTranspile: string[]): Promise<number> => {
   const files = modulesToTranspile
     .slice(1)
     .flatMap((m) => readDir(`./node_modules/${m}`));
+  const fuegoConfig = JSON.parse(
+    fs.readFileSync(appPath("package.json")).toString()
+  )?.fuego;
+  const fuegoRemixConfig = fuegoConfig?.remix;
 
   const jsFiles = files.filter((s) => /\.js$/.test(s));
   const jsonFiles = files.filter((s) => /\.json$/.test(s));
@@ -79,6 +83,28 @@ const postinstall = (modulesToTranspile: string[]): Promise<number> => {
           recursive: true,
           force: true,
         });
+        console.log("removed duplicate react-router-dom");
+      }
+      // Remove Hack once https://github.com/remix-run/remix/pull/1841 is merged
+      if (fuegoRemixConfig.externals) {
+        const compilerFile = "./node_modules/@remix-run/dev/compiler.js";
+        const compiler = fs
+          .readFileSync("./node_modules/@remix-run/dev/compiler.js")
+          .toString();
+        fs.writeFileSync(
+          compilerFile,
+          compiler.replace(
+            "bundle: true,",
+            `bundle:true, external: ${JSON.stringify(
+              fuegoRemixConfig.externals
+            )},`
+          )
+        );
+        console.log(
+          "hacked modules",
+          fuegoRemixConfig.externals,
+          "as externals"
+        );
       }
     })
     .then(() => console.log("done!"))

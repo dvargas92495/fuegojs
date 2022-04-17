@@ -214,7 +214,7 @@ export const targetedDeploy = (keys?: string[]): void | Promise<void> =>
   process.env.NODE_ENV === "production"
     ? deploy({
         keys,
-        domain: (process.env.HOST || "").replace(/^https?:\/\//, ""),
+        domain: (process.env.ORIGIN || "").replace(/^https?:\/\//, ""),
         impatient: true,
       }).then(() => console.log("deployed successfully"))
     : console.log("Wrote locally");
