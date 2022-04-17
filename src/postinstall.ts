@@ -94,8 +94,8 @@ const postinstall = (modulesToTranspile: string[]): Promise<number> => {
         fs.writeFileSync(
           compilerFile,
           compiler.replace(
-            "bundle: true,",
-            `bundle:true, external: ${JSON.stringify(
+            "platform: config.serverPlatform,",
+            `platform: config.serverPlatform,\n    external: ${JSON.stringify(
               fuegoRemixConfig.externals
             )},`
           )
