@@ -1,4 +1,3 @@
-import { createApp } from "@remix-run/dev/cli/create";
 import fs from "fs";
 import path from "path";
 import { build as esbuild } from "esbuild";
@@ -39,42 +38,46 @@ const init = ({ domain, template }: Args = {}): Promise<number> => {
     : `https://github.com/${template}`;
   // TODO: Remove with remix 1.4.2
   patchRemix();
-  return createApp({
-    appTemplate,
-    projectDir: path.resolve(process.cwd(), domain),
-    remixVersion,
-    packageManager: "npm",
-    installDeps: true,
-    useTypeScript: true,
-    githubToken: process.env.GITHUB_TOKEN,
-  }).then(async () => {
-    console.log("💿 Running remix.init script");
-    const initScriptDir = path.join(domain, "remix.init");
-    child_process.execSync("npm install", {
-      stdio: "ignore",
-      cwd: initScriptDir,
-    });
-    const outfile = path.resolve(initScriptDir, "index.js");
-    await esbuild({
-      entryPoints: [path.resolve(initScriptDir, "index.ts")],
-      format: "cjs",
-      platform: "node",
-      outfile,
-    });
+  return import("@remix-run/dev/cli/create.js")
+    .then((d) =>
+      d.createApp({
+        appTemplate,
+        projectDir: path.resolve(process.cwd(), domain),
+        remixVersion,
+        packageManager: "npm",
+        installDeps: true,
+        useTypeScript: true,
+        githubToken: process.env.GITHUB_TOKEN,
+      })
+    )
+    .then(async () => {
+      console.log("💿 Running remix.init script");
+      const initScriptDir = path.join(domain, "remix.init");
+      child_process.execSync("npm install", {
+        stdio: "ignore",
+        cwd: initScriptDir,
+      });
+      const outfile = path.resolve(initScriptDir, "index.js");
+      await esbuild({
+        entryPoints: [path.resolve(initScriptDir, "index.ts")],
+        format: "cjs",
+        platform: "node",
+        outfile,
+      });
 
-    try {
-      await import(outfile).then((initFn) =>
-        initFn.default({
-          rootDirectory: domain,
-        })
-      );
-    } catch (error) {
-      console.error(`🚨 Oops, remix.init failed`);
-      throw error;
-    }
-    fs.rmSync(initScriptDir, { force: true, recursive: true });
-    return 0;
-  });
+      try {
+        await import(outfile).then((initFn) =>
+          initFn.default({
+            rootDirectory: domain,
+          })
+        );
+      } catch (error) {
+        console.error(`🚨 Oops, remix.init failed`);
+        throw error;
+      }
+      fs.rmSync(initScriptDir, { force: true, recursive: true });
+      return 0;
+    });
 };
 
 export default init;
