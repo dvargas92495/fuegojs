@@ -12,7 +12,7 @@ const build = async (args: BuildArgs = {}): Promise<number> => {
   const fuegoConfig = JSON.parse(
     fs.readFileSync(appPath("package.json")).toString()
   )?.fuego;
-  const fuegoRemixConfig = fuegoConfig?.remix;
+  const fuegoRemixConfig = fuegoConfig?.remix || {};
   const remixConfigFile = appPath("remix.config.js");
   const existingRemixConfig = fs.existsSync(remixConfigFile)
     ? require(remixConfigFile)
@@ -50,7 +50,7 @@ module.exports = ${JSON.stringify(newRemixConfig, null, 4)};`
         platform: "node",
         target: "node14",
         entryPoints: ["server/index.ts"],
-        external: ["aws-sdk"].concat(fuegoRemixConfig.externals || []),
+        external: ["aws-sdk"].concat(fuegoRemixConfig?.externals || []),
         minify: !args.readable,
         define: getDotEnvObject(),
       })
