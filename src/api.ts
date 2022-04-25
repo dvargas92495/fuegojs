@@ -58,11 +58,18 @@ const inlineTryCatch = <T extends unknown>(
   }
 };
 
-const entryRegex =
-  /^functions[\\/](([a-z0-9-]+[/\\])*(get|post|put|delete)|[a-z0-9-]+)\.ts$/;
-
-const api = ({ tunnel }: { tunnel?: string }): Promise<number> => {
+const api = ({
+  tunnel,
+  path = "api",
+}: {
+  tunnel?: string;
+  path?: string;
+}): Promise<number> => {
   process.env.NODE_ENV = process.env.NODE_ENV || "development";
+
+  const entryRegex = new RegExp(
+    `^${path}[\\/](([a-z0-9-]+[/\\])*(get|post|put|delete)|[a-z0-9-]+)\\.[tj]s$`
+  );
   return prepareApiBuild().then((opts) => {
     const app = express();
     app.use(express.json());
@@ -71,23 +78,23 @@ const api = ({ tunnel }: { tunnel?: string }): Promise<number> => {
         extended: true,
       })
     );
-    const apiCount = readDir("functions").filter((f) =>
-      entryRegex.test(f)
-    ).length;
+    const apiCount = readDir(path).filter((f) => entryRegex.test(f)).length;
     let currentCount = 0;
     return new Promise<void>((resolve) =>
       esbuildWatch({
-        paths: ["functions", "db"],
+        paths: [path, "app/data"],
         opts,
         rebuildCallback: (file) => {
           const filePath = appPath(
-            file.replace(/^functions/, "build").replace(/\.ts$/, ".js")
+            file
+              .replace(new RegExp(`^${path}`), "build")
+              .replace(/\.ts$/, ".js")
           );
           return import(filePath).then(({ handler }) => {
             delete require.cache[filePath];
             const functionName = file
-              .replace(/^functions[\\/]/, "")
-              .replace(/\.[t|j]s$/, "");
+              .replace(new RegExp(`^${path}[\\/]`), "")
+              .replace(/\.[tj]s$/, "");
             const paths = functionName.split(/[\\/]/);
             const method = paths.slice(-1)[0].toLowerCase() as ExpressMethod;
             const route = `/${
