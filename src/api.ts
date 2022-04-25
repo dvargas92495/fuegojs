@@ -68,7 +68,7 @@ const api = ({
   process.env.NODE_ENV = process.env.NODE_ENV || "development";
 
   const entryRegex = new RegExp(
-    `^${path}[\\/](([a-z0-9-]+[/\\])*(get|post|put|delete)|[a-z0-9-]+)\\.[tj]s$`
+    `^${path}[\\\\/](([a-z0-9-]+[/\\\\])*(get|post|put|delete)|[a-z0-9-]+)\\.[tj]s$`
   );
   return prepareApiBuild().then((opts) => {
     const app = express();
@@ -93,9 +93,9 @@ const api = ({
           return import(filePath).then(({ handler }) => {
             delete require.cache[filePath];
             const functionName = file
-              .replace(new RegExp(`^${path}[\\/]`), "")
+              .replace(new RegExp(`^${path}[\\\\/]`), "")
               .replace(/\.[tj]s$/, "");
-            const paths = functionName.split(/[\\/]/);
+            const paths = functionName.split(/[\\\\/]/);
             const method = paths.slice(-1)[0].toLowerCase() as ExpressMethod;
             const route = `/${
               METHOD_SET.has(method)
