@@ -8,7 +8,7 @@ import { build as esbuild } from "esbuild";
 import format from "date-fns/format";
 
 const DATABASE_URL_REGEX =
-  /^mysql:\/\/([a-z0-9_]+):(.{16})@([a-z0-9.-]+):(\d{3,5})\/([a-z_]+)$/;
+  /^mysql:\/\/([a-z0-9_]+):([^@]{8,32})@([a-z0-9.-]+):(\d{3,5})\/([a-z_]+)$/;
 const matches = DATABASE_URL_REGEX.exec(process.env.DATABASE_URL || "");
 
 type MigrationArgs = {
@@ -36,6 +36,7 @@ const migrate = ({
       return Promise.reject(
         `Invalid migration name. Expected regex: ${MIGRATION_REGEX.source}`
       );
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
     const filename = `${format(new Date(), "yyyy-MM-dd-hh-mm")}-${generate}.ts`;
     fs.writeFileSync(
       nodePath.join(dir, filename),
