@@ -265,7 +265,11 @@ export const revert = (args: MigrationProps) => {
       } else if (!fs.existsSync(outDir)) {
         fs.mkdirSync(outDir, { recursive: true });
       }
-      console.log("Running", migrationsToRun.length - applied.length, "migrations...");
+      console.log(
+        "Running",
+        migrationsToRun.length - applied.length,
+        "migrations..."
+      );
       return runMigrations(migrationsToRun);
     });
 };
