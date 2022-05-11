@@ -193,7 +193,7 @@ export const revert = (args: MigrationProps) => {
               }
               if (!a.finished_at) {
                 return Promise.reject(
-                  `Tried to run migration that had already started but failed. Please first remove migration record ${a.uuid} before attempting to apply migrations again.`
+                  `Tried to run migration that had already started but failed. Please first remove migration record ${a.migration_name} before attempting to apply migrations again.`
                 );
               }
               if (filesToOverwrite.has(m.migrationName)) {
@@ -260,12 +260,12 @@ export const revert = (args: MigrationProps) => {
             }
       );
       if (!migrationsToRun.length) {
-        console.log("No new migrations to run. Exiting...");
+        console.log("No migrations to run. Exiting...");
         return 0;
       } else if (!fs.existsSync(outDir)) {
         fs.mkdirSync(outDir, { recursive: true });
-        console.log("Running ", migrationsToRun.length, "migrations...");
       }
+      console.log("Running", migrationsToRun.length - applied.length, "migrations...");
       return runMigrations(migrationsToRun);
     });
 };
