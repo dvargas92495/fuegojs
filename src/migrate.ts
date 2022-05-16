@@ -203,6 +203,11 @@ export const revert = (args: MigrationProps) => {
                     [m.checksum, a.uuid],
                     (err) => (err ? reject(err) : resolve())
                   )
+                ).then(() =>
+                  console.log(
+                    "Updated the checksum for migration",
+                    m.migrationName
+                  )
                 );
               } else if (a.checksum !== m.checksum) {
                 return Promise.reject(
