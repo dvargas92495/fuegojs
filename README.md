@@ -141,3 +141,15 @@ The `migrate` command supports the following arguments:
 - `--overwrite [name]` - Overwrites the checksum of the migration file specified by name in case any changes are made, before running migrations. By default, if fuego detects differences in checksum, the migration will be rejected. Could specify any number of overwrite arguments.
 
 In the future, this command will evolve to running migration files that are automatically generated from the `generate` command above during schema reconciliation.
+
+## Miscellaneous
+
+The following commands are also accessible for help developing with Fuego.
+
+### `postinstall`
+
+There are a few features not yet available in related libraries for Fuego to run in the way it would like to. We inject these features during NPM's postinstall process so that we could smooth over usage until the related libraries implement them directly. To utilize, please add the following to your `package.json` within the `scripts` object:
+
+```bash
+postinstall: fuego postinstall
+```

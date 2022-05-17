@@ -74,17 +74,6 @@ const postinstall = (modulesToTranspile: string[]): Promise<number> => {
       return setupRemix(SetupPlatform.Node);
     })
     .then(() => {
-      if (
-        fs.existsSync("./node_modules/@remix-run/react/node_modules") &&
-        fs.existsSync("./node_modules/react-router-dom")
-      ) {
-        // need to have one version of react router - not sure why this is happening
-        fs.rmSync("./node_modules/@remix-run/react/node_modules", {
-          recursive: true,
-          force: true,
-        });
-        console.log("removed duplicate react-router-dom");
-      }
       // Remove Hack once https://github.com/remix-run/remix/pull/1841 is merged
       if (fuegoRemixConfig?.externals) {
         const compilerFile = "./node_modules/@remix-run/dev/compiler.js";
@@ -113,6 +102,26 @@ const postinstall = (modulesToTranspile: string[]): Promise<number> => {
           fuegoRemixConfig.externals,
           "as externals"
         );
+      }
+
+      // Remove Hack once I merge this config
+      const remixConfigServerBuildPath =
+        (JSON.parse(fs.readFileSync(appPath("remix.config.js")).toString())
+          ?.serverBuildPath as string) || "";
+      if (remixConfigServerBuildPath.startsWith("app")) {
+        const compilerFile = "./node_modules/@remix-run/dev/compiler.js";
+        const compiler = fs
+          .readFileSync("./node_modules/@remix-run/dev/compiler.js")
+          .toString();
+        const ignored = `/${remixConfigServerBuildPath.replace("/", "\\/")}/`;
+        fs.writeFileSync(
+          compilerFile,
+          compiler.replace(
+            "ignoreInitial: true,",
+            `ignoreInitial: true,\n      ignored: /${ignored}/,`
+          )
+        );
+        console.log("hacked chokidar ignore to");
       }
     })
     .then(() => console.log("done!"))
