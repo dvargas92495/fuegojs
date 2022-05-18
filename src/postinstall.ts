@@ -73,7 +73,7 @@ const postinstall = (modulesToTranspile: string[]): Promise<number> => {
       console.log("now finally run remix setup node");
       return setupRemix(SetupPlatform.Node);
     })
-    .then(() => {
+    .then(async () => {
       // Remove Hack once https://github.com/remix-run/remix/pull/1841 is merged
       if (fuegoRemixConfig?.externals) {
         const compilerFile = "./node_modules/@remix-run/dev/compiler.js";
@@ -105,20 +105,20 @@ const postinstall = (modulesToTranspile: string[]): Promise<number> => {
       }
 
       // Remove Hack once I merge this config
-      const remixConfigServerBuildPath =
-        (JSON.parse(fs.readFileSync(appPath("remix.config.js")).toString())
-          ?.serverBuildPath as string) || "";
+      const remixConfigServerBuildPath = await import(
+        appPath("remix.config.js")
+      ).then((config) => (config?.serverBuildPath as string) || "");
       if (remixConfigServerBuildPath.startsWith("app")) {
         const compilerFile = "./node_modules/@remix-run/dev/compiler.js";
         const compiler = fs
           .readFileSync("./node_modules/@remix-run/dev/compiler.js")
           .toString();
-        const ignored = `/${remixConfigServerBuildPath.replace("/", "\\/")}/`;
+        const ignored = `/${remixConfigServerBuildPath.replace(/\//g, "\\/")}/`;
         fs.writeFileSync(
           compilerFile,
           compiler.replace(
-            "ignoreInitial: true,",
-            `ignoreInitial: true,\n      ignored: /${ignored}/,`
+            "ignoreInitial: true,\n    awaitWriteFinish",
+            `ignoreInitial: true,\n    ignored: /${ignored}/,\n    awaitWriteFinish`
           )
         );
         console.log("hacked chokidar ignore to");
