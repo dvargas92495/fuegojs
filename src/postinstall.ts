@@ -118,10 +118,10 @@ const postinstall = (modulesToTranspile: string[]): Promise<number> => {
           compilerFile,
           compiler.replace(
             "ignoreInitial: true,\n    awaitWriteFinish",
-            `ignoreInitial: true,\n    ignored: /${ignored}/,\n    awaitWriteFinish`
+            `ignoreInitial: true,\n    ignored: ${ignored},\n    awaitWriteFinish`
           )
         );
-        console.log("hacked chokidar ignore to");
+        console.log("hacked chokidar ignore to", ignored);
       }
     })
     .then(() => console.log("done!"))
