@@ -35,7 +35,7 @@ export const getDotEnvObject = (): Record<string, string> => {
   return Object.fromEntries(
     Object.keys(env).map((k) => [`process.env.${k}`, JSON.stringify(env[k])])
   );
-}
+};
 
 export const promiseRimraf = (s: string): Promise<null | void | Error> =>
   new Promise((resolve) => rimraf(s, resolve));
