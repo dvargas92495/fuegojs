@@ -8,25 +8,11 @@ type Args = {
   template?: string;
 };
 
-const patchRemix = () => {
-  const name = path.join(
-    __dirname,
-    "../node_modules/@remix-run/dev/cli/create.js"
-  );
-
-  const content = fs.readFileSync(name).toString();
-  fs.writeFileSync(
-    name,
-    content.replace(
-      `filePath = filePath.replaceAll("\\\\", "/");`,
-      `filePath = filePath.split(path.sep).join(path.posix.sep)`
-    )
-  );
-};
-
-const init = ({ domain, template }: Args = {}): Promise<number> => {
+const init = ({
+  domain,
+  template = "dvargas92495/fuegojs/tree/main/template",
+}: Args = {}): Promise<number> => {
   if (!domain) return Promise.reject("--domain is required");
-  if (!template) return Promise.reject("--template is required");
   const packageJson = JSON.parse(
     fs.readFileSync(path.join(__dirname, "../package.json")).toString()
   );
@@ -36,8 +22,6 @@ const init = ({ domain, template }: Args = {}): Promise<number> => {
   const appTemplate = template.startsWith("https://github.com/")
     ? template
     : `https://github.com/${template}`;
-  // TODO: Remove with remix 1.4.2
-  patchRemix();
   return import("@remix-run/dev/cli/create.js")
     .then((d) =>
       d.createApp({

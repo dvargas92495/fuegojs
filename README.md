@@ -24,7 +24,7 @@ We will grow through each layer in the application, and within each outline the 
 
 ## APP
 
-The APP is primarily built on [React](https://reactjs.org/) and [Remix](https://remix.run/). It offers an opinionated approach on how Remix apps should be built when targeting AWS Cloudfront, while also taking care of a lot of the boilerplate. Your entire front end should live in the `app` directory.
+The APP is primarily built on [Remix](https://remix.run/). It offers an opinionated approach on how Remix apps should be built when targeting AWS Cloudfront, while also taking care of a lot of the boilerplate. Your entire front end should live in the `app` directory.
 
 ### `dev`
 
@@ -152,4 +152,15 @@ There are a few features not yet available in related libraries for Fuego to run
 
 ```bash
 postinstall: fuego postinstall
+```
+
+You should pass in as arguments any package that is exports as `ESM`. Remix doesn't have a great way of handling this so the post install will convert the package to `CJS` using `esbuild`.
+
+### `init`
+
+This is the only global command meant to create a new project from scratch. It uses [Remix Stacks](https://remix.run/docs/en/v1/pages/stacks) under the hood allowing you to pass in any existing GitHub stack template. It will also use the input domain as the name for the generated repository and all other name related parameters.
+
+```
+npm install -g fuegojs@latest
+npx fuego init --domain example.com --template 
 ```

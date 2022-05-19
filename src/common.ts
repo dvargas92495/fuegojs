@@ -3,7 +3,6 @@ import path from "path";
 import rimraf from "rimraf";
 import dotenv from "dotenv";
 import type { Express } from "express";
-import type { BuildOptions } from "esbuild";
 dotenv.config();
 
 export const INTERMEDIATE_DIR = "_fuego";
@@ -36,42 +35,10 @@ export const getDotEnvObject = (): Record<string, string> => {
   return Object.fromEntries(
     Object.keys(env).map((k) => [`process.env.${k}`, JSON.stringify(env[k])])
   );
-};
-
-export const feMapFile = (s: string): string => {
-  const newEntry = appPath(
-    `${s.replace(/^pages[/\\]/, `${INTERMEDIATE_DIR}/`)}`
-  );
-  const newDir = path.dirname(newEntry);
-  if (!fs.existsSync(newDir)) fs.mkdirSync(newDir, { recursive: true });
-  fs.writeFileSync(
-    newEntry,
-    `import React from 'react';
-import ReactDOM from 'react-dom';
-import Page from '${path.relative(newDir, s).replace(/\\/g, "/")}';
-const props = window.FUEGO_PROPS || {};
-window.onload = () => ReactDOM.hydrate(<Page {...props}/>, document.body.firstElementChild);`
-  );
-  return newEntry;
-};
+}
 
 export const promiseRimraf = (s: string): Promise<null | void | Error> =>
   new Promise((resolve) => rimraf(s, resolve));
-
-export const prepareFeBuild = (): Promise<BuildOptions> =>
-  Promise.all([promiseRimraf(INTERMEDIATE_DIR), promiseRimraf("out")]).then(
-    () => {
-      fs.mkdirSync(INTERMEDIATE_DIR);
-      fs.mkdirSync("out");
-      return Promise.resolve({
-        platform: "browser" as const,
-        minify: process.env.NODE_ENV === "production",
-        bundle: true,
-        outdir: path.join(process.env.FE_DIR_PREFIX || "", "out"),
-        define: getDotEnvObject(),
-      });
-    }
-  );
 
 export const setupServer = ({
   app,
