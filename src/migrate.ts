@@ -25,7 +25,7 @@ export type MigrationProps = {
 const MIGRATION_REGEX = /[a-z-]+/;
 
 const migrate = ({
-  path = "migrations",
+  path = "data/migrations",
   revert,
   generate,
   overwrite,

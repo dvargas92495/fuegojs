@@ -1,0 +1,42 @@
+{
+  "name": "{{{projectName}}}",
+  "description": "{{{description}}}",
+  "version": "0.0.0",
+  "license": "MIT",
+  "repository": "dvargas92495/{{{projectName}}}",
+  "sideEffects": false,
+  "scripts": {
+    "tailwind": "npm run generate:css -- --watch",
+    "generate:css": "tailwindcss -o ./app/tailwind.css",
+    "prebuild": "npm run generate:css -- --minify",
+    "build": "fuego build",
+    "postinstall": "fuego postinstall",
+    "format": "prettier --write \"**/*.tsx\"",
+    "lint": "eslint . --ext .ts,.tsx",
+    "api": "fuego api",
+    "dev": "fuego dev",
+    "start": "concurrently \"npm:api\" \"npm:dev\" \"npm:tailwind\""
+  },
+  "devDependencies": {
+    "@tailwindcss/forms": "*",
+    "@types/aws-lambda": "*",
+    "@types/node": "*",
+    "@types/react": "*",
+    "@types/react-dom": "*",
+    "@types/uuid": "*",
+    "@typescript-eslint/parser": "*",
+    "@typescript-eslint/eslint-plugin": "*",
+    "concurrently": "*",
+    "eslint": "*",
+    "fuegojs": "*",
+    "prettier": "*",
+    "tailwindcss": "*",
+    "ts-node": "*",
+    "tslint-config-prettier": "*",
+    "tslint-react-hooks": "*",
+    "typescript": "*"
+  },
+  "dependencies": {
+    "@dvargas92495/app": "*"
+  }
+}

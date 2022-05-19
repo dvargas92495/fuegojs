@@ -5,7 +5,6 @@ import dotenv from "dotenv";
 import type { Express } from "express";
 dotenv.config();
 
-export const INTERMEDIATE_DIR = "_fuego";
 export const FE_OUT_DIR = path.join(process.env.FE_DIR_PREFIX || "", "out");
 export const FE_PUBLIC_DIR = path.join(
   process.env.FE_DIR_PREFIX || "",

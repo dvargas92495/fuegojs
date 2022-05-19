@@ -124,7 +124,7 @@ Coming Soon! See `npx fuego migrate --generate` below.
 
 ### `migrate`
 
-The `migrate` command that exists today allows users to define custom one time scripts to run on either their development or production environments. Migration files are currently expected to be in the `migrations` root directory, though this will be moved in a future version to be in the `data/migrartions` directory. It also expects a `DATABASE_URL` environment variable to be defined to track migrations applied with `mysql`. Migration files themselves can be in typescript and should expose a `migrate` and `revert` functions, run while applying and reverting the migration respectively. Typescript allow migrations to include database via sql queries and third party service data via API calls.
+The `migrate` command that exists today allows users to define custom one time scripts to run on either their development or production environments. Migration files are currently expected to be in the `data/migrations` root directory. It also expects a `DATABASE_URL` environment variable to be defined to track migrations applied with `mysql`. Migration files themselves can be in typescript and should expose a `migrate` and `revert` functions, run while applying and reverting the migration respectively. Typescript allow migrations to include database migrations via sql queries and third party service data via API calls.
 
 Migrations should be viewed as an escape hatch for one time scripts run on production. There's almost always a better approach:
 - Schema migrations should instead be defined as Schema files (_coming soon!_)
@@ -162,5 +162,10 @@ This is the only global command meant to create a new project from scratch. It u
 
 ```
 npm install -g fuegojs@latest
-npx fuego init --domain example.com --template 
+npx fuego init --domain example.com
 ```
+
+This command takes in the following arguments:
+- `--domain [name]` - **REQUIRED** The domain where your app will be hosted. The name will be used for your Github repo and several other naming conventions.
+- `--template [name]` - The Remix Stack to use for initialization. By default, it will use `dvargas92596/fuegojs/tree/main/template`, which points to the Remix stack located in the `/template` directory in this repository.
+    - **Note:** - The template is currently very custom to my apps ("Vargas Arts" branding and such), and I will be working to make it more generic in the coming versions.
