@@ -13,11 +13,11 @@ const init = ({
   template = "dvargas92495/fuegojs/tree/main/template",
 }: Args = {}): Promise<number> => {
   if (!domain) return Promise.reject("--domain is required");
-  const packageJson = JSON.parse(
+  const fuegoPackageJson = JSON.parse(
     fs.readFileSync(path.join(__dirname, "../package.json")).toString()
   );
   const remixVersion = (
-    packageJson.dependencies["@remix-run/dev"] || ""
+    fuegoPackageJson.dependencies["@remix-run/dev"] || ""
   ).replace(/^[~^]/, "");
   const appTemplate = template.startsWith("https://github.com/")
     ? template
@@ -35,6 +35,35 @@ const init = ({
       })
     )
     .then(async () => {
+      console.log("Setting latest deps");
+      const packageJson = path.join(domain, "package.json");
+      const json = JSON.parse(fs.readFileSync(packageJson).toString());
+      const searchDependencies = (deps: Record<string, string>) =>
+        Promise.all(
+          Object.entries(deps).map(([k, v]) => {
+            if (v === "**") {
+              return new Promise((resolve) =>
+                child_process.exec(`npm show ${k} version`, (_, stdout) =>
+                  resolve(`^${stdout.replace("\n", "")}`)
+                )
+              ).then((version) => {
+                console.log("found version", version, "for", k);
+                return [k, version];
+              });
+            } else {
+              return Promise.resolve([k, v]);
+            }
+          })
+        ).then((entries) => Object.fromEntries(entries));
+
+      await Promise.all([
+        searchDependencies(json.dependencies),
+        searchDependencies(json.devDependencies),
+      ]).then(([dep, dev]) => {
+        json.dependencies = dep;
+        json.devDependencies = dev;
+        fs.writeFileSync(packageJson, JSON.stringify(json, null, 2));
+      });
       console.log("💿 Running remix.init script");
       const initScriptDir = path.join(domain, "remix.init");
       child_process.execSync("npm install", {
