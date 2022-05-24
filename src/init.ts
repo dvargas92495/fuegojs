@@ -68,7 +68,7 @@ const init = ({
       console.log("💿 Installing dependencies in project");
       child_process.execSync(`npm install`, {
         stdio: "inherit",
-        cwd: projectDir
+        cwd: projectDir,
       });
       console.log("💿 Running remix.init script");
       const initScriptDir = path.join(domain, "remix.init");
