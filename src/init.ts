@@ -22,6 +22,7 @@ const init = ({
   const appTemplate = template.startsWith("https://github.com/")
     ? template
     : `https://github.com/${template}`;
+  const projectDir = path.resolve(process.cwd(), domain);
   return import("@remix-run/dev/cli/create.js")
     .then((d) =>
       d.createApp({
@@ -63,6 +64,11 @@ const init = ({
         json.dependencies = dep;
         json.devDependencies = dev;
         fs.writeFileSync(packageJson, JSON.stringify(json, null, 2));
+      });
+      console.log("💿 Installing dependencies in project");
+      child_process.execSync(`npm install`, {
+        stdio: "inherit",
+        cwd: projectDir
       });
       console.log("💿 Running remix.init script");
       const initScriptDir = path.join(domain, "remix.init");

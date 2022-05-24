@@ -16,7 +16,7 @@ type Task = {
   skip?: () => boolean;
 };
 
-const main = ({ rootDirectory }: { rootDirectory: string }) => {
+const main = ({ rootDirectory }: { rootDirectory: string }): Promise<void> => {
   AWS.config.credentials = new AWS.SharedIniFileCredentials({
     profile: "davidvargas",
   });
@@ -326,7 +326,7 @@ const main = ({ rootDirectory }: { rootDirectory: string }) => {
             )
           )
           .then(() => {
-            if (isSubdomain) {
+            if (!isSubdomain) {
               console.log(
                 chalk.blue(
                   "Check on custom urls in redirect config. Then create production instance on same settings.\nCurrently, there's a Clerk bug where you have to duplicate this work in production."
@@ -372,6 +372,8 @@ module "aws_clerk" {
 }
 `
             : ``,
+          clerkDevFrontendApi: process.env.CLERK_DEV_FRONTEND_API,
+          stripePublicKey: process.env.TEST_STRIPE_PUBLIC,
         };
         const readDir = (s: string): string[] =>
           fs.existsSync(s)
@@ -452,12 +454,10 @@ module "aws_clerk" {
       title: "Git add",
       task: () => {
         try {
-          process.chdir(rootDirectory);
           return sync("git add -A", { stdio: "ignore" });
         } catch (e) {
-          console.log(chalk.red("Failed to git init"));
-          console.log(e);
-          return Promise.resolve();
+          console.log(chalk.red("Failed to git add"));
+          return Promise.reject(e);
         }
       },
     },
@@ -465,14 +465,12 @@ module "aws_clerk" {
       title: "Git commit",
       task: () => {
         try {
-          process.chdir(rootDirectory);
           return sync('git commit -m "Initial commit from Remix Fuego Stack"', {
             stdio: "ignore",
           });
         } catch (e) {
-          console.log(chalk.red("Failed to git init"));
-          console.log(e);
-          return Promise.resolve();
+          console.log(chalk.red("Failed to git commit"));
+          return Promise.reject(e);
         }
       },
     },
@@ -480,7 +478,6 @@ module "aws_clerk" {
       title: "Git remote",
       task: () => {
         try {
-          process.chdir(rootDirectory);
           return new Promise<void>((resolve, reject) => {
             const child = spawn(
               "git",
@@ -503,9 +500,8 @@ module "aws_clerk" {
             });
           });
         } catch (e) {
-          console.log(chalk.red("Failed to git init"));
-          console.log(e);
-          return Promise.resolve();
+          console.log(chalk.red("Failed to git remote"));
+          return Promise.reject(e);
         }
       },
     },
@@ -513,12 +509,10 @@ module "aws_clerk" {
       title: "Git push",
       task: () => {
         try {
-          process.chdir(rootDirectory);
           return sync(`git push origin main`, { stdio: "ignore" });
         } catch (e) {
-          console.log(chalk.red("Failed to git init"));
-          console.log(e);
-          return Promise.resolve();
+          console.log(chalk.red("Failed to git push"));
+          return Promise.reject(e);
         }
       },
     },
