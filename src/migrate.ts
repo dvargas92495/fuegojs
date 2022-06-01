@@ -36,7 +36,7 @@ const migrate = ({
       return Promise.reject(
         `Invalid migration name. Expected regex: ${MIGRATION_REGEX.source}`
       );
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     const filename = `${format(new Date(), "yyyy-MM-dd-hh-mm")}-${generate}.ts`;
     fs.writeFileSync(
       nodePath.join(dir, filename),
