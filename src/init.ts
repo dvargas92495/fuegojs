@@ -13,12 +13,6 @@ const init = ({
   template = "dvargas92495/fuegojs/tree/main/template",
 }: Args = {}): Promise<number> => {
   if (!domain) return Promise.reject("--domain is required");
-  const fuegoPackageJson = JSON.parse(
-    fs.readFileSync(path.join(__dirname, "../package.json")).toString()
-  );
-  const remixVersion = (
-    fuegoPackageJson.dependencies["@remix-run/dev"] || ""
-  ).replace(/^[~^]/, "");
   const appTemplate = template.startsWith("https://github.com/")
     ? template
     : `https://github.com/${template}`;
@@ -28,8 +22,6 @@ const init = ({
       d.createApp({
         appTemplate,
         projectDir: path.resolve(process.cwd(), domain),
-        remixVersion,
-        packageManager: "npm",
         installDeps: false,
         useTypeScript: true,
         githubToken: process.env.GITHUB_TOKEN,

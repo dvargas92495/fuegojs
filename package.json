@@ -22,14 +22,30 @@
     "/dist"
   ],
   "peerDependencies": {
-    "@remix-run/dev": ">=1.4.3"
+    "@remix-run/dev": ">=1",
+    "@remix-run/react": ">=1",
+    "@remix-run/serve": ">=1",
+    "@types/aws-lambda": ">=8.10.83",
+    "@types/node": ">=16",
+    "@types/react": ">=18",
+    "@types/react-dom": ">=18",
+    "@typescript-eslint/eslint-plugin": "^4.29.3",
+    "@typescript-eslint/parser": "^4.29.3",
+    "concurrently": "6.5.1",
+    "eslint": "^7.32.0",
+    "prettier": "^2.3.2",
+    "react": ">=18",
+    "react-dom": ">=18",
+    "ts-node": "10.3.0",
+    "tslint-config-prettier": "1.18.0",
+    "tslint-react-hooks": "2.2.2",
+    "typescript": ">=4"
   },
   "devDependencies": {
-    "@remix-run/dev": "^1.5.1",
+    "@remix-run/dev": "^1.6.0",
     "@testing-library/jest-dom": "^5.14.1",
     "@testing-library/user-event": "^13.2.1",
     "@types/archiver": "^5.1.1",
-    "@types/aws-lambda": "^8.10.83",
     "@types/express": "^4.17.13",
     "@types/git-repo-name": "^1.0.1",
     "@types/jest": "^27.0.1",
@@ -38,16 +54,9 @@
     "@types/pluralize": "0.0.29",
     "@types/rimraf": "^3.0.2",
     "@types/uuid": "^8.3.4",
-    "@typescript-eslint/eslint-plugin": "^4.29.3",
-    "@typescript-eslint/parser": "^4.29.3",
-    "cdktf-cli": "^0.11.0",
     "cross-env": "^7.0.3",
-    "eslint": "^7.32.0",
     "jest": "^27.0.6",
-    "prettier": "^2.3.2",
-    "ts-jest": "^27.0.5",
-    "tslint-config-prettier": "^1.18.0",
-    "typescript": "^4.3.5"
+    "ts-jest": "^27.0.5"
   },
   "dependencies": {
     "archiver": "^5.3.0",
