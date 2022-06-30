@@ -17,7 +17,7 @@ const init = ({
     ? template
     : `https://github.com/${template}`;
   const projectDir = path.resolve(process.cwd(), domain);
-  return import("@remix-run/dev/cli/create.js")
+  return import("@remix-run/dev/dist/cli/create.js")
     .then((d) =>
       d.createApp({
         appTemplate,

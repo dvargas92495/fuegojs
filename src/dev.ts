@@ -1,4 +1,4 @@
-import { dev as remixDev } from "@remix-run/dev/cli/commands";
+import { dev as remixDev } from "@remix-run/dev/dist/cli/commands";
 // import { appPath } from "./common";
 // import fs from "fs";
 // import tailwindcss from "tailwindcss";

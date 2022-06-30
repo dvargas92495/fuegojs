@@ -1,7 +1,7 @@
 import { build as esbuild } from "esbuild";
 import { appPath, FE_OUT_DIR, getDotEnvObject } from "./common";
 import fs from "fs";
-import { build as remixBuild } from "@remix-run/dev/cli/commands";
+import { build as remixBuild } from "@remix-run/dev/dist/cli/commands";
 
 // HOW WOULD I BUNDLE TAILWIND?
 //

@@ -72,9 +72,9 @@ const postinstall = (modulesToTranspile: string[]): Promise<number> => {
 
       // Remove Hack once https://github.com/remix-run/remix/pull/1841 is merged
       if (fuegoRemixConfig?.externals) {
-        const compilerFile = "./node_modules/@remix-run/dev/compiler.js";
+        const compilerFile = "./node_modules/@remix-run/dev/dist/compiler.js";
         const compiler = fs
-          .readFileSync("./node_modules/@remix-run/dev/compiler.js")
+          .readFileSync("./node_modules/@remix-run/dev/dist/compiler.js")
           .toString();
         const inject = JSON.stringify(fuegoRemixConfig.externals);
         fs.writeFileSync(
@@ -105,9 +105,9 @@ const postinstall = (modulesToTranspile: string[]): Promise<number> => {
         appPath("remix.config.js")
       ).then((config) => (config?.serverBuildPath as string) || "");
       if (remixConfigServerBuildPath.startsWith("app")) {
-        const compilerFile = "./node_modules/@remix-run/dev/compiler.js";
+        const compilerFile = "./node_modules/@remix-run/dev/dist/compiler.js";
         const compiler = fs
-          .readFileSync("./node_modules/@remix-run/dev/compiler.js")
+          .readFileSync("./node_modules/@remix-run/dev/dist/compiler.js")
           .toString();
         const ignored = `/${remixConfigServerBuildPath.replace(/\//g, "\\/")}/`;
         fs.writeFileSync(
