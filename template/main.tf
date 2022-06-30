@@ -81,7 +81,7 @@ module "aws-serverless-backend" {
     domain    = "{{{projectName}}}"
     directory = "api"
 }
-{{{tfClerk}}}
+{{{tfclerk}}}
 resource "github_actions_secret" "deploy_aws_access_key" {
   repository       = "{{{projectName}}}"
   secret_name      = "DEPLOY_AWS_ACCESS_KEY"

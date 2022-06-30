@@ -370,6 +370,14 @@ module "aws_clerk" {
   zone_id  = module.aws_static_site.route53_zone_id
   clerk_id = "${process.env.CLERK_DNS_ID}"
 }
+
+module "aws_email" {
+  source  = "dvargas92495/email/aws"
+  version = "2.0.12"
+
+  domain = "${DomainName}"
+  zone_id = module.aws_static_site.route53_zone_id
+}
 `
             : ``,
           clerkDevFrontendApi: process.env.CLERK_DEV_FRONTEND_API,
@@ -774,7 +782,7 @@ STRIPE_WEBHOOK_SECRET=${process.env.TEST_STRIPE_WEBHOOK_SECRET}
       task: () =>
         axios
           .post(
-            `https://api.github.com/repos/dvargas92495/${projectName}/actions/workflows/main.yaml/dispatches`,
+            `https://api.github.com/repos/dvargas92495/${projectName}/actions/workflows/app.yaml/dispatches`,
             { ref: "main" },
             githubOpts
           )

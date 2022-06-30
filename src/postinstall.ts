@@ -1,4 +1,3 @@
-import { setupRemix, SetupPlatform } from "@remix-run/dev/cli/setup";
 import { build as esbuild, Plugin } from "esbuild";
 import fs from "fs";
 import { appPath, readDir } from "./common";
@@ -56,7 +55,7 @@ const postinstall = (modulesToTranspile: string[]): Promise<number> => {
     )
   )
     .then((s) => console.log("transpiled", s.length, "files"))
-    .then(() => {
+    .then(async () => {
       console.log(
         "now checking",
         jsonFiles.length,
@@ -70,10 +69,7 @@ const postinstall = (modulesToTranspile: string[]): Promise<number> => {
           console.log("overwrote", jsonFile);
         }
       });
-      console.log("now finally run remix setup node");
-      return setupRemix(SetupPlatform.Node);
-    })
-    .then(async () => {
+
       // Remove Hack once https://github.com/remix-run/remix/pull/1841 is merged
       if (fuegoRemixConfig?.externals) {
         const compilerFile = "./node_modules/@remix-run/dev/compiler.js";
