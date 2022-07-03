@@ -1,6 +1,7 @@
 import { build as esbuild, Plugin } from "esbuild";
 import fs from "fs";
 import { appPath, readDir } from "./common";
+import { spawnSync } from "child_process";
 
 const canvasPatch: Plugin = {
   name: "canvas-patch",
@@ -119,6 +120,13 @@ const postinstall = (modulesToTranspile: string[]): Promise<number> => {
         );
         console.log("hacked chokidar ignore to", ignored);
       }
+
+      if (fs.existsSync("cdktf.json")) {
+        console.log("setting terraform typings");
+        spawnSync("npx cdktf get");
+      }
+      // @ts-ignore
+      return cdktfGet.handleCommand([]);
     })
     .then(() => console.log("done!"))
     .then(() => 0);
