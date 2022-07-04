@@ -128,6 +128,15 @@ const main = ({ rootDirectory }: { rootDirectory: string }): Promise<void> => {
         }
       });
 
+  const readDir = (s: string): string[] =>
+    fs.existsSync(s)
+      ? fs
+          .readdirSync(s, { withFileTypes: true })
+          .flatMap((f) =>
+            f.isDirectory() ? readDir(`${s}/${f.name}`) : [`${s}/${f.name}`]
+          )
+      : [];
+
   const tasks: Task[] = [
     {
       title: "Verify site ownership",
@@ -361,38 +370,11 @@ const main = ({ rootDirectory }: { rootDirectory: string }): Promise<void> => {
           )[0],
           year: new Date().getFullYear(),
           description: `Description for ${projectName}`,
-          tfclerk: !isSubdomain
-            ? `
-module "aws_clerk" {
-  source   = "dvargas92495/clerk/aws"
-  version  = "1.0.4"
-
-  zone_id  = module.aws_static_site.route53_zone_id
-  clerk_id = "${process.env.CLERK_DNS_ID}"
-}
-
-module "aws_email" {
-  source  = "dvargas92495/email/aws"
-  version = "2.0.12"
-
-  domain = "${DomainName}"
-  zone_id = module.aws_static_site.route53_zone_id
-}
-`
-            : ``,
+          clerkDnsId: process.env.CLERK_DNS_ID || "",
+          emailDomain: isSubdomain ? "" : DomainName,
           clerkDevFrontendApi: process.env.CLERK_DEV_FRONTEND_API,
           stripePublicKey: process.env.TEST_STRIPE_PUBLIC,
         };
-        const readDir = (s: string): string[] =>
-          fs.existsSync(s)
-            ? fs
-                .readdirSync(s, { withFileTypes: true })
-                .flatMap((f) =>
-                  f.isDirectory()
-                    ? readDir(`${s}/${f.name}`)
-                    : [`${s}/${f.name}`]
-                )
-            : [];
         const files = readDir(rootDirectory);
         files
           .filter(
@@ -517,6 +499,12 @@ module "aws_email" {
       title: "Git push",
       task: () => {
         try {
+          const allFiles = readDir(rootDirectory);
+          if (allFiles.some((s) => s.endsWith(".code-workspace"))) {
+            return Promise.reject(
+              `Was about to deploy a sensitive workspce file. Aborting...`
+            );
+          }
           return sync(`git push origin main`, { stdio: "ignore" });
         } catch (e) {
           console.log(chalk.red("Failed to git push"));
@@ -589,47 +577,20 @@ module "aws_email" {
           },
         };
         return axios
-          .get<{
-            data: { attributes: { "service-provider": string }; id: string }[];
-          }>(
-            "https://app.terraform.io/api/v2/organizations/VargasArts/oauth-clients",
+          .post(
+            "https://app.terraform.io/api/v2/organizations/VargasArts/workspaces",
+            {
+              data: {
+                type: "workspaces",
+                attributes: {
+                  name: safeProjectName,
+                  "auto-apply": true,
+                },
+              },
+            },
             tfOpts
           )
-          .then(
-            (r) =>
-              r.data.data.find(
-                (cl) => cl.attributes["service-provider"] === "github"
-              )?.id
-          )
-          .then((id) =>
-            axios
-              .get(
-                `https://app.terraform.io/api/v2/oauth-clients/${id}/oauth-tokens`,
-                tfOpts
-              )
-              .then((r) => r.data.data[0].id)
-          )
-          .then((id) =>
-            axios
-              .post(
-                "https://app.terraform.io/api/v2/organizations/VargasArts/workspaces",
-                {
-                  data: {
-                    type: "workspaces",
-                    attributes: {
-                      name: safeProjectName,
-                      "auto-apply": true,
-                      "vcs-repo": {
-                        "oauth-token-id": id,
-                        identifier: `dvargas92495/${projectName}`,
-                      },
-                    },
-                  },
-                },
-                tfOpts
-              )
-              .then((r) => r.data.data.id)
-          )
+          .then((r) => r.data.data.id)
           .then((id) =>
             Promise.all(
               [

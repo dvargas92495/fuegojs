@@ -1,21 +1,21 @@
 # 🔥 FuegoJS 🔥
 
-Opinionated server-side rendering web framework built on [Remix](https://remix.run/) for [AWS](https://aws.amazon.com/). The goal is to make your full stack web application and your experience developing it _blazing_ fast! All configuration come with opinionated defaults.
+Opinionated server-side rendering web framework built on [Remix](https://remix.run/) for [AWS](https://aws.amazon.com/), using [Terraform](https://www.terraform.io/). The goal is to make your full stack web application and your experience developing it _blazing_ fast! All configuration come with opinionated defaults.
 
 **Project is still under heavy development. APIs are subject to change and there are bugs. Lots of them.**.
 
 The package exposes its commands as both a CLI and as a module to be imported in your script files. It's core commands could be thought of as the following 3x3 matrix:
 
 ```
-+------+--------------+------------------+-----------------+
-|  🔥  |   Develop    |     Package      |      Ship       |
-+------+--------------+------------------+-----------------+
-| APP  | `fuego dev`  |  `fuego build`   | `fuego deploy`  |
-+------+--------------+------------------+-----------------+
-| API  | `fuego api`  | `fuego compile`  | `fuego publish` |
-+------+--------------+------------------+-----------------+
-| DATA | `fuego sync` | `fuego generate` | `fuego migrate` |
-+------+--------------+------------------+-----------------+
++------+--------------+-----------------+-----------------+
+|  🔥  |  Develop     |   Package       |      Ship       |
++------+--------------+-----------------+-----------------+
+| APP  | `fuego dev`  | `fuego build`   | `fuego deploy`  |
++------+--------------+-----------------+-----------------+
+| API  | `fuego api`  | `fuego compile` | `fuego publish` |
++------+--------------+-----------------+-----------------+
+| DATA | `fuego sync` | `fuego plan`    | `fuego apply`   |
++------+--------------+-----------------+-----------------+
 ```
 
 This table represents the goal. The left column represents the potential _targets_ of where your code gets shipped. The following three represent the three core phases of the development cycle. The documentation below represents the current API which has not yet reached this vision. Project is still under heavy development!
@@ -112,15 +112,19 @@ The `publish` command supports the following arguments:
 
 ## DATA
 
-Most libraries that help manage your data assume a single data source - your database. Fuego takes the approach that the data in your application does live in multiple places and having all of those schemas version controlled in your codebase is the best way to keep track on how it evolves with your application. Schemas should be defined declaritively, allowing Fuego to reconcile differences automatically. Custom migrations are allowed as an escape hatch for anything not defined declaritively.
+Most libraries that help manage your data assume a single data source - your database. Fuego takes the approach that the data in your application does live in multiple places and having all of those schemas version controlled in your codebase is the best way to keep track on how it evolves with your application. Schemas should be defined declaritively, allowing Fuego to reconcile differences automatically. The heavy lifting for this reconciliation is mostly done by [Terraform](https://terraform.io). Fuego custom migrations are allowed as an escape hatch for anything not defined declaritively.
 
 ### `sync`
 
 Coming Soon! Currently requires running `npx fuego migrate` locally.
 
-### `generate`
+### `plan`
 
 Coming Soon! See `npx fuego migrate --generate` below.
+
+### `apply`
+
+Coming Soon! See `npx fuego migrate` below.
 
 ### `migrate`
 
