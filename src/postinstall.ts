@@ -23,7 +23,7 @@ const postinstall = (): Promise<number> => {
   const packageJson = JSON.parse(
     fs.readFileSync(appPath("package.json")).toString()
   );
-  const fuegoConfigFromDeps = Object.keys(packageJson.dependencies || {})
+  const fuegoConfig = Object.keys(packageJson.dependencies || {})
     .map((k) => {
       const jsonPath = appPath(`node_modules/${k}/package.json`);
       if (!fs.existsSync(jsonPath)) {
@@ -34,18 +34,19 @@ const postinstall = (): Promise<number> => {
         fs.readFileSync(appPath(`node_modules/${k}/package.json`)).toString()
       );
       const config = (depPackageJson.fuego || {}) as FuegoConfig;
-      return config.scripts
+      return config.postinstall
         ? {
             ...config,
-            scripts: config.scripts.map((s) => `node_modules/${k}/${s}`),
+            postinstall: config.postinstall.map(
+              (s) => `node_modules/${k}/${s}`
+            ),
           }
         : config;
     })
-    .reduce((p, c) => ({ ...p, ...c }), {});
-  const fuegoConfig = {
-    ...fuegoConfigFromDeps,
-    ...packageJson?.fuego,
-  } as FuegoConfig;
+    .reduce(
+      (p, c) => ({ ...p, ...c }), // TODO safe merging
+      (packageJson?.fuego || {}) as FuegoConfig
+    );
   // TODO: ZOD
 
   const fuegoRemixConfig = fuegoConfig?.remix || {};

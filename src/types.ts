@@ -1,5 +1,5 @@
 export type FuegoConfig = {
-  scripts?: string[];
+  postinstall?: string[];
   remix?: {
     modulesToTranspile?: string[];
     externals?: string[];
