@@ -7,17 +7,16 @@
   "types": "dist/index.d.ts",
   "repository": "dvargas92495/fuegojs",
   "scripts": {
-    "prebuild": "cross-env NODE_ENV=test npm t",
-    "build": "tsc",
+    "postinstall": "echo \"test to see if we could run post install natively\"",
     "format": "prettier --write \"src/**/*\"",
     "lint": "eslint . --ext .ts,.tsx",
-    "prepublishOnly": "npm run build",
     "preversion": "npm run lint",
     "version": "npm run format && git add -A src",
     "postversion": "git push origin main && git push --tags",
-    "pretest": "npm run lint",
+    "prebuild": "npm run lint",
+    "build": "tsc",
     "test": "jest --config jestconfig.json",
-    "postinstall": "echo \"test to see if we could run post install natively\""
+    "prepublishOnly": "npm run build"
   },
   "files": [
     "/dist"
