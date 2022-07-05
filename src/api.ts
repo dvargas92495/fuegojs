@@ -47,10 +47,7 @@ const generateContext = ({
 const handlersByRoute: { [key: string]: APIGatewayProxyHandler | Handler } = {};
 const optionRoutes = new Set();
 
-const inlineTryCatch = <T>(
-  tryFcn: () => T,
-  catchFcn: (e: Error) => T
-): T => {
+const inlineTryCatch = <T>(tryFcn: () => T, catchFcn: (e: Error) => T): T => {
   try {
     return tryFcn();
   } catch (e) {
