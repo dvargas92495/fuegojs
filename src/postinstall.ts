@@ -149,6 +149,8 @@ const postinstall = (): Promise<number> => {
         );
         console.log("hacked chokidar ignore to", ignored);
       }
+
+      (fuegoConfig.postinstall || []).forEach((s) => require(`./${s}`));
     })
     .then(() => console.log("done!"))
     .then(() => 0);
