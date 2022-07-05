@@ -18,20 +18,22 @@ const canvasPatch: Plugin = {
   },
 };
 
-const postinstall = (modulesToTranspile: string[]): Promise<number> => {
+const postinstall = (): Promise<number> => {
+  const fuegoConfig = JSON.parse(
+    fs.readFileSync(appPath("package.json")).toString()
+  )?.fuego;
+  const fuegoRemixConfig = fuegoConfig?.remix || {};
+  const modulesToTranspile = (fuegoRemixConfig?.modulesToTranspile ||
+    []) as string[];
   console.log(
     "About to transpile",
     modulesToTranspile.length - 1,
     "modules from esm to cjs"
   );
+
   const files = modulesToTranspile
     .slice(1)
     .flatMap((m) => readDir(`./node_modules/${m}`));
-  const fuegoConfig = JSON.parse(
-    fs.readFileSync(appPath("package.json")).toString()
-  )?.fuego;
-  const fuegoRemixConfig = fuegoConfig?.remix;
-
   const jsFiles = files.filter((s) => /\.js$/.test(s));
   const jsonFiles = files.filter((s) => /\.json$/.test(s));
   console.log("transpiling", jsFiles.length, "files now...");
@@ -71,7 +73,7 @@ const postinstall = (modulesToTranspile: string[]): Promise<number> => {
       });
 
       // Remove Hack once https://github.com/remix-run/remix/pull/1841 is merged
-      if (fuegoRemixConfig?.externals) {
+      if (fuegoRemixConfig.externals) {
         const compilerFile = "./node_modules/@remix-run/dev/dist/compiler.js";
         const compiler = fs
           .readFileSync("./node_modules/@remix-run/dev/dist/compiler.js")

@@ -65,7 +65,7 @@ const run = async (command: string, args: string[]): Promise<number> => {
     case "api":
       return api(opts);
     case "postinstall":
-      return postinstall(process.argv.slice(2));
+      return postinstall();
     case "migrate":
       return migrate(opts);
     /**

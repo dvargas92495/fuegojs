@@ -18,11 +18,13 @@ const base = ({
   safeProjectName,
   clerkDnsId,
   emailDomain,
+  callback,
 }: {
   projectName: string;
   safeProjectName: string;
   clerkDnsId?: string;
   emailDomain?: string;
+  callback?: (this: Construct) => void;
 }): void => {
   class MyStack extends TerraformStack {
     constructor(scope: Construct, name: string) {
@@ -180,6 +182,8 @@ const base = ({
         secretName: "STRIPE_WEBHOOK_SECRET",
         plaintextValue: stripe_webhook_secret.value,
       });
+
+      callback?.bind(this)();
     }
   }
 

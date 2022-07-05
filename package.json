@@ -16,7 +16,8 @@
     "version": "npm run format && git add -A src",
     "postversion": "git push origin main && git push --tags",
     "pretest": "npm run lint",
-    "test": "jest --config jestconfig.json"
+    "test": "jest --config jestconfig.json",
+    "postinstall": "echo \"test to see if we could run post install natively\""
   },
   "files": [
     "/dist"
