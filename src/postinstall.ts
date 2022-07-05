@@ -1,5 +1,6 @@
 import { build as esbuild, Plugin } from "esbuild";
 import fs from "fs";
+import path from "path";
 import { appPath, readDir } from "./common";
 import { FuegoConfig } from "./types";
 
@@ -150,7 +151,9 @@ const postinstall = (): Promise<number> => {
         console.log("hacked chokidar ignore to", ignored);
       }
 
-      (fuegoConfig.postinstall || []).forEach((s) => require(`./${s}`));
+      (fuegoConfig.postinstall || []).forEach((s) =>
+        require(path.relative(__dirname, appPath(s)))
+      );
     })
     .then(() => console.log("done!"))
     .then(() => 0);
