@@ -7,7 +7,6 @@
   "types": "dist/index.d.ts",
   "repository": "dvargas92495/fuegojs",
   "scripts": {
-    "postinstall": "echo \"test to see if we could run post install natively\"",
     "format": "prettier --write \"src/**/*\"",
     "lint": "eslint . --ext .ts,.tsx",
     "preversion": "npm run lint",

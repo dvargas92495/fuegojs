@@ -1,6 +1,7 @@
 import { build as esbuild, Plugin } from "esbuild";
 import fs from "fs";
 import { appPath, readDir } from "./common";
+import { FuegoConfig } from "./types";
 
 const canvasPatch: Plugin = {
   name: "canvas-patch",
@@ -19,9 +20,34 @@ const canvasPatch: Plugin = {
 };
 
 const postinstall = (): Promise<number> => {
-  const fuegoConfig = JSON.parse(
+  const packageJson = JSON.parse(
     fs.readFileSync(appPath("package.json")).toString()
-  )?.fuego;
+  );
+  const fuegoConfigFromDeps = Object.keys(packageJson.dependencies || {})
+    .map((k) => {
+      const jsonPath = appPath(`node_modules/${k}/package.json`);
+      if (!fs.existsSync(jsonPath)) {
+        console.log("could not find package json for dependency", k);
+        return {};
+      }
+      const depPackageJson = JSON.parse(
+        fs.readFileSync(appPath(`node_modules/${k}/package.json`)).toString()
+      );
+      const config = (depPackageJson.fuego || {}) as FuegoConfig;
+      return config.scripts
+        ? {
+            ...config,
+            scripts: config.scripts.map((s) => `node_modules/${k}/${s}`),
+          }
+        : config;
+    })
+    .reduce((p, c) => ({ ...p, ...c }), {});
+  const fuegoConfig = {
+    ...fuegoConfigFromDeps,
+    ...packageJson?.fuego,
+  } as FuegoConfig;
+  // TODO: ZOD
+
   const fuegoRemixConfig = fuegoConfig?.remix || {};
   const modulesToTranspile = (fuegoRemixConfig?.modulesToTranspile ||
     []) as string[];
