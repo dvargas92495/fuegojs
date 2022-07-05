@@ -47,6 +47,7 @@ const postinstall = (): Promise<number> => {
       (p, c) => ({ ...p, ...c }), // TODO safe merging
       (packageJson?.fuego || {}) as FuegoConfig
     );
+  console.log("Fuego config:\n", JSON.stringify(fuegoConfig, null, 4));
   // TODO: ZOD
 
   const fuegoRemixConfig = fuegoConfig?.remix || {};
