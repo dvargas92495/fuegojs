@@ -60,9 +60,9 @@ const postinstall = (): Promise<number> => {
     "modules from esm to cjs"
   );
 
-  const files = modulesToTranspile
-    .slice(1)
-    .flatMap((m) => readDir(`./node_modules/${m}`));
+  const files = modulesToTranspile.flatMap((m) =>
+    readDir(`./node_modules/${m}`)
+  );
   const jsFiles = files.filter((s) => /\.js$/.test(s));
   const jsonFiles = files.filter((s) => /\.json$/.test(s));
   console.log("transpiling", jsFiles.length, "files now...");
