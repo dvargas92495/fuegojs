@@ -18,18 +18,27 @@ const base = ({
   safeProjectName,
   clerkDnsId,
   emailDomain,
+  variables = [],
   callback,
 }: {
   projectName: string;
   safeProjectName: string;
   clerkDnsId?: string;
   emailDomain?: string;
+  variables?: string[];
   callback?: (this: Construct) => void;
 }): void => {
   class MyStack extends TerraformStack {
     constructor(scope: Construct, name: string) {
       super(scope, name);
 
+      const allVariables = [
+        "mysql_password",
+        "clerk_api_key",
+        "stripe_public",
+        "stripe_secret",
+        "stripe_webhook_secret",
+      ].concat(variables);
       const aws_access_token = new TerraformVariable(this, "aws_access_token", {
         type: "string",
       });
@@ -45,30 +54,6 @@ const base = ({
       const secret = new TerraformVariable(this, "secret", {
         type: "string",
       });
-
-      const clerk_api_key = new TerraformVariable(this, "clerk_api_key", {
-        type: "string",
-      });
-
-      const mysql_password = new TerraformVariable(this, "mysql_password", {
-        type: "string",
-      });
-
-      const stripe_public = new TerraformVariable(this, "stripe_public", {
-        type: "string",
-      });
-
-      const stripe_secret = new TerraformVariable(this, "stripe_secret", {
-        type: "string",
-      });
-
-      const stripe_webhook_secret = new TerraformVariable(
-        this,
-        "stripe_webhook_secret",
-        {
-          type: "string",
-        }
-      );
 
       const aws = new AwsProvider(this, "AWS", {
         region: "us-east-1",
@@ -152,35 +137,20 @@ const base = ({
         plaintextValue: backend.secretKeyOutput,
       });
 
-      new ActionsSecret(this, "mysql_password_secret", {
-        repository: projectName,
-        secretName: "MYSQL_PASSWORD",
-        plaintextValue: mysql_password.value,
-      });
-      new ActionsSecret(this, "clerk_api_key_secret", {
-        repository: projectName,
-        secretName: "CLERK_API_KEY",
-        plaintextValue: clerk_api_key.value,
-      });
       new ActionsSecret(this, "cloudfront_distribution_id", {
         repository: projectName,
         secretName: "CLOUDFRONT_DISTRIBUTION_ID",
         plaintextValue: staticSite.get("cloudfront_distribution_id"),
       });
-      new ActionsSecret(this, "stripe_public_secret", {
-        repository: projectName,
-        secretName: "STRIPE_PUBLIC_KEY",
-        plaintextValue: stripe_public.value,
-      });
-      new ActionsSecret(this, "stripe_secret_secret", {
-        repository: projectName,
-        secretName: "STRIPE_SECRET_KEY",
-        plaintextValue: stripe_secret.value,
-      });
-      new ActionsSecret(this, "stripe_webhook_secret_secret", {
-        repository: projectName,
-        secretName: "STRIPE_WEBHOOK_SECRET",
-        plaintextValue: stripe_webhook_secret.value,
+      allVariables.forEach((v) => {
+        const tf_secret = new TerraformVariable(this, v, {
+          type: "string",
+        });
+        new ActionsSecret(this, `${v}_secret`, {
+          repository: projectName,
+          secretName: v.toUpperCase(),
+          plaintextValue: tf_secret.value,
+        });
       });
 
       callback?.bind(this)();
@@ -188,12 +158,12 @@ const base = ({
   }
 
   const app = new App();
-  const stack = new MyStack(app, projectName);
+  const stack = new MyStack(app, safeProjectName);
   new RemoteBackend(stack, {
     hostname: "app.terraform.io",
     organization: "VargasArts",
     workspaces: {
-      name: projectName,
+      name: safeProjectName,
     },
   });
 
