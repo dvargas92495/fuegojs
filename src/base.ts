@@ -12,6 +12,9 @@ import { AwsServerlessBackend } from ".gen/modules/aws-serverless-backend";
 import { AwsClerk } from ".gen/modules/aws-clerk";
 import { AwsEmail } from ".gen/modules/aws-email";
 import fs from "fs";
+import getMysqlConnection from "./mysql";
+import { ZodObject, ZodRawShape } from "zod";
+import { camelCase, snakeCase } from "change-case";
 
 const base = ({
   projectName,
@@ -19,6 +22,7 @@ const base = ({
   clerkDnsId,
   emailDomain,
   variables = [],
+  schema = {},
   callback,
 }: {
   projectName: string;
@@ -26,6 +30,7 @@ const base = ({
   clerkDnsId?: string;
   emailDomain?: string;
   variables?: string[];
+  schema?: Record<string, ZodObject<ZodRawShape>>;
   callback?: (this: Construct) => void;
 }): void => {
   class MyStack extends TerraformStack {
@@ -168,6 +173,60 @@ const base = ({
   });
 
   app.synth();
+
+  getMysqlConnection().then(async (cxn) => {
+    const actualTables = await cxn
+      .execute(`show tables`)
+      // @ts-ignore
+      .then((r) => r as Record<string, string>[]);
+    const tablesToDelete: string[] = [];
+    const tablesToCreate: Record<string, ZodObject<ZodRawShape>> = {};
+    const expectedTables = Object.keys(schema);
+    actualTables
+      .map((t) => camelCase(t[`Tables_in_${safeProjectName}`]))
+      .filter((t) => t !== "migrations")
+      .forEach((t) => {
+        if (!expectedTables.includes(t)) {
+          tablesToDelete.push(t);
+        }
+      });
+    const actualSet = new Set(
+      actualTables.map((a) => a[`Tables_in_${safeProjectName}`])
+    );
+    expectedTables.forEach((t) => {
+      if (!actualSet.has(snakeCase(t))) {
+        tablesToCreate[t] = schema[t];
+      }
+    });
+
+    console.log("SQL PLAN:");
+    console.log("", JSON.stringify(tablesToCreate));
+    const queries = tablesToDelete
+      .map((s) => `DROP TABLE ${s}`)
+      .concat(
+        Object.entries(tablesToCreate).map(
+          ([k, s]) => `CREATE TABLE IF NOT EXISTS ${snakeCase(k)} (
+  ${Object.entries(s.shape)
+    .map(
+      (col) =>
+        `  ${col[0]}   ${
+          col[1]._def.typeName === "ZodString"
+            ? "VARCHAR(128)"
+            : col[1]._def.typeName === "ZodNumber"
+            ? "INT"
+            : JSON.stringify(col[1]._def)
+        } NOT NULL`
+    )
+    .join(",\n")}
+  )`
+        )
+      );
+    queries.forEach((q) => console.log(">", q));
+    console.log("");
+    console.log("Ready to apply...");
+
+    cxn.destroy();
+  });
 };
 
 export default base;
