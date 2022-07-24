@@ -13,8 +13,9 @@ import { AwsClerk } from ".gen/modules/aws-clerk";
 import { AwsEmail } from ".gen/modules/aws-email";
 import fs from "fs";
 import getMysqlConnection from "./mysql";
-import { ZodObject, ZodRawShape } from "zod";
+import { ZodObject, ZodRawShape, ZodString } from "zod";
 import { camelCase, snakeCase } from "change-case";
+import pluralize from "pluralize";
 
 const base = ({
   projectName,
@@ -177,7 +178,6 @@ const base = ({
   getMysqlConnection().then(async (cxn) => {
     const actualTables = await cxn
       .execute(`show tables`)
-      // @ts-ignore
       .then((r) => r as Record<string, string>[]);
     const tablesToDelete: string[] = [];
     const tablesToCreate: Record<string, ZodObject<ZodRawShape>> = {};
@@ -204,22 +204,63 @@ const base = ({
     const queries = tablesToDelete
       .map((s) => `DROP TABLE ${s}`)
       .concat(
-        Object.entries(tablesToCreate).map(
-          ([k, s]) => `CREATE TABLE IF NOT EXISTS ${snakeCase(k)} (
-  ${Object.entries(s.shape)
-    .map(
-      (col) =>
-        `  ${col[0]}   ${
-          col[1]._def.typeName === "ZodString"
-            ? "VARCHAR(128)"
-            : col[1]._def.typeName === "ZodNumber"
-            ? "INT"
-            : JSON.stringify(col[1]._def)
-        } NOT NULL`
-    )
-    .join(",\n")}
-  )`
-        )
+        Object.entries(tablesToCreate).map(([k, s]) => {
+          const constraints: string[] = [];
+          const shapeEntries = Object.entries(s.shape);
+          const primary = shapeEntries.find(([, col]) =>
+            /primary/i.test(col.description || "")
+          )?.[0];
+          if (primary) constraints.push(`PRIMARY KEY (${snakeCase(primary)})`);
+
+          const uniques = shapeEntries
+            .filter(([, col]) => /unique/i.test(col.description || ""))
+            .map((e) => snakeCase(e[0]));
+          if (uniques.length)
+            constraints.push(
+              `CONSTRAINT UC_${uniques.join("_")} UNIQUE (${uniques.join(",")})`
+            );
+
+          shapeEntries
+            .filter(([, col]) => /unique/i.test(col.description || ""))
+            .map((e) => snakeCase(e[0]))
+            .map((key) => {
+              const parts = key.split("_");
+              return {
+                key,
+                table: pluralize(parts.slice(0, -1).join("_")),
+                ref: parts.slice(-1)[0],
+              };
+            })
+            .forEach(({ key, table, ref }) =>
+              constraints.push(
+                `FOREIGN KEY (${key}) REFERENCES ${table}(${ref})`
+              )
+            );
+
+          return `CREATE TABLE IF NOT EXISTS ${snakeCase(k)} (
+  ${shapeEntries
+    .map((col) => {
+      const [columnName, shape] = col;
+      const def = shape._def;
+      return `  ${snakeCase(columnName)}   ${
+        def.typeName === "ZodString"
+          ? `VARCHAR(${(shape as ZodString).maxLength || 128})`
+          : def.typeName === "ZodNumber"
+          ? (shape as ZodString).maxLength
+            ? `TINYINT(${Math.ceil(
+                Math.log2((shape as ZodString).maxLength || 1)
+              )}`
+            : "INT"
+          : def.typeName === "ZodDate"
+          ? "DATETIME(3)"
+          : def.typeName
+      } ${shape.isOptional() || shape.isNullable() ? "" : "NOT "}NULL`;
+    })
+    .join(",\n  ")}
+
+  ${constraints.join(",\n  ")}
+)`;
+        })
       );
     queries.forEach((q) => console.log(">", q));
     console.log("");
