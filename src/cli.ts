@@ -52,7 +52,7 @@ const run = async (command: string, args: string[]): Promise<number> => {
       return prev;
     }, {} as Record<string, string | string[] | boolean>);
   switch (command) {
-    // APP 
+    // APP
     case "build":
       return build(opts);
     case "deploy":
