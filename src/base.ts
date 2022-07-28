@@ -186,14 +186,28 @@ const base = ({
   app.synth();
 
   getMysqlConnection().then(async (cxn) => {
-    const actualTables = await cxn
+    const actualTableResults = await cxn
       .execute(`show tables`)
       .then((r) => r as Record<string, string>[]);
+    const actualTables = actualTableResults.map(
+      (t) => t[`Tables_in_${safeProjectName}`]
+    );
+    if (actualTables.some((t) => !t)) {
+      throw new Error(
+        `Detected some unexpected results from \`show tables\`. Actual: ${JSON.stringify(
+          actualTableResults,
+          null,
+          4
+        )}`
+      );
+    }
     const tablesToDelete: string[] = [];
     const tablesToCreate: Record<string, ZodObject<ZodRawShape>> = {};
     const expectedTables = Object.keys(schema);
     actualTables
-      .map((t) => camelCase(t[`Tables_in_${safeProjectName}`]))
+      .map((t) => {
+        return camelCase(t);
+      })
       .filter((t) => t !== "migrations")
       .map((t) => pluralize(t, 1))
       .forEach((t) => {
@@ -201,9 +215,7 @@ const base = ({
           tablesToDelete.push(t);
         }
       });
-    const actualSet = new Set(
-      actualTables.map((a) => a[`Tables_in_${safeProjectName}`])
-    );
+    const actualSet = new Set(actualTables);
     expectedTables.forEach((t) => {
       if (!actualSet.has(pluralize(snakeCase(t)))) {
         tablesToCreate[t] = schema[t];

@@ -584,7 +584,6 @@ const main = ({ rootDirectory }: { rootDirectory: string }): Promise<void> => {
                 type: "workspaces",
                 attributes: {
                   name: safeProjectName,
-                  "auto-apply": true,
                 },
               },
             },

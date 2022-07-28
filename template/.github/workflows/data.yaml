@@ -23,9 +23,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: install
         run: npm install
-      - name: get
-        run: npx cdktf get
       - name: plan
-        run: npx cdktf plan
-      - name: migrate
-        run: npx fuego migrate
+        run: npx fuego plan
+      - name: apply
+        run: npx fuego apply
