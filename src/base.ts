@@ -190,7 +190,7 @@ const base = ({
       .execute(`show tables`)
       .then((r) => r as Record<string, string>[]);
     const actualTables = actualTableResults.map(
-      (t) => t[`Tables_in_${safeProjectName}`]
+      (t) => t[`Tables_in_${snakeCase(safeProjectName)}`]
     );
     if (actualTables.some((t) => !t)) {
       throw new Error(
