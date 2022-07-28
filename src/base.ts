@@ -275,7 +275,7 @@ const base = ({
       console.log("");
       console.log("Ready to apply...");
     } else {
-      console.log("No migrations to apply.")
+      console.log("No migrations to apply.");
     }
     if (!fs.existsSync(path.dirname(PLAN_OUT_FILE)))
       fs.mkdirSync(path.dirname(PLAN_OUT_FILE));
