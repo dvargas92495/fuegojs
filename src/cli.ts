@@ -8,6 +8,7 @@ import publish from "./publish";
 import api from "./api";
 import postinstall from "./postinstall";
 import migrate from "./migrate";
+import apply from "./apply";
 
 const run = async (command: string, args: string[]): Promise<number> => {
   const opts = args
@@ -66,6 +67,8 @@ const run = async (command: string, args: string[]): Promise<number> => {
       return api(opts);
     case "postinstall":
       return postinstall();
+    case "apply":
+      return apply();
     case "migrate":
       return migrate(opts);
     /**

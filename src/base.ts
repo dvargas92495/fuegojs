@@ -17,6 +17,8 @@ import { ZodObject, ZodRawShape, ZodString } from "zod";
 import { camelCase, snakeCase } from "change-case";
 import pluralize from "pluralize";
 
+export const PLAN_OUT_FILE = "out/apply-sql.txt";
+
 const base = ({
   projectName,
   safeProjectName,
@@ -207,22 +209,22 @@ const base = ({
       .concat(
         Object.entries(tablesToCreate).map(([k, s]) => {
           const constraints: string[] = [];
-          const shapeEntries = Object.entries(s.shape);
-          const primary = shapeEntries.find(([, col]) =>
-            /primary/i.test(col.description || "")
+          const shapeKeys = Object.keys(s.shape);
+          const primary = shapeKeys.find((col) =>
+            /primary/i.test(s.shape[col].description || "")
           )?.[0];
           if (primary) constraints.push(`PRIMARY KEY (${snakeCase(primary)})`);
 
-          const uniques = shapeEntries
-            .filter(([, col]) => /unique/i.test(col.description || ""))
+          const uniques = shapeKeys
+            .filter((col) => /unique/i.test(s.shape[col].description || ""))
             .map((e) => snakeCase(e[0]));
           if (uniques.length)
             constraints.push(
               `CONSTRAINT UC_${uniques.join("_")} UNIQUE (${uniques.join(",")})`
             );
 
-          shapeEntries
-            .filter(([, col]) => /unique/i.test(col.description || ""))
+          Object.keys(s.shape)
+            .filter((col) => /unique/i.test(s.shape[col].description || ""))
             .map((e) => snakeCase(e[0]))
             .map((key) => {
               const parts = key.split("_");
@@ -239,9 +241,9 @@ const base = ({
             );
 
           return `CREATE TABLE IF NOT EXISTS ${snakeCase(k)} (
-  ${shapeEntries
-    .map((col) => {
-      const [columnName, shape] = col;
+  ${shapeKeys
+    .map((columnName) => {
+      const shape = s.shape[columnName];
       if (columnName === "key") {
         throw new Error(`\`${columnName}\` is an invalid column name`);
       }
@@ -271,6 +273,7 @@ const base = ({
     queries.forEach((q) => console.log(">", q));
     console.log("");
     console.log("Ready to apply...");
+    fs.writeFileSync(PLAN_OUT_FILE, queries.join("\n\n"));
 
     cxn.destroy();
   });
