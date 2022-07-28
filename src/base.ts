@@ -185,6 +185,7 @@ const base = ({
     actualTables
       .map((t) => camelCase(t[`Tables_in_${safeProjectName}`]))
       .filter((t) => t !== "migrations")
+      .map((t) => pluralize(t, 1))
       .forEach((t) => {
         if (!expectedTables.includes(t)) {
           tablesToDelete.push(t);
@@ -194,13 +195,13 @@ const base = ({
       actualTables.map((a) => a[`Tables_in_${safeProjectName}`])
     );
     expectedTables.forEach((t) => {
-      if (!actualSet.has(snakeCase(t))) {
+      if (!actualSet.has(pluralize(snakeCase(t)))) {
         tablesToCreate[t] = schema[t];
       }
     });
 
     console.log("SQL PLAN:");
-    console.log("", JSON.stringify(tablesToCreate));
+    console.log("");
     const queries = tablesToDelete
       .map((s) => `DROP TABLE ${s}`)
       .concat(
@@ -241,6 +242,9 @@ const base = ({
   ${shapeEntries
     .map((col) => {
       const [columnName, shape] = col;
+      if (columnName === "key") {
+        throw new Error(`\`${columnName}\` is an invalid column name`);
+      }
       const def = shape._def;
       return `  ${snakeCase(columnName)}   ${
         def.typeName === "ZodString"
@@ -253,6 +257,8 @@ const base = ({
             : "INT"
           : def.typeName === "ZodDate"
           ? "DATETIME(3)"
+          : def.typeName === "ZodBoolean"
+          ? "TINYINT(1)"
           : def.typeName
       } ${shape.isOptional() || shape.isNullable() ? "" : "NOT "}NULL`;
     })
