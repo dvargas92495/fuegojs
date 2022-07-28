@@ -17,6 +17,7 @@ import { ZodObject, ZodRawShape, ZodString } from "zod";
 import { camelCase, snakeCase } from "change-case";
 import pluralize from "pluralize";
 import { PLAN_OUT_FILE } from "./common";
+import path from "path";
 
 const base = ({
   projectName,
@@ -269,9 +270,15 @@ const base = ({
 )`;
         })
       );
-    queries.forEach((q) => console.log(">", q));
-    console.log("");
-    console.log("Ready to apply...");
+    if (queries.length) {
+      queries.forEach((q) => console.log(">", q));
+      console.log("");
+      console.log("Ready to apply...");
+    } else {
+      console.log("No migrations to apply.")
+    }
+    if (!fs.existsSync(path.dirname(PLAN_OUT_FILE)))
+      fs.mkdirSync(path.dirname(PLAN_OUT_FILE));
     fs.writeFileSync(PLAN_OUT_FILE, queries.join("\n\n"));
 
     cxn.destroy();
