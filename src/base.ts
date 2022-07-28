@@ -11,17 +11,18 @@ import { GithubProvider, ActionsSecret } from "@cdktf/provider-github";
 import { AwsServerlessBackend } from ".gen/modules/aws-serverless-backend";
 import { AwsClerk } from ".gen/modules/aws-clerk";
 import { AwsEmail } from ".gen/modules/aws-email";
+import { AwsWebsocket } from ".gen/modules/aws-websocket";
 import fs from "fs";
 import getMysqlConnection from "./mysql";
 import { ZodObject, ZodRawShape, ZodString } from "zod";
 import { camelCase, snakeCase } from "change-case";
 import pluralize from "pluralize";
-import { PLAN_OUT_FILE } from "./common";
+import { PLAN_OUT_FILE, readDir } from "./common";
 import path from "path";
 
 const base = ({
   projectName,
-  safeProjectName,
+  safeProjectName = projectName.replace(/\./g, "-"),
   clerkDnsId,
   emailDomain,
   variables = [],
@@ -29,7 +30,7 @@ const base = ({
   callback,
 }: {
   projectName: string;
-  safeProjectName: string;
+  safeProjectName?: string;
   clerkDnsId?: string;
   emailDomain?: string;
   variables?: string[];
@@ -42,11 +43,12 @@ const base = ({
 
       const allVariables = [
         "mysql_password",
-        "clerk_api_key",
         "stripe_public",
         "stripe_secret",
         "stripe_webhook_secret",
-      ].concat(variables);
+      ]
+        .concat(clerkDnsId ? ["clerk_api_key"] : [])
+        .concat(variables);
       const aws_access_token = new TerraformVariable(this, "aws_access_token", {
         type: "string",
       });
@@ -93,19 +95,25 @@ const base = ({
         },
       });
 
-      const paths = fs
-        .readdirSync("api", { withFileTypes: true })
-        .flatMap((f) =>
-          f.isDirectory()
-            ? fs.readdirSync(`api/${f.name}`).map((ff) => `${f.name}/${ff}`)
-            : [f.name]
-        )
-        .map((f) => f.replace(/\.ts$/, ""));
+      const paths = readDir("api").map((f) =>
+        f.replace(/\.ts$/, "").replace(/^api\//, "")
+      );
       const backend = new AwsServerlessBackend(this, "aws-serverless-backend", {
         apiName: safeProjectName,
         domain: projectName,
         paths,
       });
+
+      // TODO - should this be built into aws serverless backend?
+      const wsPaths = paths
+        .filter((p) => /^ws/.test(p))
+        .map((p) => p.replace(/^ws\//, ""));
+      if (wsPaths.length) {
+        new AwsWebsocket(this, "aws-websocket", {
+          name: safeProjectName,
+          paths: wsPaths,
+        });
+      }
 
       if (clerkDnsId) {
         new AwsClerk(this, "aws_clerk", {
