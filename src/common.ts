@@ -10,6 +10,7 @@ export const FE_PUBLIC_DIR = path.join(
   process.env.FE_DIR_PREFIX || "",
   "public"
 );
+export const PLAN_OUT_FILE = "out/apply-sql.txt";
 export const appPath = (p: string): string =>
   path.resolve(fs.realpathSync(process.cwd()), p);
 

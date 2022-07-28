@@ -16,8 +16,7 @@ import getMysqlConnection from "./mysql";
 import { ZodObject, ZodRawShape, ZodString } from "zod";
 import { camelCase, snakeCase } from "change-case";
 import pluralize from "pluralize";
-
-export const PLAN_OUT_FILE = "out/apply-sql.txt";
+import { PLAN_OUT_FILE } from "./common";
 
 const base = ({
   projectName,

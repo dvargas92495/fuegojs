@@ -1,4 +1,4 @@
-import { PLAN_OUT_FILE } from "./base";
+import { PLAN_OUT_FILE } from "./common";
 import getMysqlConnection from "./mysql";
 import fs from "fs";
 import migrate from "./migrate";
