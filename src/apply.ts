@@ -1,6 +1,7 @@
 import { PLAN_OUT_FILE } from "./base";
 import getMysqlConnection from "./mysql";
 import fs from "fs";
+import migrate from "./migrate";
 
 const apply = (): Promise<number> => {
   // TODO run manual migrations
@@ -16,7 +17,7 @@ const apply = (): Promise<number> => {
       })
       .reduce((p, c) => p.then(c), Promise.resolve());
     cxn.destroy();
-    return 0;
+    return migrate({ cxn: cxn.connection });
   });
 };
 

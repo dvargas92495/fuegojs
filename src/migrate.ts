@@ -6,16 +6,14 @@ import nodePath from "path";
 import { v4 } from "uuid";
 import { build as esbuild } from "esbuild";
 import format from "date-fns/format";
-
-const DATABASE_URL_REGEX =
-  /^mysql:\/\/([a-z0-9_]+):(.{8,32})@([a-z0-9.-]+):(\d{3,5})\/([a-z_]+)$/;
-const matches = DATABASE_URL_REGEX.exec(process.env.DATABASE_URL || "");
+import getMysqlConnection from "./mysql";
 
 type MigrationArgs = {
   path?: string;
   revert?: boolean | string;
   generate?: string;
   overwrite?: string | string[];
+  cxn?: mysql.Connection;
 };
 
 export type MigrationProps = {
@@ -24,11 +22,12 @@ export type MigrationProps = {
 
 const MIGRATION_REGEX = /[a-z-]+/;
 
-const migrate = ({
+const migrate = async ({
   path = "data/migrations",
   revert,
   generate,
   overwrite,
+  cxn,
 }: MigrationArgs = {}): Promise<number> => {
   const dir = appPath(path);
   if (generate) {
@@ -54,14 +53,7 @@ export const revert = (args: MigrationProps) => {
     console.log(`Generated migration: `, filename);
     return Promise.resolve(0);
   }
-  if (!matches) return Promise.reject("Failed to parse `DATABASE_URL`");
-  const connection = mysql.createConnection({
-    host: matches[3],
-    user: matches[1],
-    port: Number(matches[4]),
-    database: matches[5],
-    password: matches[2],
-  });
+  const { connection } = await getMysqlConnection(cxn);
   return new Promise((resolve, reject) =>
     connection.execute(
       `CREATE TABLE IF NOT EXISTS _migrations (

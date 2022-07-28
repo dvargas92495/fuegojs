@@ -9,6 +9,7 @@ import api from "./api";
 import postinstall from "./postinstall";
 import migrate from "./migrate";
 import apply from "./apply";
+import plan from "./plan";
 
 const run = async (command: string, args: string[]): Promise<number> => {
   const opts = args
@@ -51,26 +52,32 @@ const run = async (command: string, args: string[]): Promise<number> => {
       return prev;
     }, {} as Record<string, string | string[] | boolean>);
   switch (command) {
-    case "init":
-      return init(opts);
+    // APP 
     case "build":
       return build(opts);
     case "deploy":
       return deploy(opts);
     case "dev":
       return dev(opts);
+    // API
     case "compile":
       return compile(opts);
     case "publish":
       return publish(opts);
     case "api":
       return api(opts);
-    case "postinstall":
-      return postinstall();
+    // DATA
     case "apply":
       return apply();
+    case "plan":
+      return plan();
     case "migrate":
       return migrate(opts);
+    // MISC
+    case "init":
+      return init(opts);
+    case "postinstall":
+      return postinstall();
     /**
      * TODO
      * - start - both
