@@ -233,7 +233,7 @@ const base = ({
           const shapeKeys = Object.keys(s.shape);
           const primary = shapeKeys.find((col) =>
             /primary/i.test(s.shape[col].description || "")
-          )?.[0];
+          );
           if (primary) constraints.push(`PRIMARY KEY (${snakeCase(primary)})`);
 
           const uniques = shapeKeys
@@ -246,7 +246,7 @@ const base = ({
 
           Object.keys(s.shape)
             .filter((col) => /unique/i.test(s.shape[col].description || ""))
-            .map((e) => snakeCase(e[0]))
+            .map((e) => snakeCase(e))
             .map((key) => {
               const parts = key.split("_");
               return {
