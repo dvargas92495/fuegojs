@@ -46,6 +46,7 @@ const base = ({
         "stripe_public",
         "stripe_secret",
         "stripe_webhook_secret",
+        "terraform_cloud_token",
       ]
         .concat(clerkDnsId ? ["clerk_api_key"] : [])
         .concat(variables);
@@ -237,7 +238,7 @@ const base = ({
 
           const uniques = shapeKeys
             .filter((col) => /unique/i.test(s.shape[col].description || ""))
-            .map((e) => snakeCase(e[0]));
+            .map((e) => snakeCase(e));
           if (uniques.length)
             constraints.push(
               `CONSTRAINT UC_${uniques.join("_")} UNIQUE (${uniques.join(",")})`
@@ -260,7 +261,7 @@ const base = ({
               )
             );
 
-          return `CREATE TABLE IF NOT EXISTS ${snakeCase(k)} (
+          return `CREATE TABLE IF NOT EXISTS ${pluralize(snakeCase(k))} (
   ${shapeKeys
     .map((columnName) => {
       const shape = s.shape[columnName];
@@ -270,7 +271,11 @@ const base = ({
       const def = shape._def;
       return `  ${snakeCase(columnName)}   ${
         def.typeName === "ZodString"
-          ? `VARCHAR(${(shape as ZodString).maxLength || 128})`
+          ? `VARCHAR(${
+              (shape as ZodString).isUUID
+                ? 36
+                : (shape as ZodString).maxLength || 128
+            })`
           : def.typeName === "ZodNumber"
           ? (shape as ZodString).maxLength
             ? `TINYINT(${Math.ceil(
@@ -282,9 +287,9 @@ const base = ({
           : def.typeName === "ZodBoolean"
           ? "TINYINT(1)"
           : def.typeName
-      } ${shape.isOptional() || shape.isNullable() ? "" : "NOT "}NULL`;
+      } ${shape.isOptional() || shape.isNullable() ? "" : "NOT "}NULL,\n`;
     })
-    .join(",\n  ")}
+    .join("  ")}
 
   ${constraints.join(",\n  ")}
 )`;

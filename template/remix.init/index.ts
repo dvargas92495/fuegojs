@@ -605,6 +605,10 @@ const main = ({ rootDirectory }: { rootDirectory: string }): Promise<void> => {
                   key: "stripe_webhook_secret",
                   env: "LIVE_STRIPE_WEBHOOK_SECRET",
                 },
+                {
+                  key: "terraform_cloud_token",
+                  env: "TERRAFORM_CLOUD_TOKEN",
+                },
               ].map(({ key, env, value }) => {
                 const inEnv = !!process.env[env || ""];
                 if (!inEnv && !value) {
