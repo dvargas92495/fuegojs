@@ -75,7 +75,7 @@ const base = ({
       new GithubProvider(this, "GITHUB", {
         owner: "dvargas92495",
         token: github_token.value,
-      });
+      }); 
 
       // TODO: figure out how to move this to json for type bindings
       // fails on: The child module requires an additional configuration for provider
@@ -248,7 +248,7 @@ const base = ({
             );
 
           Object.keys(s.shape)
-            .filter((col) => /unique/i.test(s.shape[col].description || ""))
+            .filter((col) => /foreign/i.test(s.shape[col].description || ""))
             .map((e) => snakeCase(e))
             .map((key) => {
               const parts = key.split("_");

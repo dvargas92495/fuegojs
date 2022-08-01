@@ -21,8 +21,8 @@
     "/dist"
   ],
   "peerDependencies": {
-    "@cdktf/provider-aws": "^9.0.7",
-    "@cdktf/provider-github": "^2.0.7",
+    "@cdktf/provider-aws": "^8.0.14",
+    "@cdktf/provider-github": "0.8.20",
     "@remix-run/dev": ">=1",
     "@remix-run/react": ">=1",
     "@remix-run/serve": ">=1",
@@ -32,7 +32,7 @@
     "@types/react-dom": ">=17",
     "@typescript-eslint/eslint-plugin": "^5.x",
     "@typescript-eslint/parser": "^5.x",
-    "cdktf-cli": "^0.12.0",
+    "cdktf-cli": "^0.11.2",
     "concurrently": "6.5.1",
     "eslint": "^8.x",
     "prettier": "^2.3.2",
