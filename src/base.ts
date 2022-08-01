@@ -7,11 +7,7 @@ import {
   TerraformVariable,
 } from "cdktf";
 import { AwsProvider } from "@cdktf/provider-aws";
-// import { GithubProvider, ActionsSecret } from "@cdktf/provider-github";
-import {
-  GithubProviderA as GithubProvider,
-  ActionsSecretA as ActionsSecret,
-} from ".gen/providers/github";
+import { GithubProvider, ActionsSecret } from "@cdktf/provider-github";
 import { AwsServerlessBackend } from ".gen/modules/aws-serverless-backend";
 import { AwsClerk } from ".gen/modules/aws-clerk";
 import { AwsEmail } from ".gen/modules/aws-email";
