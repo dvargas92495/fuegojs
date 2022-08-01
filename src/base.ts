@@ -204,6 +204,7 @@ const base = ({
     }
     const tablesToDelete: string[] = [];
     const tablesToCreate: Record<string, ZodObject<ZodRawShape>> = {};
+    const tablesToUpdate: Record<string, ZodObject<ZodRawShape>> = {};
     const expectedTables = Object.keys(schema);
     actualTables
       .map((t) => {
@@ -218,7 +219,9 @@ const base = ({
       });
     const actualSet = new Set(actualTables);
     expectedTables.forEach((t) => {
-      if (!actualSet.has(pluralize(snakeCase(t)))) {
+      if (actualSet.has(pluralize(snakeCase(t)))) {
+        tablesToUpdate[t] = schema[t];
+      } else {
         tablesToCreate[t] = schema[t];
       }
     });
