@@ -20,6 +20,8 @@ import pluralize from "pluralize";
 import { PLAN_OUT_FILE, readDir } from "./common";
 import path from "path";
 
+const INVALID_COLUMN_NAMES = new Set(["key", "read"]);
+
 const base = ({
   projectName,
   safeProjectName = projectName.replace(/\./g, "-"),
@@ -289,7 +291,7 @@ const base = ({
   ${shapeKeys
     .map((columnName) => {
       const shape = s.shape[columnName];
-      if (columnName === "key") {
+      if (INVALID_COLUMN_NAMES.has(columnName)) {
         throw new Error(`\`${columnName}\` is an invalid column name`);
       }
       const def = shape._def;
