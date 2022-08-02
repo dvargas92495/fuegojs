@@ -96,9 +96,9 @@ const base = ({
         },
       });
 
-      const paths = readDir("api").map((f) =>
-        f.replace(/\.ts$/, "").replace(/^api\//, "")
-      );
+      const paths = readDir("api")
+        .map((f) => f.replace(/\.ts$/, "").replace(/^api\//, ""))
+        .filter((f) => !/^ws/.test(f));
       const backend = new AwsServerlessBackend(this, "aws-serverless-backend", {
         apiName: safeProjectName,
         domain: projectName,
@@ -219,12 +219,31 @@ const base = ({
       });
     const actualSet = new Set(actualTables);
     expectedTables.forEach((t) => {
-      if (actualSet.has(pluralize(snakeCase(t)))) {
-        tablesToUpdate[t] = schema[t];
+      const key = pluralize(snakeCase(t));
+      if (actualSet.has(key)) {
+        tablesToUpdate[key] = schema[t];
       } else {
-        tablesToCreate[t] = schema[t];
+        tablesToCreate[key] = schema[t];
       }
     });
+
+    await Promise.all(
+      Object.keys(tablesToUpdate).map((table) =>
+        cxn.execute(`SHOW COLUMNS FROM ${table}`).then((res) => {
+          const cols = res as {
+            Field: string;
+            Type: string;
+            Null: "NO" | "YES";
+            Key?: string;
+            Extra?: string;
+          }[];
+          // cols to delete
+          // cols to add
+          // cols to update
+          return cols.filter(() => false).map(() => "UPDATE");
+        })
+      )
+    ).then((cols) => cols.flat());
 
     console.log("SQL PLAN:");
     console.log("");
@@ -264,7 +283,7 @@ const base = ({
               )
             );
 
-          return `CREATE TABLE IF NOT EXISTS ${pluralize(snakeCase(k))} (
+          return `CREATE TABLE IF NOT EXISTS ${k} (
   ${shapeKeys
     .map((columnName) => {
       const shape = s.shape[columnName];
@@ -297,7 +316,8 @@ const base = ({
   ${constraints.join(",\n  ")}
 )`;
         })
-      );
+      )
+      .concat();
     if (queries.length) {
       queries.forEach((q) => console.log(">", q));
       console.log("");
