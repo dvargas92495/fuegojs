@@ -22,19 +22,11 @@ const apply = async ({
   };
   const getWorkspaceByOrg = (org: string) =>
     axios
-      .post<{ data: { id: string } }>(
-        `https://app.terraform.io/api/v2/organizations/${org}/workspaces`,
-        {
-          data: {
-            type: "workspaces",
-            attributes: {
-              name: workspace,
-            },
-          },
-        },
+      .get<{ data: { id: string }[] }>(
+        `https://app.terraform.io/api/v2/organizations/${org}/workspaces?search%5Bname%5D=${workspace}`,
         tfOpts
       )
-      .then((r) => r.data.data.id)
+      .then((r) => (r.data.data.length ? r.data.data[0].id : ""))
       .catch(() => "");
   const workspaceId = await (organization
     ? getWorkspaceByOrg(organization)
@@ -50,23 +42,11 @@ const apply = async ({
   if (workspaceId) {
     const result = await axios
       .get<{ data: { id: string; status: string; "created-at": string }[] }>(
-        `https://app.terraform.io/api/v2/workspaces/${workspaceId}/runs`,
+        `https://app.terraform.io/api/v2/workspaces/${workspaceId}/runs?filter%5Bstatus%5D=planned`,
         tfOpts
       )
       .catch((e) => Promise.reject(`Failed to get workspaces: ${e.message}`))
       .then((r) => {
-        console.log(
-          "Runs found:",
-          JSON.stringify(
-            r.data.data.map((d) => ({
-              id: d.id,
-              date: d["created-at"],
-              status: d.status,
-            })),
-            null,
-            4
-          )
-        );
         const runId = r.data.data[0].id;
         return axios
           .post(
