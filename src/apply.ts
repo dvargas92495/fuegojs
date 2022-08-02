@@ -28,18 +28,29 @@ const apply = async ({
       )
       .then((r) => (r.data.data.length ? r.data.data[0].id : ""))
       .catch(() => "");
-  const workspaceId = await (organization
-    ? getWorkspaceByOrg(organization)
+  const tfResult = await (organization
+    ? getWorkspaceByOrg(organization).then((workspaceId) => ({
+        org: organization,
+        workspaceId,
+      }))
     : axios
         .get<{ data: { id: string }[] }>(
           `https://app.terraform.io/api/v2/organizations`,
           tfOpts
         )
         .then((r) =>
-          Promise.all(r.data.data.map((d) => getWorkspaceByOrg(d.id)))
+          Promise.all(
+            r.data.data.map((d) =>
+              getWorkspaceByOrg(d.id).then((workspaceId) => ({
+                workspaceId,
+                org: d.id,
+              }))
+            )
+          )
         )
-        .then((ids) => ids.find((i) => !!i)));
-  if (workspaceId) {
+        .then((ids) => ids.find((i) => !!i.workspaceId)));
+  if (tfResult) {
+    const { org, workspaceId } = tfResult;
     const result = await axios
       .get<{ data: { id: string; status: string; "created-at": string }[] }>(
         `https://app.terraform.io/api/v2/workspaces/${workspaceId}/runs?filter%5Bstatus%5D=planned`,
@@ -58,7 +69,7 @@ const apply = async ({
           )
           .then(
             () =>
-              `Applied Terraform run: https://app.terraform.io/app/${organization}/workspaces/${workspace}/runs/${runId}`
+              `https://app.terraform.io/app/${org}/workspaces/${workspace}/runs/${runId}`
           )
           .catch((e) => Promise.reject(`Failed to apply run: ${e.message}`));
       })

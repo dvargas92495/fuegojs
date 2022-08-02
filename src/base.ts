@@ -231,99 +231,144 @@ const base = ({
       }
     });
 
-    await Promise.all(
+    const getTableInfo = (s: ZodObject<ZodRawShape>) => {
+      const constraints: string[] = [];
+      const shapeKeys = Object.keys(s.shape);
+      const primary = shapeKeys.find((col) =>
+        /primary/i.test(s.shape[col].description || "")
+      );
+      if (primary) constraints.push(`PRIMARY KEY (${snakeCase(primary)})`);
+
+      const uniques = shapeKeys
+        .filter((col) => /unique/i.test(s.shape[col].description || ""))
+        .map((e) => snakeCase(e));
+      if (uniques.length)
+        constraints.push(
+          `CONSTRAINT UC_${uniques.join("_")} UNIQUE (${uniques.join(",")})`
+        );
+
+      Object.keys(s.shape)
+        .filter((col) => /foreign/i.test(s.shape[col].description || ""))
+        .map((e) => snakeCase(e))
+        .map((key) => {
+          const parts = key.split("_");
+          return {
+            key,
+            table: pluralize(parts.slice(0, -1).join("_")),
+            ref: parts.slice(-1)[0],
+          };
+        })
+        .forEach(({ key, table, ref }) =>
+          constraints.push(`FOREIGN KEY (${key}) REFERENCES ${table}(${ref})`)
+        );
+
+      return {
+        constraints,
+        columns: shapeKeys.map((columnName) => {
+          const shape = s.shape[columnName];
+          if (INVALID_COLUMN_NAMES.has(columnName)) {
+            throw new Error(`\`${columnName}\` is an invalid column name`);
+          }
+          const def = shape._def;
+          return {
+            Field: snakeCase(columnName),
+            Type:
+              def.typeName === "ZodString"
+                ? `VARCHAR(${
+                    (shape as ZodString).isUUID
+                      ? 36
+                      : (shape as ZodString).maxLength || 128
+                  })`
+                : def.typeName === "ZodNumber"
+                ? (shape as ZodString).maxLength
+                  ? `TINYINT(${Math.ceil(
+                      Math.log2((shape as ZodString).maxLength || 1)
+                    )}`
+                  : "INT"
+                : def.typeName === "ZodDate"
+                ? "DATETIME(3)"
+                : def.typeName === "ZodBoolean"
+                ? "TINYINT(1)"
+                : def.typeName,
+            Null: shape.isOptional() || shape.isNullable() ? "YES" : "NO",
+            Key: "",
+            Extra: "",
+          };
+        }),
+      };
+    };
+
+    const updates = await Promise.all(
       Object.keys(tablesToUpdate).map((table) =>
         cxn.execute(`SHOW COLUMNS FROM ${table}`).then((res) => {
-          const cols = res as {
+          const actualColumns = res as {
             Field: string;
             Type: string;
             Null: "NO" | "YES";
             Key?: string;
             Extra?: string;
           }[];
+
+          const colsToDelete: string[] = [];
+          const colsToAdd: string[] = [];
+          const colsToUpdate: string[] = [];
+
+          const expectedColumns = Object.keys(tablesToUpdate[table].shape);
+          actualColumns.forEach((c) => {
+            if (!expectedColumns.includes(c.Field)) {
+              colsToDelete.push(c.Field);
+            }
+          });
+          const actualColumnSet = new Set(actualColumns.map((c) => c.Field));
+          const expectedColumnInfo = getTableInfo(tablesToUpdate[table]);
+          const expectedTypeByField = Object.fromEntries(
+            expectedColumnInfo.columns.map((c) => [c.Field, c.Type])
+          );
+          expectedColumns.forEach((c) => {
+            if (actualColumnSet.has(c)) {
+              colsToUpdate.push(c);
+            } else {
+              colsToAdd.push(c);
+            }
+          });
           // cols to delete
           // cols to add
           // cols to update
-          return cols.filter(() => false).map(() => "UPDATE");
+          return colsToDelete
+            .map((c) => `ALTER TABLE ${table} DROP COLUMN ${c}`)
+            .concat(
+              colsToAdd.map(
+                (c) => `ALTER TABLE ${table} ADD ${c} ${expectedTypeByField}`
+              )
+            );
         })
       )
     ).then((cols) => cols.flat());
 
     console.log("SQL PLAN:");
     console.log("");
+
     const queries = tablesToDelete
       .map((s) => `DROP TABLE ${s}`)
       .concat(
         Object.entries(tablesToCreate).map(([k, s]) => {
-          const constraints: string[] = [];
-          const shapeKeys = Object.keys(s.shape);
-          const primary = shapeKeys.find((col) =>
-            /primary/i.test(s.shape[col].description || "")
-          );
-          if (primary) constraints.push(`PRIMARY KEY (${snakeCase(primary)})`);
-
-          const uniques = shapeKeys
-            .filter((col) => /unique/i.test(s.shape[col].description || ""))
-            .map((e) => snakeCase(e));
-          if (uniques.length)
-            constraints.push(
-              `CONSTRAINT UC_${uniques.join("_")} UNIQUE (${uniques.join(",")})`
-            );
-
-          Object.keys(s.shape)
-            .filter((col) => /foreign/i.test(s.shape[col].description || ""))
-            .map((e) => snakeCase(e))
-            .map((key) => {
-              const parts = key.split("_");
-              return {
-                key,
-                table: pluralize(parts.slice(0, -1).join("_")),
-                ref: parts.slice(-1)[0],
-              };
-            })
-            .forEach(({ key, table, ref }) =>
-              constraints.push(
-                `FOREIGN KEY (${key}) REFERENCES ${table}(${ref})`
-              )
-            );
-
+          const info = getTableInfo(s);
           return `CREATE TABLE IF NOT EXISTS ${k} (
-  ${shapeKeys
-    .map((columnName) => {
-      const shape = s.shape[columnName];
-      if (INVALID_COLUMN_NAMES.has(columnName)) {
-        throw new Error(`\`${columnName}\` is an invalid column name`);
-      }
-      const def = shape._def;
-      return `  ${snakeCase(columnName)}   ${
-        def.typeName === "ZodString"
-          ? `VARCHAR(${
-              (shape as ZodString).isUUID
-                ? 36
-                : (shape as ZodString).maxLength || 128
-            })`
-          : def.typeName === "ZodNumber"
-          ? (shape as ZodString).maxLength
-            ? `TINYINT(${Math.ceil(
-                Math.log2((shape as ZodString).maxLength || 1)
-              )}`
-            : "INT"
-          : def.typeName === "ZodDate"
-          ? "DATETIME(3)"
-          : def.typeName === "ZodBoolean"
-          ? "TINYINT(1)"
-          : def.typeName
-      } ${shape.isOptional() || shape.isNullable() ? "" : "NOT "}NULL,\n`;
-    })
-    .join("  ")}
-
-  ${constraints.join(",\n  ")}
+${info.columns
+  .map(
+    (c) => `  ${c.Field}  ${c.Type}  ${c.Null === "YES" ? "NULL" : "NOT NULL"},`
+  )
+  .join("\n")}
+${info.constraints.join(",\n  ")}
 )`;
         })
       )
       .concat();
     if (queries.length) {
       queries.forEach((q) => console.log(">", q));
+      console.log("");
+      console.log("UPDATES:")
+      updates.forEach((q) => console.log(">", q));
       console.log("");
       console.log("Ready to apply...");
     } else {
