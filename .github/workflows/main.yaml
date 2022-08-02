@@ -13,8 +13,6 @@ jobs:
       - uses: actions/checkout@v2
       - name: install
         run: npm install
-      - name: .gen deps
-        run: npx cdktf get
       - name: build
         run: npm run build
       - uses: JS-DevTools/npm-publish@v1

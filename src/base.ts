@@ -9,9 +9,9 @@ import {
 import { AwsProvider } from "@cdktf/provider-aws";
 import { GithubProvider, ActionsSecret } from "@cdktf/provider-github";
 import { AwsServerlessBackend } from "@dvargas92495/aws-serverless-backend";
-import { AwsClerk } from ".gen/modules/aws-clerk";
-import { AwsEmail } from ".gen/modules/aws-email";
-import { AwsWebsocket } from ".gen/modules/aws-websocket";
+import { AwsClerk } from "@dvargas92495/aws-clerk";
+import { AwsEmail } from "@dvargas92495/aws-email";
+import { AwsWebsocket } from "@dvargas92495/aws-websocket";
 import fs from "fs";
 import getMysqlConnection from "./mysql";
 import { ZodObject, ZodRawShape, ZodString } from "zod";
@@ -96,9 +96,11 @@ const base = ({
         },
       });
 
-      const paths = readDir("api")
-        .map((f) => f.replace(/\.ts$/, "").replace(/^api\//, ""))
-        .filter((f) => !/^ws/.test(f));
+      const allPaths = readDir("api").map((f) =>
+        f.replace(/\.ts$/, "").replace(/^api\//, "")
+      );
+
+      const paths = allPaths.filter((f) => !/^ws/.test(f));
       const backend = new AwsServerlessBackend(this, "aws-serverless-backend", {
         apiName: safeProjectName,
         domain: projectName,

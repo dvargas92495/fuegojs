@@ -1,9 +1,7 @@
 import child_process from "child_process";
 
 const plan = async (): Promise<number> => {
-  child_process.execSync(`npx cdktf get`, {
-    stdio: "inherit",
-  });
+  // is it possible to just run `data/main.ts` directly? is that desirable?
   child_process.execSync(`npx cdktf plan`, {
     stdio: "inherit",
   });
