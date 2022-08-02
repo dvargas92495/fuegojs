@@ -8,7 +8,7 @@ import {
 } from "cdktf";
 import { AwsProvider } from "@cdktf/provider-aws";
 import { GithubProvider, ActionsSecret } from "@cdktf/provider-github";
-import { AwsServerlessBackend } from ".gen/modules/aws-serverless-backend";
+import { AwsServerlessBackend } from "@dvargas92495/aws-serverless-backend";
 import { AwsClerk } from ".gen/modules/aws-clerk";
 import { AwsEmail } from ".gen/modules/aws-email";
 import { AwsWebsocket } from ".gen/modules/aws-websocket";
@@ -327,7 +327,7 @@ const base = ({
     }
     if (!fs.existsSync(path.dirname(PLAN_OUT_FILE)))
       fs.mkdirSync(path.dirname(PLAN_OUT_FILE));
-    fs.writeFileSync(PLAN_OUT_FILE, queries.join("\n\n"));
+    fs.writeFileSync(PLAN_OUT_FILE, queries.join(";\n\n"));
 
     cxn.destroy();
   });

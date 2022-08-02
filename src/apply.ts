@@ -5,7 +5,7 @@ import migrate from "./migrate";
 
 const apply = (): Promise<number> => {
   // TODO run manual migrations
-  const queries = fs.readFileSync(PLAN_OUT_FILE).toString().split("\n\n");
+  const queries = fs.readFileSync(PLAN_OUT_FILE).toString().split(";\n\n");
   return getMysqlConnection().then(async (cxn) => {
     await queries
       .map((q, i, a) => async () => {
