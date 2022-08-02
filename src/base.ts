@@ -367,7 +367,7 @@ ${info.constraints.join(",\n  ")}
     if (queries.length) {
       queries.forEach((q) => console.log(">", q));
       console.log("");
-      console.log("UPDATES:")
+      console.log("UPDATES:");
       updates.forEach((q) => console.log(">", q));
       console.log("");
       console.log("Ready to apply...");
