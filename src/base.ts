@@ -108,7 +108,7 @@ const base = ({
       });
 
       // TODO - should this be built into aws serverless backend?
-      const wsPaths = paths
+      const wsPaths = allPaths
         .filter((p) => /^ws/.test(p))
         .map((p) => p.replace(/^ws\//, ""));
       if (wsPaths.length) {
