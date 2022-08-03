@@ -128,7 +128,7 @@ const base = ({
       }
 
       if (emailDomain) {
-        new AwsEmail(this, "aws_clerk", {
+        new AwsEmail(this, "aws_email", {
           zoneId: staticSite.get("route53_zone_id"),
           domain: emailDomain,
         });
