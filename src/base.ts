@@ -315,22 +315,27 @@ const base = ({
 
           const expectedColumns = Object.keys(tablesToUpdate[table].shape);
           actualColumns.forEach((c) => {
-            if (!expectedColumns.includes(c.Field)) {
+            if (!expectedColumns.includes(camelCase(c.Field))) {
               colsToDelete.push(c.Field);
             }
           });
           const actualColumnSet = new Set(actualColumns.map((c) => c.Field));
           const expectedColumnInfo = getTableInfo(tablesToUpdate[table]);
-          const expectedTypeByField = Object.fromEntries(
-            expectedColumnInfo.columns.map((c) => [c.Field, c.Type])
+          const actualTypeByField = Object.fromEntries(
+            actualColumns.map((c) => [c.Field, c.Type])
           );
-          expectedColumns.forEach((c) => {
-            if (actualColumnSet.has(c)) {
-              colsToUpdate.push(c);
-            } else {
-              colsToAdd.push(c);
-            }
-          });
+          const expectedTypeByField = Object.fromEntries(
+            expectedColumnInfo.columns.map((c) => [snakeCase(c.Field), c.Type])
+          );
+          expectedColumns
+            .map((e) => snakeCase(e))
+            .forEach((c) => {
+              if (actualColumnSet.has(c)) {
+                colsToUpdate.push(c);
+              } else {
+                colsToAdd.push(c);
+              }
+            });
           // cols to delete
           // cols to add
           // cols to update
@@ -338,8 +343,16 @@ const base = ({
             .map((c) => `ALTER TABLE ${table} DROP COLUMN ${c}`)
             .concat(
               colsToAdd.map(
-                (c) => `ALTER TABLE ${table} ADD ${c} ${expectedTypeByField}`
+                (c) => `ALTER TABLE ${table} ADD ${c} ${expectedTypeByField[c]}`
               )
+            )
+            .concat(
+              colsToUpdate
+                .filter((c) => expectedTypeByField[c] !== actualTypeByField[c])
+                .map(
+                  (c) =>
+                    `ALTER TABLE ${table} MODIFY ${c} ${expectedTypeByField[c]}`
+                )
             );
         })
       )
@@ -349,7 +362,7 @@ const base = ({
     console.log("");
 
     const queries = tablesToDelete
-      .map((s) => `DROP TABLE ${s}`)
+      .map((s) => `DROP TABLE ${pluralize(snakeCase(s))}`)
       .concat(
         Object.entries(tablesToCreate).map(([k, s]) => {
           const info = getTableInfo(s);
