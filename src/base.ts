@@ -267,7 +267,7 @@ const base = ({
 
     const outputColumn = (c: Column) =>
       `${c.Field}  ${c.Type}  ${c.Null === "YES" ? "NULL" : "NOT NULL"}${
-        c.Default === "NULL" ? "" : ` DEFAULT ${c.Default}`
+        c.Default === null ? "" : ` DEFAULT ${c.Default}`
       }`;
 
     const getTableInfo = (s: ZodObject<ZodRawShape>) => {
@@ -406,7 +406,10 @@ const base = ({
                 )
                 .map(
                   (c) =>
-                    `ALTER TABLE ${table} MODIFY ${c} ${expectedTypeByField[c]}`
+                    `ALTER TABLE ${table} MODIFY ${outputColumn({
+                      Field: c,
+                      ...expectedTypeByField[c],
+                    })}`
                 )
             );
         })
