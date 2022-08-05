@@ -422,11 +422,7 @@ const base = ({
         Object.entries(tablesToCreate).map(([k, s]) => {
           const info = getTableInfo(s);
           return `CREATE TABLE IF NOT EXISTS ${k} (
-${info.columns
-  .map(
-    (c) => `  ${outputColumn(c)},`
-  )
-  .join("\n")}
+${info.columns.map((c) => `  ${outputColumn(c)},`).join("\n")}
 ${info.constraints.join(",\n  ")}
 )`;
         })
