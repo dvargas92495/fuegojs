@@ -22,6 +22,15 @@ import path from "path";
 
 const INVALID_COLUMN_NAMES = new Set(["key", "read"]);
 
+type Column = {
+  Field: string;
+  Type: string;
+  Null: "NO" | "YES";
+  Key?: string;
+  Extra?: string;
+  Default?: string;
+};
+
 const base = ({
   projectName,
   safeProjectName = projectName.replace(/\./g, "-"),
@@ -256,6 +265,11 @@ const base = ({
       }
     });
 
+    const outputColumn = (c: Column) =>
+      `${c.Field}  ${c.Type}  ${c.Null === "YES" ? "NULL" : "NOT NULL"}${
+        c.Default === "NULL" ? "" : ` DEFAULT ${c.Default}`
+      }`;
+
     const getTableInfo = (s: ZodObject<ZodRawShape>) => {
       const constraints: string[] = [];
       const shapeKeys = Object.keys(s.shape);
@@ -295,6 +309,7 @@ const base = ({
             throw new Error(`\`${columnName}\` is an invalid column name`);
           }
           const def = shape._def;
+          const nullable = shape.isOptional() || shape.isNullable();
           return {
             Field: snakeCase(columnName),
             Type:
@@ -315,9 +330,16 @@ const base = ({
                 : def.typeName === "ZodBoolean"
                 ? "TINYINT(1)"
                 : def.typeName,
-            Null: shape.isOptional() || shape.isNullable() ? "YES" : "NO",
+            Null: nullable ? ("YES" as const) : ("NO" as const),
             Key: "",
             Extra: "",
+            Default: nullable
+              ? def.typeName === "ZodString"
+                ? ""
+                : def.typeName === "ZodNumber" || def.typeName === "ZodBoolean"
+                ? "0"
+                : "NULL"
+              : "NULL",
           };
         }),
       };
@@ -326,13 +348,7 @@ const base = ({
     const updates = await Promise.all(
       Object.keys(tablesToUpdate).map((table) =>
         cxn.execute(`SHOW COLUMNS FROM ${table}`).then((res) => {
-          const actualColumns = res as {
-            Field: string;
-            Type: string;
-            Null: "NO" | "YES";
-            Key?: string;
-            Extra?: string;
-          }[];
+          const actualColumns = res as Column[];
 
           const colsToDelete: string[] = [];
           const colsToAdd: string[] = [];
@@ -347,10 +363,13 @@ const base = ({
           const actualColumnSet = new Set(actualColumns.map((c) => c.Field));
           const expectedColumnInfo = getTableInfo(tablesToUpdate[table]);
           const actualTypeByField = Object.fromEntries(
-            actualColumns.map((c) => [c.Field, c.Type])
+            actualColumns.map(({ Field, ...c }) => [Field, c])
           );
           const expectedTypeByField = Object.fromEntries(
-            expectedColumnInfo.columns.map((c) => [snakeCase(c.Field), c.Type])
+            expectedColumnInfo.columns.map(({ Field, ...c }) => [
+              snakeCase(Field),
+              c,
+            ])
           );
           expectedColumns
             .map((e) => snakeCase(e))
@@ -368,15 +387,22 @@ const base = ({
             .map((c) => `ALTER TABLE ${table} DROP COLUMN ${c}`)
             .concat(
               colsToAdd.map(
-                (c) => `ALTER TABLE ${table} ADD ${c} ${expectedTypeByField[c]}`
+                (c) =>
+                  `ALTER TABLE ${table} ADD ${outputColumn({
+                    Field: c,
+                    ...expectedTypeByField[c],
+                  })}`
               )
             )
             .concat(
               colsToUpdate
                 .filter(
                   (c) =>
-                    expectedTypeByField[c] !==
-                    actualTypeByField[c].toUpperCase()
+                    expectedTypeByField[c].Type !==
+                      actualTypeByField[c].Type.toUpperCase() ||
+                    expectedTypeByField[c].Null !== actualTypeByField[c].Null ||
+                    expectedTypeByField[c].Default !==
+                      actualTypeByField[c].Default
                 )
                 .map(
                   (c) =>
@@ -398,7 +424,7 @@ const base = ({
           return `CREATE TABLE IF NOT EXISTS ${k} (
 ${info.columns
   .map(
-    (c) => `  ${c.Field}  ${c.Type}  ${c.Null === "YES" ? "NULL" : "NOT NULL"},`
+    (c) => `  ${outputColumn(c)},`
   )
   .join("\n")}
 ${info.constraints.join(",\n  ")}
