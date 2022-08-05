@@ -9,79 +9,83 @@ const apply = async ({
   domain = path.basename(process.cwd()),
   workspace = domain.replace(/\./g, "-"),
   organization = process.env.TERRAFORM_ORGANIZATION,
+  sql,
 }: {
   domain?: string;
   workspace?: string;
   organization?: string;
+  sql?: boolean;
 } = {}): Promise<number> => {
-  const tfOpts = {
-    headers: {
-      Authorization: `Bearer ${process.env.TERRAFORM_CLOUD_TOKEN}`,
-      "Content-Type": "application/vnd.api+json",
-    },
-  };
-  const getWorkspaceByOrg = (org: string) =>
-    axios
-      .get<{ data: { id: string }[] }>(
-        `https://app.terraform.io/api/v2/organizations/${org}/workspaces?search%5Bname%5D=${workspace}`,
-        tfOpts
-      )
-      .then((r) => (r.data.data.length ? r.data.data[0].id : ""))
-      .catch(() => "");
-  const tfResult = await (organization
-    ? getWorkspaceByOrg(organization).then((workspaceId) => ({
-        org: organization,
-        workspaceId,
-      }))
-    : axios
+  if (!sql) {
+    const tfOpts = {
+      headers: {
+        Authorization: `Bearer ${process.env.TERRAFORM_CLOUD_TOKEN}`,
+        "Content-Type": "application/vnd.api+json",
+      },
+    };
+    const getWorkspaceByOrg = (org: string) =>
+      axios
         .get<{ data: { id: string }[] }>(
-          `https://app.terraform.io/api/v2/organizations`,
+          `https://app.terraform.io/api/v2/organizations/${org}/workspaces?search%5Bname%5D=${workspace}`,
           tfOpts
         )
-        .then((r) =>
-          Promise.all(
-            r.data.data.map((d) =>
-              getWorkspaceByOrg(d.id).then((workspaceId) => ({
-                workspaceId,
-                org: d.id,
-              }))
-            )
-          )
-        )
-        .then((ids) => ids.find((i) => !!i.workspaceId)));
-  if (tfResult) {
-    const { org, workspaceId } = tfResult;
-    const result = await axios
-      .get<{ data: { id: string; status: string; "created-at": string }[] }>(
-        `https://app.terraform.io/api/v2/workspaces/${workspaceId}/runs?filter%5Bstatus%5D=planned`,
-        tfOpts
-      )
-      .catch((e) => Promise.reject(`Failed to get workspaces: ${e.message}`))
-      .then((r) => {
-        if (!r.data.data.length) {
-          return "No plans available to apply.";
-        }
-        const runId = r.data.data[0].id;
-        return axios
-          .post(
-            `https://app.terraform.io/api/v2/runs/${runId}/actions/apply`,
-            {
-              comment: `Fired from fuego at ${new Date().toJSON()}`,
-            },
+        .then((r) => (r.data.data.length ? r.data.data[0].id : ""))
+        .catch(() => "");
+    const tfResult = await (organization
+      ? getWorkspaceByOrg(organization).then((workspaceId) => ({
+          org: organization,
+          workspaceId,
+        }))
+      : axios
+          .get<{ data: { id: string }[] }>(
+            `https://app.terraform.io/api/v2/organizations`,
             tfOpts
           )
-          .then(
-            () =>
-              `https://app.terraform.io/app/${org}/workspaces/${workspace}/runs/${runId}`
+          .then((r) =>
+            Promise.all(
+              r.data.data.map((d) =>
+                getWorkspaceByOrg(d.id).then((workspaceId) => ({
+                  workspaceId,
+                  org: d.id,
+                }))
+              )
+            )
           )
-          .catch((e) => Promise.reject(`Failed to apply run: ${e.message}`));
-      })
-      .catch((e) => e);
-    console.log("Finished applying terraform run:", result);
-  } else {
-    console.log(
-      "Could not find a workspace to apply a run from. Go apply it manually"
-    );
+          .then((ids) => ids.find((i) => !!i.workspaceId)));
+    if (tfResult) {
+      const { org, workspaceId } = tfResult;
+      const result = await axios
+        .get<{ data: { id: string; status: string; "created-at": string }[] }>(
+          `https://app.terraform.io/api/v2/workspaces/${workspaceId}/runs?filter%5Bstatus%5D=planned`,
+          tfOpts
+        )
+        .catch((e) => Promise.reject(`Failed to get workspaces: ${e.message}`))
+        .then((r) => {
+          if (!r.data.data.length) {
+            return "No plans available to apply.";
+          }
+          const runId = r.data.data[0].id;
+          return axios
+            .post(
+              `https://app.terraform.io/api/v2/runs/${runId}/actions/apply`,
+              {
+                comment: `Fired from fuego at ${new Date().toJSON()}`,
+              },
+              tfOpts
+            )
+            .then(
+              () =>
+                `https://app.terraform.io/app/${org}/workspaces/${workspace}/runs/${runId}`
+            )
+            .catch((e) => Promise.reject(`Failed to apply run: ${e.message}`));
+        })
+        .catch((e) => e);
+      console.log("Finished applying terraform run:", result);
+    } else {
+      console.log(
+        "Could not find a workspace to apply a run from. Go apply it manually"
+      );
+    }
   }
 
   const queries = fs

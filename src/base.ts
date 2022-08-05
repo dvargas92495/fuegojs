@@ -50,156 +50,170 @@ const base = ({
   }
   console.log("");
 
-  class MyStack extends TerraformStack {
-    constructor(scope: Construct, name: string) {
-      super(scope, name);
+  if (!process.env.FUEGO_ARGS_SQL) {
+    class MyStack extends TerraformStack {
+      constructor(scope: Construct, name: string) {
+        super(scope, name);
 
-      const allVariables = [
-        "mysql_password",
-        "stripe_public",
-        "stripe_secret",
-        "stripe_webhook_secret",
-        "terraform_cloud_token",
-      ]
-        .concat(clerkDnsId ? ["clerk_api_key"] : [])
-        .concat(variables);
-      const aws_access_token = new TerraformVariable(this, "aws_access_token", {
-        type: "string",
-      });
-
-      const aws_secret_token = new TerraformVariable(this, "aws_secret_token", {
-        type: "string",
-      });
-
-      const github_token = new TerraformVariable(this, "github_token", {
-        type: "string",
-      });
-
-      const secret = new TerraformVariable(this, "secret", {
-        type: "string",
-      });
-
-      const aws = new AwsProvider(this, "AWS", {
-        region: "us-east-1",
-        accessKey: aws_access_token.value,
-        secretKey: aws_secret_token.value,
-      });
-
-      new GithubProvider(this, "GITHUB", {
-        owner: "dvargas92495",
-        token: github_token.value,
-      });
-
-      // TODO: figure out how to move this to json for type bindings
-      // fails on: The child module requires an additional configuration for provider
-      const staticSite = new TerraformHclModule(this, "aws_static_site", {
-        source: "dvargas92495/static-site/aws",
-        version: "3.6.7",
-        providers: [
+        const allVariables = [
+          "mysql_password",
+          "stripe_public",
+          "stripe_secret",
+          "stripe_webhook_secret",
+          "terraform_cloud_token",
+        ]
+          .concat(clerkDnsId ? ["clerk_api_key"] : [])
+          .concat(variables);
+        const aws_access_token = new TerraformVariable(
+          this,
+          "aws_access_token",
           {
-            moduleAlias: "us-east-1",
-            provider: aws,
-          },
-        ],
-        variables: {
-          origin_memory_size: 5120,
-          origin_timeout: 20,
-          domain: projectName,
-          secret: secret.value,
-        },
-      });
+            type: "string",
+          }
+        );
 
-      const allPaths = readDir("api").map((f) =>
-        f.replace(/\.ts$/, "").replace(/^api\//, "")
-      );
+        const aws_secret_token = new TerraformVariable(
+          this,
+          "aws_secret_token",
+          {
+            type: "string",
+          }
+        );
 
-      const paths = allPaths.filter((f) => !/^ws/.test(f));
-      const backend = new AwsServerlessBackend(this, "aws-serverless-backend", {
-        apiName: safeProjectName,
-        domain: projectName,
-        paths,
-      });
-
-      // TODO - should this be built into aws serverless backend?
-      const wsPaths = allPaths
-        .filter((p) => /^ws/.test(p))
-        .map((p) => p.replace(/^ws\//, ""));
-      if (wsPaths.length) {
-        new AwsWebsocket(this, "aws-websocket", {
-          name: safeProjectName,
-          paths: wsPaths,
-        });
-      }
-
-      if (clerkDnsId) {
-        new AwsClerk(this, "aws_clerk", {
-          zoneId: staticSite.get("route53_zone_id"),
-          clerkId: clerkDnsId,
-        });
-      }
-
-      if (emailDomain) {
-        new AwsEmail(this, "aws_email", {
-          zoneId: staticSite.get("route53_zone_id"),
-          domain: emailDomain,
-        });
-      }
-
-      new ActionsSecret(this, "deploy_aws_access_key", {
-        repository: projectName,
-        secretName: "DEPLOY_AWS_ACCESS_KEY",
-        plaintextValue: staticSite.get("deploy-id"),
-      });
-
-      new ActionsSecret(this, "deploy_aws_access_secret", {
-        repository: projectName,
-        secretName: "DEPLOY_AWS_ACCESS_SECRET",
-        plaintextValue: staticSite.get("deploy-secret"),
-      });
-
-      new ActionsSecret(this, "lambda_aws_access_key", {
-        repository: projectName,
-        secretName: "LAMBDA_AWS_ACCESS_KEY",
-        plaintextValue: backend.accessKeyOutput,
-      });
-
-      new ActionsSecret(this, "lambda_aws_access_secret", {
-        repository: projectName,
-        secretName: "LAMBDA_AWS_ACCESS_SECRET",
-        plaintextValue: backend.secretKeyOutput,
-      });
-
-      new ActionsSecret(this, "cloudfront_distribution_id", {
-        repository: projectName,
-        secretName: "CLOUDFRONT_DISTRIBUTION_ID",
-        plaintextValue: staticSite.get("cloudfront_distribution_id"),
-      });
-      allVariables.forEach((v) => {
-        const tf_secret = new TerraformVariable(this, v, {
+        const github_token = new TerraformVariable(this, "github_token", {
           type: "string",
         });
-        new ActionsSecret(this, `${v}_secret`, {
-          repository: projectName,
-          secretName: v.toUpperCase(),
-          plaintextValue: tf_secret.value,
+
+        const secret = new TerraformVariable(this, "secret", {
+          type: "string",
         });
-      });
 
-      callback?.bind(this)();
+        const aws = new AwsProvider(this, "AWS", {
+          region: "us-east-1",
+          accessKey: aws_access_token.value,
+          secretKey: aws_secret_token.value,
+        });
+
+        new GithubProvider(this, "GITHUB", {
+          owner: "dvargas92495",
+          token: github_token.value,
+        });
+
+        // TODO: figure out how to move this to json for type bindings
+        // fails on: The child module requires an additional configuration for provider
+        const staticSite = new TerraformHclModule(this, "aws_static_site", {
+          source: "dvargas92495/static-site/aws",
+          version: "3.6.7",
+          providers: [
+            {
+              moduleAlias: "us-east-1",
+              provider: aws,
+            },
+          ],
+          variables: {
+            origin_memory_size: 5120,
+            origin_timeout: 20,
+            domain: projectName,
+            secret: secret.value,
+          },
+        });
+
+        const allPaths = readDir("api").map((f) =>
+          f.replace(/\.ts$/, "").replace(/^api\//, "")
+        );
+
+        const paths = allPaths.filter((f) => !/^ws/.test(f));
+        const backend = new AwsServerlessBackend(
+          this,
+          "aws-serverless-backend",
+          {
+            apiName: safeProjectName,
+            domain: projectName,
+            paths,
+          }
+        );
+
+        // TODO - should this be built into aws serverless backend?
+        const wsPaths = allPaths
+          .filter((p) => /^ws/.test(p))
+          .map((p) => p.replace(/^ws\//, ""));
+        if (wsPaths.length) {
+          new AwsWebsocket(this, "aws-websocket", {
+            name: safeProjectName,
+            paths: wsPaths,
+          });
+        }
+
+        if (clerkDnsId) {
+          new AwsClerk(this, "aws_clerk", {
+            zoneId: staticSite.get("route53_zone_id"),
+            clerkId: clerkDnsId,
+          });
+        }
+
+        if (emailDomain) {
+          new AwsEmail(this, "aws_email", {
+            zoneId: staticSite.get("route53_zone_id"),
+            domain: emailDomain,
+          });
+        }
+
+        new ActionsSecret(this, "deploy_aws_access_key", {
+          repository: projectName,
+          secretName: "DEPLOY_AWS_ACCESS_KEY",
+          plaintextValue: staticSite.get("deploy-id"),
+        });
+
+        new ActionsSecret(this, "deploy_aws_access_secret", {
+          repository: projectName,
+          secretName: "DEPLOY_AWS_ACCESS_SECRET",
+          plaintextValue: staticSite.get("deploy-secret"),
+        });
+
+        new ActionsSecret(this, "lambda_aws_access_key", {
+          repository: projectName,
+          secretName: "LAMBDA_AWS_ACCESS_KEY",
+          plaintextValue: backend.accessKeyOutput,
+        });
+
+        new ActionsSecret(this, "lambda_aws_access_secret", {
+          repository: projectName,
+          secretName: "LAMBDA_AWS_ACCESS_SECRET",
+          plaintextValue: backend.secretKeyOutput,
+        });
+
+        new ActionsSecret(this, "cloudfront_distribution_id", {
+          repository: projectName,
+          secretName: "CLOUDFRONT_DISTRIBUTION_ID",
+          plaintextValue: staticSite.get("cloudfront_distribution_id"),
+        });
+        allVariables.forEach((v) => {
+          const tf_secret = new TerraformVariable(this, v, {
+            type: "string",
+          });
+          new ActionsSecret(this, `${v}_secret`, {
+            repository: projectName,
+            secretName: v.toUpperCase(),
+            plaintextValue: tf_secret.value,
+          });
+        });
+
+        callback?.bind(this)();
+      }
     }
+
+    const app = new App();
+    const stack = new MyStack(app, safeProjectName);
+    new RemoteBackend(stack, {
+      hostname: "app.terraform.io",
+      organization: "VargasArts",
+      workspaces: {
+        name: safeProjectName,
+      },
+    });
+
+    app.synth();
   }
-
-  const app = new App();
-  const stack = new MyStack(app, safeProjectName);
-  new RemoteBackend(stack, {
-    hostname: "app.terraform.io",
-    organization: "VargasArts",
-    workspaces: {
-      name: safeProjectName,
-    },
-  });
-
-  app.synth();
 
   getMysqlConnection().then(async (cxn) => {
     const actualTableResults = await cxn
@@ -394,9 +408,6 @@ ${info.constraints.join(",\n  ")}
       .concat(updates);
     if (queries.length) {
       queries.forEach((q) => console.log(">", q));
-      console.log("");
-      console.log("UPDATES:");
-      updates.forEach((q) => console.log(">", q));
       console.log("");
       console.log("Ready to apply...");
     } else {

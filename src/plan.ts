@@ -5,6 +5,7 @@ const plan = async ({ sql }: { sql?: boolean }): Promise<number> => {
   child_process.execSync(`npx cdktf plan`, {
     stdio: "inherit",
     env: {
+      ...process.env,
       FUEGO_ARGS_SQL: sql ? `true` : undefined,
     },
   });
