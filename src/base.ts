@@ -359,7 +359,11 @@ const base = ({
             )
             .concat(
               colsToUpdate
-                .filter((c) => expectedTypeByField[c] !== actualTypeByField[c].toUpperCase())
+                .filter(
+                  (c) =>
+                    expectedTypeByField[c] !==
+                    actualTypeByField[c].toUpperCase()
+                )
                 .map(
                   (c) =>
                     `ALTER TABLE ${table} MODIFY ${c} ${expectedTypeByField[c]}`

@@ -59,7 +59,7 @@ const apply = async ({
       .catch((e) => Promise.reject(`Failed to get workspaces: ${e.message}`))
       .then((r) => {
         if (!r.data.data.length) {
-          return "No plans available to apply."
+          return "No plans available to apply.";
         }
         const runId = r.data.data[0].id;
         return axios
