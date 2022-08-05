@@ -28,7 +28,7 @@ type Column = {
   Null: "NO" | "YES";
   Key?: string;
   Extra?: string;
-  Default?: string;
+  Default?: string | null;
 };
 
 const base = ({
@@ -338,8 +338,8 @@ const base = ({
                 ? ""
                 : def.typeName === "ZodNumber" || def.typeName === "ZodBoolean"
                 ? "0"
-                : "NULL"
-              : "NULL",
+                : null
+              : null,
           };
         }),
       };
@@ -380,9 +380,19 @@ const base = ({
                 colsToAdd.push(c);
               }
             });
-          // cols to delete
-          // cols to add
-          // cols to update
+
+          cxn
+            .execute(
+              `select COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_COLUMN_NAME, REFERENCED_TABLE_NAME 
+          from information_schema.KEY_COLUMN_USAGE 
+          where TABLE_NAME = ?`,
+              [table]
+            )
+            .then((r) =>
+              console.log("keys for", table, "=", JSON.stringify(r, null, 4))
+            )
+            .catch(() => console.log("cant query information_schema"));
+
           return colsToDelete
             .map((c) => `ALTER TABLE ${table} DROP COLUMN ${c}`)
             .concat(
