@@ -68,9 +68,9 @@ const run = async (command: string, args: string[]): Promise<number> => {
       return api(opts);
     // DATA
     case "apply":
-      return apply(args);
+      return apply(opts);
     case "plan":
-      return plan(args);
+      return plan(opts);
     case "migrate":
       return migrate(opts);
     // MISC
