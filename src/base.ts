@@ -39,6 +39,17 @@ const base = ({
   schema?: Record<string, ZodObject<ZodRawShape>>;
   callback?: (this: Construct) => void;
 }): void => {
+  const fuegoArgs = Object.keys(process.env).filter((k) =>
+    k.startsWith("FUEGO_ARGS_")
+  );
+  if (fuegoArgs.length) {
+    console.log("Fuego Args:");
+    fuegoArgs.forEach((f) => console.log("-", f, "=", process.env[f]));
+  } else {
+    console.log("No fuego args configured. Running...");
+  }
+  console.log("");
+
   class MyStack extends TerraformStack {
     constructor(scope: Construct, name: string) {
       super(scope, name);
@@ -348,7 +359,7 @@ const base = ({
             )
             .concat(
               colsToUpdate
-                .filter((c) => expectedTypeByField[c] !== actualTypeByField[c])
+                .filter((c) => expectedTypeByField[c] !== actualTypeByField[c].toUpperCase())
                 .map(
                   (c) =>
                     `ALTER TABLE ${table} MODIFY ${c} ${expectedTypeByField[c]}`
@@ -376,7 +387,7 @@ ${info.constraints.join(",\n  ")}
 )`;
         })
       )
-      .concat();
+      .concat(updates);
     if (queries.length) {
       queries.forEach((q) => console.log(">", q));
       console.log("");
