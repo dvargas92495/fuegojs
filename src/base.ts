@@ -102,7 +102,7 @@ const base = ({
 
         new GithubProvider(this, "GITHUB", {
           token: process.env.TERRAFORM_GITHUB_TOKEN,
-          organization: process.env.GITHUB_REPOSITORY_OWNER,
+          owner: process.env.GITHUB_REPOSITORY_OWNER,
         });
 
         // TODO: figure out how to move this to json for type bindings
@@ -355,7 +355,7 @@ const base = ({
             }),
         ]).then(([cols, cons]) => {
           const actualColumns = cols as Column[];
-          const actualContraints = cons as Constraint[];
+          const actualConstraints = cons as Constraint[];
 
           const colsToDelete: string[] = [];
           const colsToAdd: string[] = [];
@@ -393,24 +393,38 @@ const base = ({
 
           // TODO UNIQUES
 
-          actualContraints.forEach((con) => {
-            if (
-              !expectedColumnInfo.constraints.foreigns.some(
-                (f) =>
-                  con.COLUMN_NAME === f.key &&
-                  con.CONSTRAINT_NAME ===
-                    `FK_${table}_${f.key}_${f.table}_${f.ref}` &&
-                  con.REFERENCED_COLUMN_NAME === f.ref &&
-                  con.REFERENCED_TABLE_NAME === f.table
-              )
-            ) {
-              consToDelete.push(`FOREIGN KEY ${con.CONSTRAINT_NAME}`);
+          actualConstraints.forEach((con) => {
+            if (con.REFERENCED_COLUMN_NAME !== null) {
+              if (
+                !expectedColumnInfo.constraints.foreigns.some(
+                  (f) =>
+                    con.COLUMN_NAME === f.key &&
+                    con.CONSTRAINT_NAME ===
+                      `FK_${table}_${f.key}_${f.table}_${f.ref}` &&
+                    con.REFERENCED_COLUMN_NAME === f.ref &&
+                    con.REFERENCED_TABLE_NAME === f.table
+                )
+              ) {
+                consToDelete.push(`FOREIGN KEY ${con.CONSTRAINT_NAME}`);
+              }
+            } else if (con.CONSTRAINT_NAME === "PRIMARY") {
+              if (expectedColumnInfo.constraints.primary !== con.COLUMN_NAME) {
+                consToDelete.push(`PRIMARY KEY`);
+              }
+            } else {
+              // for now, we assume a unique index, even though regular indices are a thing
+              if (
+                `UC_${expectedColumnInfo.constraints.uniques.join("_")}` !==
+                con.CONSTRAINT_NAME
+              ) {
+                consToDelete.push(`INDEX ${con.CONSTRAINT_NAME}`);
+              }
             }
           });
 
           expectedColumnInfo.constraints.foreigns.forEach((f) => {
             if (
-              !actualContraints.some(
+              !actualConstraints.some(
                 (con) =>
                   con.COLUMN_NAME === f.key &&
                   con.CONSTRAINT_NAME ===
@@ -424,7 +438,32 @@ const base = ({
               );
             }
           });
-
+          if (
+            expectedColumnInfo.constraints.primary &&
+            !actualConstraints.some(
+              (con) =>
+                con.COLUMN_NAME === expectedColumnInfo.constraints.primary &&
+                con.CONSTRAINT_NAME === "PRIMARY"
+            )
+          ) {
+            consToAdd.push(
+              `PRIMARY KEY (${expectedColumnInfo.constraints.primary})`
+            );
+          }
+          if (
+            expectedColumnInfo.constraints.uniques.length &&
+            !actualConstraints.some(
+              (con) =>
+                `UC_${expectedColumnInfo.constraints.uniques.join("_")}` !==
+                con.CONSTRAINT_NAME
+            )
+          ) {
+            consToAdd.push(
+              `CONSTRAINT UC_${expectedColumnInfo.constraints.uniques.join(
+                "_"
+              )} UNIQUE (${expectedColumnInfo.constraints.uniques.join(",")})`
+            );
+          }
           return colsToDelete
             .map((c) => `ALTER TABLE ${table} DROP COLUMN ${c}`)
             .concat(
