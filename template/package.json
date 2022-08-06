@@ -17,9 +17,6 @@
     "dev": "fuego dev",
     "start": "concurrently \"npm:api\" \"npm:dev\" \"npm:tailwind\""
   },
-  "devDependencies": {
-    "fuegojs": "**"
-  },
   "dependencies": {
     "@dvargas92495/app": "**"
   }

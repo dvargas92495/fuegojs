@@ -101,7 +101,7 @@ const base = ({
         });
 
         new GithubProvider(this, "GITHUB", {
-          token: process.env.TERRAFORM_GITHUB_TOKEN,
+          token: process.env.GITHUB_TOKEN,
           owner: process.env.GITHUB_REPOSITORY_OWNER,
         });
 
@@ -212,6 +212,7 @@ const base = ({
     const stack = new MyStack(app, safeProjectName);
     new RemoteBackend(stack, {
       hostname: "app.terraform.io",
+      // TODO - parameterize the TF organization
       organization: "VargasArts",
       workspaces: {
         name: safeProjectName,
@@ -392,7 +393,7 @@ const base = ({
             });
 
           // TODO UNIQUES
-
+          const uniqsToDrop = new Set();
           actualConstraints.forEach((con) => {
             if (con.REFERENCED_COLUMN_NAME !== null) {
               if (
@@ -415,9 +416,12 @@ const base = ({
               // for now, we assume a unique index, even though regular indices are a thing
               if (
                 `UC_${expectedColumnInfo.constraints.uniques.join("_")}` !==
-                con.CONSTRAINT_NAME
+                  con.CONSTRAINT_NAME &&
+                !uniqsToDrop.has(con.CONSTRAINT_NAME)
               ) {
                 consToDelete.push(`INDEX ${con.CONSTRAINT_NAME}`);
+                // each key in the UQ will have its own entry
+                uniqsToDrop.add(con.CONSTRAINT_NAME);
               }
             }
           });
@@ -454,7 +458,7 @@ const base = ({
             expectedColumnInfo.constraints.uniques.length &&
             !actualConstraints.some(
               (con) =>
-                `UC_${expectedColumnInfo.constraints.uniques.join("_")}` !==
+                `UC_${expectedColumnInfo.constraints.uniques.join("_")}` ===
                 con.CONSTRAINT_NAME
             )
           ) {
