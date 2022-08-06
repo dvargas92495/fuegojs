@@ -391,7 +391,7 @@ const base = ({
             });
 
           // TODO UNIQUES
-          
+
           actualContraints.forEach((con) => {
             if (
               !expectedColumnInfo.constraints.foreigns.some(
@@ -403,9 +403,7 @@ const base = ({
                   con.REFERENCED_TABLE_NAME === f.table
               )
             ) {
-              consToDelete.push(
-                `FOREIGN KEY ${con.CONSTRAINT_NAME}`
-              );
+              consToDelete.push(`FOREIGN KEY ${con.CONSTRAINT_NAME}`);
             }
           });
 
