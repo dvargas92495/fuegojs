@@ -340,7 +340,8 @@ const base = ({
     const updates = await Promise.all(
       Object.keys(tablesToUpdate).map((table) =>
         Promise.all([
-          cxn.execute(`SHOW COLUMNS FROM ?`, [table]),
+          // interpolating is incorrect sql for show columns
+          cxn.execute(`SHOW COLUMNS FROM ${table}`),
           cxn
             .execute(
               `select COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_COLUMN_NAME, REFERENCED_TABLE_NAME 
