@@ -31,6 +31,13 @@ type Column = {
   Default?: string | null;
 };
 
+type Constraint = {
+  COLUMN_NAME: string;
+  CONSTRAINT_NAME: string;
+  REFERENCED_COLUMN_NAME: string | null;
+  REFERENCED_TABLE_NAME: string | null;
+};
+
 const base = ({
   projectName,
   safeProjectName = projectName.replace(/\./g, "-"),
@@ -64,13 +71,7 @@ const base = ({
       constructor(scope: Construct, name: string) {
         super(scope, name);
 
-        const allVariables = [
-          "mysql_password",
-          "stripe_public",
-          "stripe_secret",
-          "stripe_webhook_secret",
-          "terraform_cloud_token",
-        ]
+        const allVariables = ["mysql_password"]
           .concat(clerkDnsId ? ["clerk_api_key"] : [])
           .concat(variables);
         const aws_access_token = new TerraformVariable(
@@ -89,10 +90,6 @@ const base = ({
           }
         );
 
-        const github_token = new TerraformVariable(this, "github_token", {
-          type: "string",
-        });
-
         const secret = new TerraformVariable(this, "secret", {
           type: "string",
         });
@@ -104,8 +101,8 @@ const base = ({
         });
 
         new GithubProvider(this, "GITHUB", {
-          owner: "dvargas92495",
-          token: github_token.value,
+          token: process.env.TERRAFORM_GITHUB_TOKEN,
+          organization: process.env.GITHUB_REPOSITORY_OWNER,
         });
 
         // TODO: figure out how to move this to json for type bindings
@@ -271,22 +268,16 @@ const base = ({
       }`;
 
     const getTableInfo = (s: ZodObject<ZodRawShape>) => {
-      const constraints: string[] = [];
       const shapeKeys = Object.keys(s.shape);
       const primary = shapeKeys.find((col) =>
         /primary/i.test(s.shape[col].description || "")
       );
-      if (primary) constraints.push(`PRIMARY KEY (${snakeCase(primary)})`);
 
       const uniques = shapeKeys
         .filter((col) => /unique/i.test(s.shape[col].description || ""))
         .map((e) => snakeCase(e));
-      if (uniques.length)
-        constraints.push(
-          `CONSTRAINT UC_${uniques.join("_")} UNIQUE (${uniques.join(",")})`
-        );
 
-      Object.keys(s.shape)
+      const foreigns = Object.keys(s.shape)
         .filter((col) => /foreign/i.test(s.shape[col].description || ""))
         .map((e) => snakeCase(e))
         .map((key) => {
@@ -296,13 +287,14 @@ const base = ({
             table: pluralize(parts.slice(0, -1).join("_")),
             ref: parts.slice(-1)[0],
           };
-        })
-        .forEach(({ key, table, ref }) =>
-          constraints.push(`FOREIGN KEY (${key}) REFERENCES ${table}(${ref})`)
-        );
+        });
 
       return {
-        constraints,
+        constraints: {
+          primary: primary && snakeCase(primary),
+          uniques,
+          foreigns,
+        },
         columns: shapeKeys.map((columnName) => {
           const shape = s.shape[columnName];
           if (INVALID_COLUMN_NAMES.has(columnName)) {
@@ -347,12 +339,28 @@ const base = ({
 
     const updates = await Promise.all(
       Object.keys(tablesToUpdate).map((table) =>
-        cxn.execute(`SHOW COLUMNS FROM ${table}`).then((res) => {
-          const actualColumns = res as Column[];
+        Promise.all([
+          cxn.execute(`SHOW COLUMNS FROM ?`, [table]),
+          cxn
+            .execute(
+              `select COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_COLUMN_NAME, REFERENCED_TABLE_NAME 
+          from information_schema.KEY_COLUMN_USAGE 
+          where TABLE_NAME = ?`,
+              [table]
+            )
+            .catch(() => {
+              console.log("cant query information_schema");
+              return [];
+            }),
+        ]).then(([cols, cons]) => {
+          const actualColumns = cols as Column[];
+          const actualContraints = cons as Constraint[];
 
           const colsToDelete: string[] = [];
           const colsToAdd: string[] = [];
           const colsToUpdate: string[] = [];
+          const consToDelete: string[] = []; // TODO
+          const consToAdd: string[] = [];
 
           const expectedColumns = Object.keys(tablesToUpdate[table].shape);
           actualColumns.forEach((c) => {
@@ -360,6 +368,7 @@ const base = ({
               colsToDelete.push(c.Field);
             }
           });
+
           const actualColumnSet = new Set(actualColumns.map((c) => c.Field));
           const expectedColumnInfo = getTableInfo(tablesToUpdate[table]);
           const actualTypeByField = Object.fromEntries(
@@ -381,17 +390,41 @@ const base = ({
               }
             });
 
-          cxn
-            .execute(
-              `select COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_COLUMN_NAME, REFERENCED_TABLE_NAME 
-          from information_schema.KEY_COLUMN_USAGE 
-          where TABLE_NAME = ?`,
-              [table]
-            )
-            .then((r) =>
-              console.log("keys for", table, "=", JSON.stringify(r, null, 4))
-            )
-            .catch(() => console.log("cant query information_schema"));
+          // TODO UNIQUES
+          
+          actualContraints.forEach((con) => {
+            if (
+              !expectedColumnInfo.constraints.foreigns.some(
+                (f) =>
+                  con.COLUMN_NAME === f.key &&
+                  con.CONSTRAINT_NAME ===
+                    `FK_${table}_${f.key}_${f.table}_${f.ref}` &&
+                  con.REFERENCED_COLUMN_NAME === f.ref &&
+                  con.REFERENCED_TABLE_NAME === f.table
+              )
+            ) {
+              consToDelete.push(
+                `FOREIGN KEY ${con.CONSTRAINT_NAME}`
+              );
+            }
+          });
+
+          expectedColumnInfo.constraints.foreigns.forEach((f) => {
+            if (
+              !actualContraints.some(
+                (con) =>
+                  con.COLUMN_NAME === f.key &&
+                  con.CONSTRAINT_NAME ===
+                    `FK_${table}_${f.key}_${f.table}_${f.ref}` &&
+                  con.REFERENCED_COLUMN_NAME === f.ref &&
+                  con.REFERENCED_TABLE_NAME === f.table
+              )
+            ) {
+              consToAdd.push(
+                `FOREIGN KEY FK_${table}_${f.key}_${f.table}_${f.ref} (${f.key}) REFERENCES ${table}(${f.ref})`
+              );
+            }
+          });
 
           return colsToDelete
             .map((c) => `ALTER TABLE ${table} DROP COLUMN ${c}`)
@@ -421,7 +454,9 @@ const base = ({
                       ...expectedTypeByField[c],
                     })}`
                 )
-            );
+            )
+            .concat(consToDelete.map((c) => `ALTER TABLE ${table} DROP ${c}`))
+            .concat(consToAdd.map((c) => `ALTER TABLE ${table} ADD ${c}`));
         })
       )
     ).then((cols) => cols.flat());
@@ -433,16 +468,30 @@ const base = ({
       .map((s) => `DROP TABLE ${pluralize(snakeCase(s))}`)
       .concat(
         Object.entries(tablesToCreate).map(([k, s]) => {
-          const info = getTableInfo(s);
+          const {
+            columns,
+            constraints: { primary, uniques, foreigns },
+          } = getTableInfo(s);
           return `CREATE TABLE IF NOT EXISTS ${k} (
-${info.columns.map((c) => `  ${outputColumn(c)},`).join("\n")}
-${info.constraints.join(",\n  ")}
+${columns.map((c) => `  ${outputColumn(c)},`).join("\n")}
+  
+  ${[
+    primary && `PRIMARY KEY (${primary})`,
+    uniques.length &&
+      `CONSTRAINT UC_${uniques.join("_")} UNIQUE (${uniques.join(",")})`,
+    ...foreigns.map(
+      ({ ref, table, key }) =>
+        `FOREIGN KEY FK_${k}_${key}_${table}_${ref} (${key}) REFERENCES ${table}(${ref})`
+    ),
+  ]
+    .filter((c) => !!c)
+    .join(",\n  ")}
 )`;
         })
       )
       .concat(updates);
     if (queries.length) {
-      queries.forEach((q) => console.log(">", q));
+      queries.forEach((q) => console.log(">", q, "\n\n"));
       console.log("");
       console.log("Ready to apply...");
     } else {
