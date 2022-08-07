@@ -438,7 +438,7 @@ const base = ({
               )
             ) {
               consToAdd.push(
-                `FOREIGN KEY FK_${table}_${f.key}_${f.table}_${f.ref} (${f.key}) REFERENCES ${table}(${f.ref})`
+                `FOREIGN KEY FK_${table}_${f.key}_${f.table}_${f.ref} (${f.key}) REFERENCES ${f.table}(${f.ref})`
               );
             }
           });
