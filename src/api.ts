@@ -7,7 +7,7 @@ import type {
 import addSeconds from "date-fns/addSeconds";
 import differenceInMilliseconds from "date-fns/differenceInMilliseconds";
 import format from "date-fns/format";
-import cuid from "cuid";
+import { v4 } from "uuid";
 import { appPath, readDir, setupServer } from "./common";
 import { esbuildWatch, prepareApiBuild } from "./esbuild-helpers";
 import ngrok from "ngrok";
@@ -24,7 +24,7 @@ const generateContext = ({
 }) => {
   const executionTimeout = addSeconds(executionTimeStarted, 10);
   return {
-    awsRequestId: cuid(),
+    awsRequestId: v4(),
     callbackWaitsForEmptyEventLoop: true,
     clientContext: undefined,
     functionName,
@@ -161,7 +161,7 @@ const api = ({
                       authorizer: {},
                       domainName: "offlineContext_domainName",
                       domainPrefix: "offlineContext_domainPrefix",
-                      extendedRequestId: cuid(),
+                      extendedRequestId: v4(),
                       httpMethod: method,
                       identity: {
                         accessKey: null,
@@ -198,7 +198,7 @@ const api = ({
                       },
                       path: route,
                       protocol: "HTTP/1.1",
-                      requestId: cuid(),
+                      requestId: v4(),
                       requestTime: format(
                         executionTimeStarted,
                         "dd/MMM/yyyy:HH:mm:ss zzz"
