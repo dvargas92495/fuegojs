@@ -21,7 +21,7 @@
     "/dist"
   ],
   "peerDependencies": {
-    "@cdktf/provider-aws": "^9.0.7",
+    "@cdktf/provider-aws": "9.0.7",
     "@cdktf/provider-github": "^2.0.7",
     "@remix-run/dev": ">=1",
     "@remix-run/react": ">=1",
