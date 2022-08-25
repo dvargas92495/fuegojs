@@ -137,9 +137,7 @@ const postinstall = (): Promise<number> => {
       ).then((config) => (config?.serverBuildPath as string) || "");
       if (remixConfigServerBuildPath.startsWith("app")) {
         const compilerFile = "./node_modules/@remix-run/dev/dist/compiler.js";
-        const compiler = fs
-          .readFileSync("./node_modules/@remix-run/dev/dist/compiler.js")
-          .toString();
+        const compiler = fs.readFileSync(compilerFile).toString();
         const ignored = `/${remixConfigServerBuildPath.replace(/\//g, "\\/")}/`;
         fs.writeFileSync(
           compilerFile,
@@ -150,6 +148,23 @@ const postinstall = (): Promise<number> => {
         );
         console.log("hacked chokidar ignore to", ignored);
       }
+
+      // Hack the dev server to serve static files from node modules
+      const staticDevPaths = ["node_modules"].concat(
+        fuegoRemixConfig.staticDevPaths || []
+      );
+      const commandsFile = "./node_modules/@remix-run/dev/cli/commands.js";
+      const commandsFileContent = fs.readFileSync(commandsFile).toString();
+      const commandsFileProcessed = staticDevPaths.reduce(
+        (p, c) =>
+          p.replace(
+            /\s*app.use\(createApp/,
+            `  app.use("/${c}", express.static('${c}'));\n  app.use(createApp`
+          ),
+        commandsFileContent
+      );
+      fs.writeFileSync(commandsFile, commandsFileProcessed);
+      console.log("hacked dev server with static paths:", staticDevPaths);
 
       (fuegoConfig.postinstall || []).forEach((s) =>
         require(path.relative(__dirname, appPath(s)))

@@ -3,6 +3,7 @@ export type FuegoConfig = {
   remix?: {
     modulesToTranspile?: string[];
     externals?: string[];
+    staticDevPaths?: string[];
   };
   functionFileDependencies?: Record<string, (string | [string, string])[]>;
 };
