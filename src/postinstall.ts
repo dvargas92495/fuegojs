@@ -56,7 +56,7 @@ const postinstall = (): Promise<number> => {
     []) as string[];
   console.log(
     "About to transpile",
-    modulesToTranspile.length - 1,
+    modulesToTranspile.length,
     "modules from esm to cjs"
   );
 
@@ -153,7 +153,7 @@ const postinstall = (): Promise<number> => {
       const staticDevPaths = ["node_modules"].concat(
         fuegoRemixConfig.staticDevPaths || []
       );
-      const commandsFile = "./node_modules/@remix-run/dev/cli/commands.js";
+      const commandsFile = "./node_modules/@remix-run/dev/dist/cli/commands.js";
       const commandsFileContent = fs.readFileSync(commandsFile).toString();
       const commandsFileProcessed = staticDevPaths.reduce(
         (p, c) =>
