@@ -14,7 +14,7 @@ import { AwsEmail } from "@dvargas92495/aws-email";
 import { AwsWebsocket } from "@dvargas92495/aws-websocket";
 import fs from "fs";
 import getMysqlConnection from "./mysql";
-import { ZodObject, ZodRawShape, ZodString } from "zod";
+import { ZodObject, ZodRawShape, ZodString, ZodNumber } from "zod";
 import { camelCase, snakeCase } from "change-case";
 import pluralize from "pluralize";
 import { PLAN_OUT_FILE, readDir } from "./common";
@@ -313,9 +313,9 @@ const base = ({
                       : (shape as ZodString).maxLength || 128
                   })`
                 : def.typeName === "ZodNumber"
-                ? (shape as ZodString).maxLength
+                ? (shape as ZodNumber).maxValue
                   ? `TINYINT(${Math.ceil(
-                      Math.log2((shape as ZodString).maxLength || 1)
+                      Math.log2((shape as ZodNumber).maxValue || 1)
                     )}`
                   : "INT"
                 : def.typeName === "ZodDate"
@@ -483,19 +483,24 @@ const base = ({
               colsToUpdate
                 .filter(
                   (c) =>
-                    expectedTypeByField[c].Type !==
+                    expectedTypeByField[c].Type.toUpperCase() !==
                       actualTypeByField[c].Type.toUpperCase() ||
                     expectedTypeByField[c].Null !== actualTypeByField[c].Null ||
                     expectedTypeByField[c].Default !==
                       actualTypeByField[c].Default
                 )
-                .map(
-                  (c) =>
-                    `ALTER TABLE ${table} MODIFY ${outputColumn({
-                      Field: c,
-                      ...expectedTypeByField[c],
-                    })}`
-                )
+                .map((c) => {
+                  console.log(
+                    "Column diff expected:",
+                    JSON.stringify(expectedTypeByField[c], null, 4),
+                    "actual:",
+                    JSON.stringify(actualTypeByField[c], null, 4)
+                  );
+                  return `ALTER TABLE ${table} MODIFY ${outputColumn({
+                    Field: c,
+                    ...expectedTypeByField[c],
+                  })}`;
+                })
             )
             .concat(consToDelete.map((c) => `ALTER TABLE ${table} DROP ${c}`))
             .concat(consToAdd.map((c) => `ALTER TABLE ${table} ADD ${c}`));

@@ -74,7 +74,8 @@ export const esbuildWatch = ({
       entries.forEach((entry) => {
         rebuilders[entry]()
           .then(() => rebuildCallback(entry))
-          .then(() => console.log(`Rebuilt ${entry}`));
+          .then(() => console.log(`Rebuilt ${entry}`))
+          .catch((e) => console.error(`Failed to rebuild`, entry, e));
       });
     })
     .on("unlink", (file) => {
