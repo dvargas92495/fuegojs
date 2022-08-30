@@ -319,7 +319,7 @@ const base = ({
                 ? (shape as ZodNumber).maxValue
                   ? `TINYINT(${Math.ceil(
                       Math.log2((shape as ZodNumber).maxValue || 1)
-                    )}`
+                    )})`
                   : "INT"
                 : typeName === "ZodDate"
                 ? "DATETIME(3)"
