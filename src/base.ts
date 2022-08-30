@@ -14,12 +14,7 @@ import { AwsEmail } from "@dvargas92495/aws-email";
 import { AwsWebsocket } from "@dvargas92495/aws-websocket";
 import fs from "fs";
 import getMysqlConnection from "./mysql";
-import {
-  ZodObject,
-  ZodRawShape,
-  ZodString,
-  ZodNumber,
-} from "zod";
+import { ZodObject, ZodRawShape, ZodString, ZodNumber } from "zod";
 import { camelCase, snakeCase } from "change-case";
 import pluralize from "pluralize";
 import { PLAN_OUT_FILE, readDir } from "./common";
