@@ -14,7 +14,12 @@ import { AwsEmail } from "@dvargas92495/aws-email";
 import { AwsWebsocket } from "@dvargas92495/aws-websocket";
 import fs from "fs";
 import getMysqlConnection from "./mysql";
-import { ZodObject, ZodRawShape, ZodString, ZodNumber } from "zod";
+import {
+  ZodObject,
+  ZodRawShape,
+  ZodString,
+  ZodNumber,
+} from "zod";
 import { camelCase, snakeCase } from "change-case";
 import pluralize from "pluralize";
 import { PLAN_OUT_FILE, readDir } from "./common";
@@ -303,33 +308,36 @@ const base = ({
           }
           const def = shape._def;
           const nullable = shape.isOptional() || shape.isNullable();
+          const typeName = nullable
+            ? def.innerType._def.typeName
+            : def.typeName;
           return {
             Field: snakeCase(columnName),
             Type:
-              def.typeName === "ZodString"
+              typeName === "ZodString"
                 ? `VARCHAR(${
                     (shape as ZodString).isUUID
                       ? 36
                       : (shape as ZodString).maxLength || 128
                   })`
-                : def.typeName === "ZodNumber"
+                : typeName === "ZodNumber"
                 ? (shape as ZodNumber).maxValue
                   ? `TINYINT(${Math.ceil(
                       Math.log2((shape as ZodNumber).maxValue || 1)
                     )}`
                   : "INT"
-                : def.typeName === "ZodDate"
+                : typeName === "ZodDate"
                 ? "DATETIME(3)"
-                : def.typeName === "ZodBoolean"
+                : typeName === "ZodBoolean"
                 ? "TINYINT(1)"
-                : def.typeName,
+                : typeName,
             Null: nullable ? ("YES" as const) : ("NO" as const),
             Key: "",
             Extra: "",
             Default: nullable
-              ? def.typeName === "ZodString"
+              ? typeName === "ZodString"
                 ? ""
-                : def.typeName === "ZodNumber" || def.typeName === "ZodBoolean"
+                : typeName === "ZodNumber" || typeName === "ZodBoolean"
                 ? "0"
                 : null
               : null,
@@ -438,7 +446,7 @@ const base = ({
               )
             ) {
               consToAdd.push(
-                `FOREIGN KEY FK_${table}_${f.key}_${f.table}_${f.ref} (${f.key}) REFERENCES ${f.table}(${f.ref})`
+                `CONSTRAINT FK_${table}_${f.key}_${f.table}_${f.ref} FOREIGN KEY (${f.key}) REFERENCES ${f.table}(${f.ref})`
               );
             }
           });
