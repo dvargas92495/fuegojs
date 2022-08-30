@@ -330,11 +330,11 @@ const base = ({
             Key: "",
             Extra: "",
             Default: nullable
-              ? typeName === "ZodString"
-                ? ""
-                : typeName === "ZodNumber" || typeName === "ZodBoolean"
-                ? "0"
-                : null
+              ? null
+              : typeName === "ZodString"
+              ? '""'
+              : typeName === "ZodNumber" || typeName === "ZodBoolean"
+              ? "0"
               : null,
           };
         }),
