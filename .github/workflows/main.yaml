@@ -5,6 +5,7 @@ on:
     branches: main
     paths:
       - "package.json"
+      - ".github/workflows/main.yaml"
 
 jobs:
   deploy:
@@ -20,10 +21,7 @@ jobs:
       - name: build
         run: npm run build
       - name: test
-        run: npm t
-        env:
-          NODE_ENV: test
-          DEBUG: true
+        run: DEBUG=true NODE_ENV=test npm t
       - uses: JS-DevTools/npm-publish@v1
         with:
           token: ${{ secrets.NPM_TOKEN }}

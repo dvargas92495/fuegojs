@@ -12,6 +12,7 @@ test("Runs build", () => {
 
 const logs: { data: string; time: number }[] = [];
 let api: ChildProcessWithoutNullStreams;
+console.log("NODE_ENV", process.env.NODE_ENV, "DEBUG", process.env.DEBUG);
 
 test("fuego api", async () => {
   const startTime = process.hrtime.bigint();
