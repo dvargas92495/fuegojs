@@ -21,6 +21,9 @@ jobs:
         run: npm run build
       - name: test
         run: npm t
+        env:
+          NODE_ENV: test
+          DEBUG: true
       - uses: JS-DevTools/npm-publish@v1
         with:
           token: ${{ secrets.NPM_TOKEN }}

@@ -1,5 +1,5 @@
 import fs from "fs";
-import { spawn } from "child_process";
+import { ChildProcessWithoutNullStreams, spawn } from "child_process";
 import { v4 } from "uuid";
 import build from "../src/build";
 import axios from "axios";
@@ -11,6 +11,7 @@ test("Runs build", () => {
 });
 
 const logs: { data: string; time: number }[] = [];
+let api: ChildProcessWithoutNullStreams;
 
 test("fuego api", async () => {
   const startTime = process.hrtime.bigint();
@@ -71,7 +72,7 @@ export const handler = (event: {
   );
   const logCallbacks: { test: string; f: (a?: unknown) => unknown }[] = [];
   log("spawn fuego");
-  const api = spawn("node", [
+  api = spawn("node", [
     "./node_modules/.bin/ts-node",
     "./src/cli.ts",
     "api",
@@ -144,11 +145,10 @@ export const handler = (event: {
   log("Test a file change");
 
   // Test WebSocket file change
-
-  api.kill("SIGINT");
 });
 
 afterAll(() => {
+  if (api) api.kill("SIGINT");
   if (process.env.DEBUG) {
     console.log(
       logs
