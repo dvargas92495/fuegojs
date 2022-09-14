@@ -1,19 +1,21 @@
 import fs from "fs";
 import { build as esbuild } from "esbuild";
 import { readDir } from "./common";
-import { prepareApiBuild } from "./esbuild-helpers";
+import prepareApiBuild from "./internal/prepareApiBuild";
 
 const compile = ({
   readable = false,
   path = "api",
+  out = "build",
 }: {
   readable?: boolean;
   path?: string;
+  out?: string;
 }): Promise<number> => {
   process.env.NODE_ENV = process.env.NODE_ENV || "production";
   const commonRegex = new RegExp(`^${path}[/\\\\]_common`);
   return fs.existsSync(path)
-    ? prepareApiBuild()
+    ? prepareApiBuild(out)
         .then((opts) =>
           esbuild({
             ...opts,

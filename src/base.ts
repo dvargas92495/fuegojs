@@ -332,7 +332,7 @@ const base = ({
             Default: nullable
               ? null
               : typeName === "ZodString"
-              ? '""'
+              ? ""
               : typeName === "ZodNumber" || typeName === "ZodBoolean"
               ? "0"
               : null,

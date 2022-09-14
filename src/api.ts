@@ -8,9 +8,13 @@ import addSeconds from "date-fns/addSeconds";
 import differenceInMilliseconds from "date-fns/differenceInMilliseconds";
 import format from "date-fns/format";
 import { v4 } from "uuid";
-import { appPath, readDir, setupServer } from "./common";
-import { esbuildWatch, prepareApiBuild } from "./esbuild-helpers";
+import { appPath, readDir } from "./common";
+import prepareApiBuild from "./internal/prepareApiBuild";
 import ngrok from "ngrok";
+import { build, BuildInvalidate } from "esbuild";
+import chokidar from "chokidar";
+import nodepath from "path";
+import WebSocket, { Server as WebSocketServer } from "ws";
 
 const METHODS = ["get", "post", "put", "delete", "options"] as const;
 const METHOD_SET = new Set<string>(METHODS);
@@ -46,6 +50,20 @@ const generateContext = ({
 };
 const handlersByRoute: { [key: string]: APIGatewayProxyHandler | Handler } = {};
 const optionRoutes = new Set();
+const localSockets: Record<string, WebSocket> = {};
+const addLocalSocket = (id: string, ws: WebSocket): void => {
+  localSockets[id] = ws;
+};
+
+const removeLocalSocket = (id: string): void => {
+  if (
+    localSockets[id]?.readyState === WebSocket.OPEN ||
+    localSockets[id]?.readyState === WebSocket.CONNECTING
+  ) {
+    localSockets[id].close();
+  }
+  delete localSockets[id];
+};
 
 const inlineTryCatch = <T>(tryFcn: () => T, catchFcn: (e: Error) => T): T => {
   try {
@@ -55,19 +73,25 @@ const inlineTryCatch = <T>(tryFcn: () => T, catchFcn: (e: Error) => T): T => {
   }
 };
 
+const rebuilders: Record<string, BuildInvalidate> = {};
+const dependencies: Record<string, Set<string>> = {};
+
 const api = ({
   tunnel,
   path = "api",
+  out = "build",
 }: {
   tunnel?: string;
   path?: string;
+  out?: string;
 }): Promise<number> => {
   process.env.NODE_ENV = process.env.NODE_ENV || "development";
 
   const entryRegex = new RegExp(
-    `^${path}[\\\\/](([a-z0-9-]+[/\\\\])*(get|post|put|delete)|[a-z0-9-]+)\\.[tj]s$`
+    `^${path}[\\\\/]((ws[/\\\\][a-z0-9-]+)|([a-z0-9-]+[/\\\\])*(get|post|put|delete)|[a-z0-9-]+)\\.[tj]s$`
   );
-  return prepareApiBuild().then((opts) => {
+  const wsRegex = new RegExp(`^${path}[\\\\/]ws[/\\\\][a-z0-9-]+\\.[tj]s$`);
+  return prepareApiBuild(out).then((opts) => {
     const app = express();
     app.use(express.json());
     app.use(
@@ -75,24 +99,28 @@ const api = ({
         extended: true,
       })
     );
-    const apiCount = readDir(path).filter((f) => entryRegex.test(f)).length;
+    const entries = readDir(path).filter((f) => entryRegex.test(f));
+    const apiCount = entries.length;
     let currentCount = 0;
-    return new Promise<void>((resolve) =>
-      esbuildWatch({
-        paths: [path, "app/data"],
-        opts,
-        rebuildCallback: (file) => {
-          const filePath = appPath(
-            file
-              .replace(new RegExp(`^${path}`), "build")
-              .replace(/\.ts$/, ".js")
-          );
-          return import(filePath).then(({ handler }) => {
-            delete require.cache[filePath];
-            const functionName = file
-              .replace(new RegExp(`^${path}[\\\\/]`), "")
-              .replace(/\.[tj]s$/, "");
-            const paths = functionName.split(/[\\\\/]/);
+    return new Promise<void>((resolve) => {
+      const paths = [path, "app/data"];
+
+      const rebuildCallback = (file: string) => {
+        const filePath = appPath(
+          file.replace(new RegExp(`^${path}`), out).replace(/\.ts$/, ".js")
+        );
+        return import(filePath).then(({ handler }) => {
+          // if path is /tmp then cache is /private/tmp...
+          Object.keys(require.cache)
+            .filter((k) => k.includes(filePath))
+            .forEach((k) => delete require.cache[k]);
+          const functionName = file
+            .replace(new RegExp(`^${path}[\\\\/]`), "")
+            .replace(/\.[tj]s$/, "");
+          const paths = functionName.split(/[\\\\/]/);
+          if (paths[0] === "ws") {
+            // TODO: Rebuild websocket routes
+          } else {
             const method = paths.slice(-1)[0].toLowerCase() as ExpressMethod;
             const route = `/${
               METHOD_SET.has(method)
@@ -217,7 +245,7 @@ const api = ({
                   });
 
                   const result = handler(event, context, () => ({}));
-                  return (result || Promise.resolve())
+                  return Promise.resolve(result || undefined)
                     .then((result: APIGatewayProxyResult | void) => {
                       const executionTime = differenceInMilliseconds(
                         new Date(),
@@ -323,6 +351,12 @@ const api = ({
                   METHOD_SET.has(method) ? method.toUpperCase() : "POST"
                 } ${route}`
               );
+            } else {
+              console.log(
+                `Updated Route ${
+                  METHOD_SET.has(method) ? method.toUpperCase() : "POST"
+                } ${route}`
+              );
             }
             handlersByRoute[functionName] = handler;
             if (!optionRoutes.has(route)) {
@@ -341,14 +375,170 @@ const api = ({
                   .send()
               );
             }
-            if (apiCount === ++currentCount) {
-              resolve();
+          }
+          if (apiCount === ++currentCount) {
+            resolve();
+          }
+        });
+      };
+      chokidar
+        .watch(paths)
+        .on("add", (file) => {
+          const { outdir = "", ...restOpts } = opts;
+          if (entryRegex.test(file)) {
+            console.log(`building ${file}...`);
+            dependencies[file] = new Set([file]);
+            build({
+              ...restOpts,
+              entryPoints: [file],
+              outfile: nodepath.join(
+                outdir,
+                file
+                  .replace(new RegExp(`^(${paths.join("|")})[/\\\\]`), "")
+                  .replace(/\.tsx?$/, ".js")
+              ),
+              incremental: true,
+              plugins: [
+                ...(opts.plugins || []),
+                {
+                  name: "dependency-watch",
+                  setup: (build) => {
+                    build.onLoad({ filter: /^.*$/s }, async (args) => {
+                      const dep = nodepath.relative(process.cwd(), args.path);
+                      dependencies[dep] = dependencies[dep] || new Set();
+                      if (!dependencies[dep].has(file)) {
+                        dependencies[dep].add(file);
+                      }
+                      return undefined;
+                    });
+                  },
+                },
+              ],
+            })
+              .then((r) => {
+                rebuilders[file] = r.rebuild;
+                return rebuildCallback(file);
+              })
+              .then(() => console.log(`successfully built ${file}...`));
+          }
+        })
+        .on("change", (file) => {
+          const entries = dependencies[file] || new Set();
+          console.log(
+            `File ${file} has changed. Updating ${entries.size} entries...`
+          );
+          entries.forEach((entry) => {
+            rebuilders[entry]()
+              .then(() => rebuildCallback(entry))
+              .then(() => console.log(`Rebuilt ${entry}`))
+              .catch((e) => console.error(`Failed to rebuild`, entry, e));
+          });
+        })
+        .on("unlink", (file) => {
+          console.log(`File ${file} was removed`);
+          delete dependencies[file];
+          if (entryRegex.test(file)) {
+            Object.values(dependencies).forEach((deps) => deps.delete(file));
+            rebuilders[file].dispose();
+            delete rebuilders[file];
+          }
+        });
+    }).then(() => {
+      const port = 3003;
+      const wsPort = port + 1;
+      const startWebSocketServer = () => {
+        const wsEntries = entries
+          .filter((f) => wsRegex.test(f))
+          .map((f) =>
+            f.replace(new RegExp(`^${path}`), out).replace(/\.[tj]s$/, "")
+          );
+        if (wsEntries.length) {
+          app.post("/ws", (req, res) => {
+            const { ConnectionId, Data } = req.body;
+            const connection = localSockets[ConnectionId];
+            console.log(
+              "received sendmessage handler",
+              ConnectionId,
+              typeof connection,
+              JSON.stringify(req.body)
+            );
+
+            Promise.resolve(connection && connection.send(Data)).then(() =>
+              res.json({ success: true })
+            );
+          });
+          const wss = new WebSocketServer({ port: wsPort }, () => {
+            console.log(`WS server listening on port ${wsPort}...`);
+          });
+          wss.on("connection", (ws) => {
+            const connectionId = v4();
+            console.log("new ws connection", connectionId);
+            // const messageHandlers = wsEntries.filter(
+            //   (w) =>
+            //     !/onconnect$/.test(w) &&
+            //     !/ondisconnect$/.test(w)
+            // );
+            ws.on("message", (data) => {
+              console.log("new message from", connectionId);
+              const body = data.toString();
+              const action = JSON.parse(body).action;
+              const filePath = wsEntries.find((f) =>
+                f.endsWith(`/ws/${action}`)
+              );
+              if (filePath) {
+                import(filePath).then(({ handler }) => {
+                  delete require.cache[filePath];
+                  handler(
+                    {
+                      body,
+                      requestContext: { connectionId },
+                    },
+                    { awsRequestId: v4() }
+                  );
+                });
+              }
+            });
+            ws.on("close", (a: number, b: Buffer) => {
+              console.log("client closing...", a, b.toString());
+              removeLocalSocket(connectionId);
+              const filePath = wsEntries.find((f) =>
+                f.endsWith(`/ws/ondisconnect`)
+              );
+              if (filePath) {
+                import(filePath).then(({ handler }) => {
+                  delete require.cache[filePath];
+                  handler(
+                    {
+                      requestContext: { connectionId },
+                      body: JSON.stringify([a, b]),
+                    },
+                    { awsRequestId: v4() }
+                  );
+                });
+              }
+            });
+            addLocalSocket(connectionId, ws);
+            const filePath = wsEntries.find((f) => f.endsWith(`/ws/onconnect`));
+            if (filePath) {
+              import(filePath).then(({ handler }) => {
+                delete require.cache[filePath];
+                handler(
+                  { requestContext: { connectionId }, body: "" },
+                  { awsRequestId: v4() }
+                );
+              });
             }
           });
-        },
-        entryRegex,
-      })
-    ).then(() => {
+          return () =>
+            new Promise<void>((innerResolve) => {
+              wss.on("close", innerResolve);
+              wss.close();
+            });
+        }
+        return () => Promise.resolve();
+      };
+
+      const closeWsServer = startWebSocketServer();
       app.use((req, res) =>
         res
           .header("Access-Control-Allow-Origin", "*")
@@ -363,27 +553,32 @@ const api = ({
             statusCode: 404,
           })
       );
-      const port = 3003;
-      return setupServer({
-        app,
-        port,
-        label: "App",
-        ...(tunnel
-          ? {
-              onListen: () => {
-                ngrok
-                  .connect({
-                    addr: port,
-                    subdomain: tunnel,
-                  })
-                  .then((url) => {
-                    console.log("Started local ngrok tunneling:");
-                    console.log(url);
-                    return 0;
-                  });
-              },
-            }
-          : {}),
+      const appServer = app.listen(port, () => {
+        console.log(`API server listening on port ${port}...`);
+        if (tunnel) {
+          ngrok
+            .connect({
+              addr: port,
+              subdomain: tunnel,
+            })
+            .then((url) => {
+              console.log("Started local ngrok tunneling:");
+              console.log(url);
+              return 0;
+            });
+        }
+      });
+      return new Promise((resolve) => {
+        const close = () =>
+          Promise.all([
+            new Promise((innerResolve) => {
+              appServer.on("close", innerResolve);
+              appServer.close();
+            }),
+            closeWsServer(),
+          ]).then(() => resolve(0));
+        process.on("exit", close);
+        process.on("SIGINT", close);
       });
     });
   });

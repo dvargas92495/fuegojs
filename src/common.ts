@@ -2,7 +2,6 @@ import fs from "fs";
 import path from "path";
 import rimraf from "rimraf";
 import dotenv from "dotenv";
-import type { Express } from "express";
 dotenv.config();
 
 export const FE_OUT_DIR = path.join(process.env.FE_DIR_PREFIX || "", "out");
@@ -39,28 +38,6 @@ export const getDotEnvObject = (): Record<string, string> => {
 
 export const promiseRimraf = (s: string): Promise<null | void | Error> =>
   new Promise((resolve) => rimraf(s, resolve));
-
-export const setupServer = ({
-  app,
-  port,
-  label,
-  onListen,
-}: {
-  app: Express;
-  port: number;
-  label: string;
-  onListen?: () => void;
-}): Promise<number> =>
-  new Promise((resolve) => {
-    app.listen(port, () => {
-      console.log(`${label} server listening on port ${port}...`);
-      onListen?.();
-    });
-    process.on("exit", () => {
-      console.log("Closing...");
-      resolve(0);
-    });
-  });
 
 export type json =
   | string
