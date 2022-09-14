@@ -71,7 +71,8 @@ export const handler = (event: {
   );
   const logCallbacks: { test: string; f: (a?: unknown) => unknown }[] = [];
   log("spawn fuego");
-  const api = spawn("ts-node", [
+  const api = spawn("node", [
+    "./node_modules/.bin/ts-node",
     "./src/cli.ts",
     "api",
     "--path",
