@@ -457,7 +457,9 @@ const api = ({
         const wsEntries = entries
           .filter((f) => wsRegex.test(f))
           .map((f) =>
-            f.replace(new RegExp(`^${path}`), out).replace(/\.[tj]s$/, "")
+            appPath(
+              f.replace(new RegExp(`^${path}`), out).replace(/\.[tj]s$/, "")
+            )
           );
         if (wsEntries.length) {
           app.post("/ws", (req, res) => {

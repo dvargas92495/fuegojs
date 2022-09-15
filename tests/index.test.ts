@@ -12,7 +12,6 @@ test("Runs build", () => {
 
 const logs: { data: string; time: number }[] = [];
 let api: ChildProcessWithoutNullStreams;
-console.log("NODE_ENV", process.env.NODE_ENV, "DEBUG", process.env.DEBUG);
 
 test("fuego api", async () => {
   const startTime = process.hrtime.bigint();
@@ -29,6 +28,17 @@ test("fuego api", async () => {
     `export const handler = () => ({statusCode: 200, body: JSON.stringify({success: true})})`
   );
   fs.mkdirSync(`${path}/ws`);
+  fs.writeFileSync(
+    `${path}/ws/onconnect.ts`,
+    `import fs from "fs";
+export const handler = () => {
+  fs.writeFileSync("${root}/connected", 'true');
+  return {
+    statusCode: 200, 
+    body: JSON.stringify({success: true})
+  };
+}`
+  );
   fs.writeFileSync(
     `${path}/ws/sendmessage.ts`,
     `import http from "http";
@@ -132,20 +142,24 @@ export const handler = (event: {
     .then((r) => r.data)
     .catch((e) => ({ success: false, error: e.response.data }));
   expect(newResponse).toEqual({ success: true, foo: "bar" });
-  log("starting the websocket");
 
+  log("starting the websocket");
   const wsClient = new WebSocket("ws://localhost:3004");
   await new Promise((resolve) => wsClient.on("open", resolve));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
+  const onConnectProof = fs.existsSync(`${root}/connected`);
+  expect(onConnectProof).toBeTruthy();
+
   log("send a ws message");
   wsClient.send(JSON.stringify({ action: "sendmessage", data: "hello" }));
   const wsResponse = await new Promise((resolve) =>
     wsClient.on("message", resolve)
   );
   expect(wsResponse).toBe(`Received hello`);
-  log("Test a file change");
 
+  log("Test a file change");
   // Test WebSocket file change
-}, 60000);
+}, 15000); // TODO: just spinning up the api/ws server takes 9 seconds on GH actions. reduce
 
 afterAll(() => {
   if (api) api.kill("SIGINT");
