@@ -14,8 +14,7 @@
     "postversion": "git push origin main && git push --tags",
     "prebuild": "npm run lint",
     "build": "tsc",
-    "test": "jest",
-    "prepublishOnly": "npm run build"
+    "test": "jest"
   },
   "files": [
     "/dist"
