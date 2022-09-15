@@ -1,7 +1,7 @@
-import { PLAN_OUT_FILE } from "./common";
-import getMysqlConnection from "./mysql";
+import { PLAN_OUT_FILE } from "../internal/common";
+import getMysqlConnection from "../utils/mysql";
 import fs from "fs";
-import migrate from "./migrate";
+import migrate from "../internal/migrate";
 import axios from "axios";
 import path from "path";
 
@@ -104,7 +104,7 @@ const apply = async ({
             console.log("");
           })
           .reduce((p, c) => p.then(c), Promise.resolve());
-        return migrate({ cxn: cxn.connection }).then((code) => {
+        return migrate({ cxn }).then((code) => {
           cxn.destroy();
           return code;
         });

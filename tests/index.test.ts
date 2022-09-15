@@ -159,7 +159,8 @@ export const handler = (event: {
 
   log("Test a file change");
   // Test WebSocket file change
-}, 15000); // TODO: just spinning up the api/ws server takes 9 seconds on GH actions. reduce
+  // Test proper disconnection on kill (calling on disconnect)
+}, 15000); // TODO: just spinning up the api/ws server takes 9 seconds on GH actions
 
 afterAll(() => {
   if (api) api.kill("SIGINT");

@@ -7,6 +7,9 @@ on:
       - "package.json"
       - ".github/workflows/main.yaml"
 
+env:
+  NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+  
 jobs:
   deploy:
     runs-on: ubuntu-20.04
@@ -25,8 +28,11 @@ jobs:
         env:
           NODE_ENV: test
           DEBUG: true
-      - uses: JS-DevTools/npm-publish@v1
-        with:
-          token: ${{ secrets.NPM_TOKEN }}
-          access: "public"
-          check-version: false
+      - name: authenticate
+        run: echo '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' > ~/.npmrc
+      - name: prepare
+        run: cp ../LICENSE README.md package.json src/declare.d.ts dist
+        working-directory: package
+      - name: publish
+        run: npm publish --access public
+        working-directory: package/dist

@@ -17,7 +17,7 @@ import getMysqlConnection from "./mysql";
 import { ZodObject, ZodRawShape, ZodString, ZodNumber } from "zod";
 import { camelCase, snakeCase } from "change-case";
 import pluralize from "pluralize";
-import { PLAN_OUT_FILE, readDir } from "./common";
+import { PLAN_OUT_FILE, readDir } from "../internal/common";
 import path from "path";
 
 const INVALID_COLUMN_NAMES = new Set(["key", "read"]);
@@ -225,7 +225,7 @@ const base = ({
   getMysqlConnection().then(async (cxn) => {
     const actualTableResults = await cxn
       .execute(`show tables`)
-      .then((r) => r as Record<string, string>[]);
+      .then(([r]) => r as Record<string, string>[]);
     const actualTables = actualTableResults.map(
       (t) => t[`Tables_in_${snakeCase(safeProjectName)}`]
     );
@@ -357,7 +357,7 @@ const base = ({
               console.log("cant query information_schema");
               return [];
             }),
-        ]).then(([cols, cons]) => {
+        ]).then(([[cols], [cons]]) => {
           const actualColumns = cols as Column[];
           const actualConstraints = cons as Constraint[];
 

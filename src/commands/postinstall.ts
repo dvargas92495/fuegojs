@@ -1,7 +1,7 @@
 import { build as esbuild, Plugin } from "esbuild";
 import fs from "fs";
 import path from "path";
-import { appPath, readDir } from "./common";
+import { appPath, readDir } from "./internal/common";
 import { FuegoConfig } from "./types";
 
 const canvasPatch: Plugin = {

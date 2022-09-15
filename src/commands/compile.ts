@@ -1,7 +1,7 @@
 import fs from "fs";
 import { build as esbuild } from "esbuild";
-import { readDir } from "./common";
-import prepareApiBuild from "./internal/prepareApiBuild";
+import { readDir } from "../internal/common";
+import prepareApiBuild from "../internal/prepareApiBuild";
 
 const compile = ({
   readable = false,

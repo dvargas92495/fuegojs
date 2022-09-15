@@ -8,7 +8,7 @@ import addSeconds from "date-fns/addSeconds";
 import differenceInMilliseconds from "date-fns/differenceInMilliseconds";
 import format from "date-fns/format";
 import { v4 } from "uuid";
-import { appPath, readDir } from "./common";
+import { appPath, readDir } from "./internal/common";
 import prepareApiBuild from "./internal/prepareApiBuild";
 import ngrok from "ngrok";
 import { build, BuildInvalidate } from "esbuild";
@@ -465,12 +465,6 @@ const api = ({
           app.post("/ws", (req, res) => {
             const { ConnectionId, Data } = req.body;
             const connection = localSockets[ConnectionId];
-            console.log(
-              "received sendmessage handler",
-              ConnectionId,
-              typeof connection,
-              JSON.stringify(req.body)
-            );
 
             Promise.resolve(connection && connection.send(Data)).then(() =>
               res.json({ success: true })

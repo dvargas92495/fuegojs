@@ -1,4 +1,4 @@
-import mysql from "mysql2";
+import mysql from "mysql2/promise";
 import { appPath, getDotEnvObject } from "./common";
 import fs from "fs";
 import crypto from "crypto";
@@ -6,7 +6,7 @@ import nodePath from "path";
 import { v4 } from "uuid";
 import { build as esbuild } from "esbuild";
 import format from "date-fns/format";
-import getMysqlConnection from "./mysql";
+import getMysqlConnection from "../utils/mysql";
 
 type MigrationArgs = {
   path?: string;
@@ -53,9 +53,9 @@ export const revert = (args: MigrationProps) => {
     console.log(`Generated migration: `, filename);
     return Promise.resolve(0);
   }
-  const { connection } = await getMysqlConnection(cxn);
-  return new Promise((resolve, reject) =>
-    connection.execute(
+  const connection = await getMysqlConnection(cxn);
+  return connection
+    .execute(
       `CREATE TABLE IF NOT EXISTS _migrations (
         uuid           VARCHAR(36)  NOT NULL,
         migration_name VARCHAR(191) NOT NULL,
@@ -64,20 +64,12 @@ export const revert = (args: MigrationProps) => {
         checksum       VARCHAR(64)  NOT NULL,
 
         PRIMARY KEY (uuid)
-    )`,
-      (err, result) => (err ? reject(err) : resolve(result))
+    )`
     )
-  )
-    .then(
-      () =>
-        new Promise((resolve, reject) =>
-          connection.execute(
-            `SELECT * FROM _migrations ORDER BY started_at`,
-            (err, result) => (err ? reject(err) : resolve(result))
-          )
-        )
+    .then(() =>
+      connection.execute(`SELECT * FROM _migrations ORDER BY started_at`)
     )
-    .then((results) => {
+    .then(([results]) => {
       const applied = (results || []) as {
         uuid: string;
         migration_name: string;
@@ -146,15 +138,13 @@ export const revert = (args: MigrationProps) => {
                     )
                 : Promise.resolve()
             ).then(() =>
-              new Promise((resolve, reject) =>
-                connection.execute(
-                  `DELETE FROM _migrations WHERE uuid = ?`,
-                  [m.uuid],
-                  (err, result) => (err ? reject(err) : resolve(result))
-                )
-              ).then(() => {
-                console.log(`Finished reverting migration ${m.migration_name}`);
-              })
+              connection
+                .execute(`DELETE FROM _migrations WHERE uuid = ?`, [m.uuid])
+                .then(() => {
+                  console.log(
+                    `Finished reverting migration ${m.migration_name}`
+                  );
+                })
             );
           });
         return runMigrations(migrationsToRevert);
@@ -189,18 +179,17 @@ export const revert = (args: MigrationProps) => {
                 );
               }
               if (filesToOverwrite.has(m.migrationName)) {
-                return new Promise<void>((resolve, reject) =>
-                  connection.execute(
+                return connection
+                  .execute(
                     `UPDATE _migrations SET checksum = ? WHERE uuid = ?`,
-                    [m.checksum, a.uuid],
-                    (err) => (err ? reject(err) : resolve())
+                    [m.checksum, a.uuid]
                   )
-                ).then(() =>
-                  console.log(
-                    "Updated the checksum for migration",
-                    m.migrationName
-                  )
-                );
+                  .then(() =>
+                    console.log(
+                      "Updated the checksum for migration",
+                      m.migrationName
+                    )
+                  );
               } else if (a.checksum !== m.checksum) {
                 return Promise.reject(
                   `Attempted to change applied migration ${a.migration_name} locally.`
@@ -210,13 +199,11 @@ export const revert = (args: MigrationProps) => {
             }
           : (props: MigrationProps) => {
               console.log(`Running migration ${m.migrationName}`);
-              return new Promise((resolve, reject) =>
-                connection.execute(
+              return connection
+                .execute(
                   `INSERT INTO _migrations (uuid, migration_name, checksum, started_at) VALUES (?, ?, ?, ?)`,
-                  [m.uuid, m.migrationName, m.checksum, new Date()],
-                  (err, result) => (err ? reject(err) : resolve(result))
+                  [m.uuid, m.migrationName, m.checksum, new Date()]
                 )
-              )
                 .then(() => {
                   const outfile = nodePath.join(
                     outDir,
@@ -241,15 +228,11 @@ export const revert = (args: MigrationProps) => {
                     throw e;
                   })
                 )
-                .then(
-                  () =>
-                    new Promise((resolve) =>
-                      connection.execute(
-                        `UPDATE _migrations SET finished_at = ? WHERE uuid = ?`,
-                        [new Date(), m.uuid],
-                        resolve
-                      )
-                    )
+                .then(() =>
+                  connection.execute(
+                    `UPDATE _migrations SET finished_at = ? WHERE uuid = ?`,
+                    [new Date(), m.uuid]
+                  )
                 )
                 .then(() => {
                   console.log(`Finished running migration ${m.migrationName}`);

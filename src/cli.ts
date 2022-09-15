@@ -1,14 +1,14 @@
 #!/usr/bin/env node
-import init from "./init";
+import init from "./commands/init";
 import build from "./build";
 import deploy from "./deploy";
 import dev from "./dev";
-import compile from "./compile";
+import compile from "./commands/compile";
 import publish from "./publish";
 import api from "./api";
 import postinstall from "./postinstall";
-import migrate from "./migrate";
-import apply from "./apply";
+import migrate from "./internal/migrate";
+import apply from "./commands/apply";
 import plan from "./plan";
 
 const run = async (command: string, args: string[]): Promise<number> => {

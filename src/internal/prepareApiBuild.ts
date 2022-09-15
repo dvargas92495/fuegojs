@@ -4,7 +4,7 @@ import {
   getDotEnvObject,
   getFuegoConfig,
   promiseRimraf,
-} from "../common";
+} from "./common";
 import fs from "fs";
 import path from "path";
 
