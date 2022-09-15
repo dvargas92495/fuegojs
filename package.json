@@ -3,8 +3,8 @@
   "description": "Opinionated static site generation framework built on React, Esbuild, and AWS",
   "version": "0.37.1",
   "license": "MIT",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "main": "index.js",
+  "types": "index.d.ts",
   "repository": "dvargas92495/fuegojs",
   "scripts": {
     "format": "prettier --write \"src/**/*\"",
@@ -16,9 +16,6 @@
     "build": "tsc",
     "test": "jest"
   },
-  "files": [
-    "/dist"
-  ],
   "peerDependencies": {
     "@cdktf/provider-aws": "9.0.7",
     "@cdktf/provider-github": "^2.0.7",
