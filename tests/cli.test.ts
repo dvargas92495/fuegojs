@@ -1,7 +1,7 @@
 import fs from "fs";
 import { ChildProcessWithoutNullStreams, spawn } from "child_process";
 import { v4 } from "uuid";
-import build from "../src/build";
+import build from "../src/commands/build";
 import axios from "axios";
 import WebSocket from "ws";
 
