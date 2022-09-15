@@ -91,6 +91,13 @@ const api = ({
     `^${path}[\\\\/]((ws[/\\\\][a-z0-9-]+)|([a-z0-9-]+[/\\\\])*(get|post|put|delete)|[a-z0-9-]+)\\.[tj]s$`
   );
   const wsRegex = new RegExp(`^${path}[\\\\/]ws[/\\\\][a-z0-9-]+\\.[tj]s$`);
+  console.log(
+    "Preparing the API build from",
+    path,
+    "in",
+    process.env.NODE_ENV,
+    "mode..."
+  );
   return prepareApiBuild(out).then((opts) => {
     const app = express();
     app.use(express.json());

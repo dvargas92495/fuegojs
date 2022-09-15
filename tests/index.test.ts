@@ -95,10 +95,9 @@ export const handler = (event: {
     const awaitLog = (log: string) =>
       new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => {
-          console.error("TIMED OUT WAITING FOR:", log);
           console.error("ERRORS:");
           errorsFromAPI.forEach((e) => console.error(e));
-          reject();
+          reject(new Error(`TIMED OUT WAITING FOR: ${log}`));
         }, 4000);
         logCallbacks.push({
           test: log,
