@@ -1,5 +1,5 @@
 import fs from "fs";
-import { appPath, getFuegoConfig, readDir } from "./internal/common";
+import { appPath, getFuegoConfig, readDir } from "../internal/common";
 import archiver from "archiver";
 import path from "path";
 import crypto from "crypto";

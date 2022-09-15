@@ -1,15 +1,14 @@
 #!/usr/bin/env node
 import init from "./commands/init";
-import build from "./build";
-import deploy from "./deploy";
-import dev from "./dev";
+import build from "./commands/build";
+import deploy from "./commands/deploy";
+import dev from "./commands/dev";
 import compile from "./commands/compile";
-import publish from "./publish";
+import publish from "./commands/publish";
 import api from "./api";
-import postinstall from "./postinstall";
-import migrate from "./internal/migrate";
+import postinstall from "./commands/postinstall";
 import apply from "./commands/apply";
-import plan from "./plan";
+import plan from "./commands/plan";
 
 const run = async (command: string, args: string[]): Promise<number> => {
   const opts = args
@@ -59,6 +58,7 @@ const run = async (command: string, args: string[]): Promise<number> => {
       return deploy(opts);
     case "dev":
       return dev(opts);
+
     // API
     case "compile":
       return compile(opts);
@@ -66,22 +66,27 @@ const run = async (command: string, args: string[]): Promise<number> => {
       return publish(opts);
     case "api":
       return api(opts);
+
     // DATA
-    case "apply":
-      return apply(opts);
     case "plan":
       return plan(opts);
-    case "migrate":
-      return migrate(opts);
+    case "apply":
+      return apply(opts);
+    case "sync":
+      console.log("Coming soon!");
+      return 0;
+
     // MISC
     case "init":
       return init(opts);
     case "postinstall":
       return postinstall();
-    /**
-     * TODO
-     * - start - both
-     */
+    case "test":
+      console.log("Coming soon!");
+      return 0;
+    case "start":
+      console.log("Coming soon!");
+      return 0;
     default:
       console.error("Command", command, "is unsupported");
       return 1;

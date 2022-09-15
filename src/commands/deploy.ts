@@ -1,7 +1,7 @@
 import AWS from "aws-sdk";
 import fs from "fs";
 import mime from "mime-types";
-import { readDir, FE_OUT_DIR, appPath, FE_PUBLIC_DIR } from "./internal/common";
+import { readDir, FE_OUT_DIR, appPath, FE_PUBLIC_DIR } from "../internal/common";
 import path from "path";
 import archiver from "archiver";
 import crypto from "crypto";

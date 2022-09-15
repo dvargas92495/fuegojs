@@ -1,5 +1,5 @@
 import { build as esbuild } from "esbuild";
-import { appPath, FE_OUT_DIR, getDotEnvObject } from "./common";
+import { appPath, FE_OUT_DIR, getDotEnvObject } from "../internal/common";
 import fs from "fs";
 import { build as remixBuild } from "@remix-run/dev/dist/cli/commands";
 
