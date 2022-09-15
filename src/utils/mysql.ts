@@ -5,7 +5,7 @@ const connectionMap: Record<string, mysql.Connection> = {};
 
 const createConnection = (id = v4()) => {
   const DATABASE_URL_REGEX =
-    /^mysql:\/\/([a-z0-9_]+):([^@]{8,32})@([a-z0-9.-]+):(\d{3,5})\/([a-z_]+)$/;
+    /^mysql:\/\/([a-z0-9_]+):([^@]{4,32})@([a-z0-9.-]+):(\d{3,5})\/([a-z_]+)$/;
   const matches = DATABASE_URL_REGEX.exec(process.env.DATABASE_URL || "");
   if (!matches) return Promise.reject(`Error parsing Database URL`);
   return mysql
