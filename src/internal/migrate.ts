@@ -7,6 +7,7 @@ import { v4 } from "uuid";
 import { build as esbuild } from "esbuild";
 import format from "date-fns/format";
 import getMysqlConnection from "../utils/mysql";
+import { MigrationProps } from "../types";
 
 type MigrationArgs = {
   path?: string;
@@ -14,10 +15,6 @@ type MigrationArgs = {
   generate?: string;
   overwrite?: string | string[];
   cxn?: mysql.Connection;
-};
-
-export type MigrationProps = {
-  connection: mysql.Connection;
 };
 
 const MIGRATION_REGEX = /[a-z-]+/;
