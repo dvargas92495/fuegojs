@@ -543,7 +543,10 @@ const base = ({
                   })}`;
                 })
             )
-            .concat(consToDelete.map((c) => `ALTER TABLE ${table} DROP ${c}`))
+            .concat(
+              // hack to ensure FOREIGN KEYS are dropped before indices
+              consToDelete.sort().map((c) => `ALTER TABLE ${table} DROP ${c}`)
+            )
             .concat(consToAdd.map((c) => `ALTER TABLE ${table} ADD ${c}`));
         })
       )
