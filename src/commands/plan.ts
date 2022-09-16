@@ -6,11 +6,12 @@ const plan = async ({ sql }: { sql?: boolean }): Promise<number> => {
       stdio: "inherit",
       env: {
         ...process.env,
-        FUEGO_ARGS_SQL: sql ? `true` : undefined,
+        FUEGO_ARGS_SQL: `true`,
       },
     });
   } else {
-    child_process.execSync(`npx cdktf plan`, {
+    // apply without auto approve is just a plan
+    child_process.execSync(`npx cdktf apply`, {
       stdio: "inherit",
     });
   }
