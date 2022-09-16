@@ -20,7 +20,7 @@ The package exposes its commands as both a CLI and as a module to be imported in
 
 This table represents the goal. The left column represents the potential _targets_ of where your code gets shipped. The following three represent the three core phases of the development cycle. The documentation below represents the current API which has not yet reached this vision. Project is still under heavy development!
 
-We will grow through each layer in the application, and within each outline the three core phases in development in each. There are also various utilities available to help along the way.
+We will go through each layer in the application, and within each outline the three core phases in development in each. There are also various utilities available to help along the way.
 
 ## APP
 

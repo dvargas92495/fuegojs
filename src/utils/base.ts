@@ -38,6 +38,46 @@ type Constraint = {
   REFERENCED_TABLE_NAME: string | null;
 };
 
+// https://dev.mysql.com/doc/refman/8.0/en/integer-types.html
+const getIntegerType = ({ maxValue, minValue }: ZodNumber) => {
+  if (typeof maxValue === "undefined" || maxValue === null) {
+    return "INT";
+  }
+  if (minValue === 0) {
+    if (maxValue <= Math.pow(2, 8) - 1) {
+      return "TINYINT UNSIGNED";
+    } else if (maxValue <= Math.pow(2, 16) - 1) {
+      return "SMALLINT UNSIGNED";
+    } else if (maxValue <= Math.pow(2, 24) - 1) {
+      return "MEDIUMINT UNSIGNED";
+    } else if (maxValue <= Math.pow(2, 32) - 1) {
+      return "INT UNSIGNED";
+    } else if (maxValue <= Math.pow(2, 64) - 1) {
+      return "BIGINT UNSIGNED";
+    } else {
+      throw new Error(
+        `max value is too large: ${maxValue}. Consider multiple columns`
+      );
+    }
+  } else {
+    if (maxValue <= Math.pow(2, 7) - 1) {
+      return "TINYINT";
+    } else if (maxValue <= Math.pow(2, 15) - 1) {
+      return "SMALLINT";
+    } else if (maxValue <= Math.pow(2, 23) - 1) {
+      return "MEDIUMINT";
+    } else if (maxValue <= Math.pow(2, 31) - 1) {
+      return "INT";
+    } else if (maxValue <= Math.pow(2, 63) - 1) {
+      return "BIGINT";
+    } else {
+      throw new Error(
+        `max value is too large: ${maxValue}. Consider multiple columns`
+      );
+    }
+  }
+};
+
 const base = ({
   projectName,
   safeProjectName = projectName.replace(/\./g, "-"),
@@ -226,8 +266,9 @@ const base = ({
     const actualTableResults = await cxn
       .execute(`show tables`)
       .then(([r]) => r as Record<string, string>[]);
+    const dbname = snakeCase(safeProjectName);
     const actualTables = actualTableResults.map(
-      (t) => t[`Tables_in_${snakeCase(safeProjectName)}`]
+      (t) => t[`Tables_in_${dbname}`]
     );
     if (actualTables.some((t) => !t)) {
       throw new Error(
@@ -265,7 +306,7 @@ const base = ({
 
     const outputColumn = (c: Column) =>
       `${c.Field}  ${c.Type}  ${c.Null === "YES" ? "NULL" : "NOT NULL"}${
-        c.Default === null ? "" : ` DEFAULT ${c.Default}`
+        c.Default === null ? "" : ` DEFAULT ${c.Default || `""`}`
       }`;
 
     const getTableInfo = (s: ZodObject<ZodRawShape>) => {
@@ -316,11 +357,7 @@ const base = ({
                       : (shape as ZodString).maxLength || 128
                   })`
                 : typeName === "ZodNumber"
-                ? (shape as ZodNumber).maxValue
-                  ? `TINYINT(${Math.ceil(
-                      Math.log2((shape as ZodNumber).maxValue || 1)
-                    )})`
-                  : "INT"
+                ? getIntegerType(shape as ZodNumber)
                 : typeName === "ZodDate"
                 ? "DATETIME(3)"
                 : typeName === "ZodBoolean"
@@ -350,8 +387,8 @@ const base = ({
             .execute(
               `select COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_COLUMN_NAME, REFERENCED_TABLE_NAME 
           from information_schema.KEY_COLUMN_USAGE 
-          where TABLE_NAME = ?`,
-              [table]
+          where TABLE_NAME = ? and TABLE_SCHEMA = ?`,
+              [table, dbname]
             )
             .catch(() => {
               console.log("cant query information_schema");
@@ -493,12 +530,13 @@ const base = ({
                       actualTypeByField[c].Default
                 )
                 .map((c) => {
-                  console.log(
-                    "Column diff expected:",
-                    JSON.stringify(expectedTypeByField[c], null, 4),
-                    "actual:",
-                    JSON.stringify(actualTypeByField[c], null, 4)
-                  );
+                  if (process.env.DEBUG)
+                    console.log(
+                      "Column diff expected:",
+                      JSON.stringify(expectedTypeByField[c], null, 4),
+                      "actual:",
+                      JSON.stringify(actualTypeByField[c], null, 4)
+                    );
                   return `ALTER TABLE ${table} MODIFY ${outputColumn({
                     Field: c,
                     ...expectedTypeByField[c],
