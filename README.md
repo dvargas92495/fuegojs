@@ -4,21 +4,27 @@ Opinionated server-side rendering web framework built on [Remix](https://remix.r
 
 **Project is still under heavy development. APIs are subject to change and there are bugs. Lots of them.**.
 
-The package exposes its commands as both a CLI and as a module to be imported in your script files. It's core commands could be thought of as the following 3x3 matrix:
+The package exposes its commands as both a CLI and as a module to be imported in your script files. It's core commands could be thought of as the following matrix:
 
 ```
-+------+--------------+-----------------+-----------------+
-|  🔥  |  Develop     |   Package       |      Ship       |
-+------+--------------+-----------------+-----------------+
-| APP  | `fuego dev`  | `fuego build`   | `fuego deploy`  |
-+------+--------------+-----------------+-----------------+
-| API  | `fuego api`  | `fuego compile` | `fuego publish` |
-+------+--------------+-----------------+-----------------+
-| DATA | `fuego sync` | `fuego plan`    | `fuego apply`   |
-+------+--------------+-----------------+-----------------+
++-------+---------------+-----------------+-----------------+
+|  🔥   |  Develop      |   Package       |      Ship       |
++-------+---------------+-----------------+-----------------+
+| APP   | `fuego dev`   | `fuego build`   | `fuego deploy`  |
++-------+---------------+-----------------+-----------------+
+| API   | `fuego api`   | `fuego compile` | `fuego upgrade` |
++-------+---------------+-----------------+-----------------+
+| DATA  | `fuego sync`  | `fuego plan`    | `fuego apply`   |
++-------+---------------+-----------------+-----------------+
+| NPM   | `fuego node`  | `fuego package` | `fuego publish` |
++-------+---------------+-----------------+-----------------+
+| TESTS | `fuego watch` | `fuego test`    | `fuego report`  |
++-------+---------------+-----------------+-----------------+
 ```
+<!-- coming soon: game, web3, mobile -->
+<!-- web3 might be part of data? I think so -->
 
-This table represents the goal. The left column represents the potential _targets_ of where your code gets shipped. The following three represent the three core phases of the development cycle. The documentation below represents the current API which has not yet reached this vision. Project is still under heavy development!
+This table represents the goal. The left column represents the potential _targets_ of where your code gets shipped. Each target is a parent directory in a `fuego` repo. The following three columns represent the three core phases of the development cycle. The documentation below represents the current API which has not yet reached this vision. Project is still under heavy development!
 
 We will go through each layer in the application, and within each outline the three core phases in development in each. There are also various utilities available to help along the way.
 

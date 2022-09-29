@@ -3,8 +3,15 @@
   "description": "{{{description}}}",
   "version": "0.0.0",
   "license": "MIT",
-  "repository": "dvargas92495/{{{projectName}}}",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vargasarts/{{{projectName}}}.git"
+  },
   "sideEffects": false,
+  "bugs": {
+    "url": "https://github.com/vargasarts/{{{projectName}}}/issues"
+  },
+  "homepage": "https://{{{projectName}}}",
   "scripts": {
     "tailwind": "npm run generate:css -- --watch",
     "generate:css": "tailwindcss -o ./app/tailwind.css",

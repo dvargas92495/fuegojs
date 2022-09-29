@@ -2,13 +2,12 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "target": "es2019",
-    "allowJs": false,
     "baseUrl": ".",
-    "lib": ["es2019", "dom", "dom.iterable"],
+    "lib": ["esnext", "dom", "dom.iterable"],
     "module": "commonjs",
     "moduleResolution": "node",
     "declaration": true,
-    "outDir": "./dist",
+    "outDir": "dist",
     "strict": true,
     "esModuleInterop": true,
     "noUnusedLocals": true,
@@ -27,5 +26,5 @@
     }
   },
   "include": ["remix.env.d.ts", "**/*.ts", "**/*.tsx"],
-  "exclude": ["node_modules", "**/__tests__/*"]
+  "exclude": ["node_modules"]
 }

@@ -85,6 +85,7 @@ const base = ({
   emailDomain,
   variables = [],
   schema = {},
+  backendProps = {},
   callback,
 }: {
   projectName: string;
@@ -93,6 +94,9 @@ const base = ({
   emailDomain?: string;
   variables?: string[];
   schema?: Record<string, ZodObject<ZodRawShape>>;
+  backendProps?: {
+    sizes?: Record<string, string>;
+  };
   callback?: (this: Construct) => void;
 }): void => {
   const fuegoArgs = Object.keys(process.env).filter((k) =>
@@ -176,6 +180,7 @@ const base = ({
             apiName: safeProjectName,
             domain: projectName,
             paths,
+            sizes: backendProps?.sizes,
           }
         );
 
