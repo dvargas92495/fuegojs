@@ -10,8 +10,8 @@ const plan = async ({ sql }: { sql?: boolean }): Promise<number> => {
       },
     });
   } else {
-    // apply without auto approve is just a plan
-    child_process.execSync(`npx cdktf apply`, {
+    // TODO - make this a non speculative plan
+    child_process.execSync(`npx cdktf plan`, {
       stdio: "inherit",
     });
   }
