@@ -9,7 +9,7 @@ const logs: { data: string; time: number }[] = [];
 let api: ChildProcessWithoutNullStreams;
 
 test.setTimeout(12000);
-test("fuego api", async () => {
+test.skip("fuego api", async () => {
   const startTime = process.hrtime.bigint();
   const log = (data = "") =>
     logs.push({ data, time: Number(process.hrtime.bigint() - startTime) });
