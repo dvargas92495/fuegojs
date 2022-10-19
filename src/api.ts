@@ -582,6 +582,10 @@ const api = ({
           ]).then(() => resolve(0));
         process.on("exit", close);
         process.on("SIGINT", close);
+        process.on("uncaughtException", (e) => {
+          console.error("Uncaught Exception in API!");
+          console.error(e);
+        });
       });
     });
   });

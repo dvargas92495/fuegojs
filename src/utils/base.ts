@@ -437,7 +437,6 @@ const base = ({
               }
             });
 
-          // TODO UNIQUES
           const uniqsToDrop = new Set();
           actualConstraints.forEach((con) => {
             if (con.REFERENCED_COLUMN_NAME !== null) {
@@ -513,46 +512,51 @@ const base = ({
               )} UNIQUE (${expectedColumnInfo.constraints.uniques.join(",")})`
             );
           }
-          return colsToDelete
-            .map((c) => `ALTER TABLE ${table} DROP COLUMN ${c}`)
-            .concat(
-              colsToAdd.map(
-                (c) =>
-                  `ALTER TABLE ${table} ADD ${outputColumn({
-                    Field: c,
-                    ...expectedTypeByField[c],
-                  })}`
-              )
-            )
-            .concat(
-              colsToUpdate
-                .filter(
-                  (c) =>
-                    expectedTypeByField[c].Type.toUpperCase() !==
-                      actualTypeByField[c].Type.toUpperCase() ||
-                    expectedTypeByField[c].Null !== actualTypeByField[c].Null ||
-                    expectedTypeByField[c].Default !==
-                      actualTypeByField[c].Default
-                )
-                .map((c) => {
-                  if (process.env.DEBUG)
-                    console.log(
-                      "Column diff expected:",
-                      JSON.stringify(expectedTypeByField[c], null, 4),
-                      "actual:",
-                      JSON.stringify(actualTypeByField[c], null, 4)
-                    );
-                  return `ALTER TABLE ${table} MODIFY ${outputColumn({
-                    Field: c,
-                    ...expectedTypeByField[c],
-                  })}`;
-                })
-            )
-            .concat(
+          return (
+            consToDelete
               // hack to ensure FOREIGN KEYS are dropped before indices
-              consToDelete.sort().map((c) => `ALTER TABLE ${table} DROP ${c}`)
-            )
-            .concat(consToAdd.map((c) => `ALTER TABLE ${table} ADD ${c}`));
+              .sort()
+              .map((c) => `ALTER TABLE ${table} DROP ${c}`)
+
+              .concat(consToAdd.map((c) => `ALTER TABLE ${table} ADD ${c}`))
+              .concat(
+                colsToDelete.map((c) => `ALTER TABLE ${table} DROP COLUMN ${c}`)
+              )
+              .concat(
+                colsToAdd.map(
+                  (c) =>
+                    `ALTER TABLE ${table} ADD ${outputColumn({
+                      Field: c,
+                      ...expectedTypeByField[c],
+                    })}`
+                )
+              )
+              .concat(
+                colsToUpdate
+                  .filter(
+                    (c) =>
+                      expectedTypeByField[c].Type.toUpperCase() !==
+                        actualTypeByField[c].Type.toUpperCase() ||
+                      expectedTypeByField[c].Null !==
+                        actualTypeByField[c].Null ||
+                      expectedTypeByField[c].Default !==
+                        actualTypeByField[c].Default
+                  )
+                  .map((c) => {
+                    if (process.env.DEBUG)
+                      console.log(
+                        "Column diff expected:",
+                        JSON.stringify(expectedTypeByField[c], null, 4),
+                        "actual:",
+                        JSON.stringify(actualTypeByField[c], null, 4)
+                      );
+                    return `ALTER TABLE ${table} MODIFY ${outputColumn({
+                      Field: c,
+                      ...expectedTypeByField[c],
+                    })}`;
+                  })
+              )
+          );
         })
       )
     ).then((cols) => cols.flat());
