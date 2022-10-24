@@ -12,7 +12,7 @@ env:
   AWS_ACCESS_KEY_ID: ${{ secrets.DEPLOY_AWS_ACCESS_KEY }}
   AWS_SECRET_ACCESS_KEY: ${{ secrets.DEPLOY_AWS_ACCESS_SECRET }}
   AWS_REGION: us-east-1
-  CLERK_API_KEY: ${{ secrets.CLERK_API_KEY }} 
+  CLERK_API_KEY: ${{ secrets.CLERK_API_KEY }}
   CLERK_FRONTEND_API: clerk.{{{DomainName}}}
   CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}
   DATABASE_URL: mysql://{{{mysqlName}}}:${{ secrets.MYSQL_PASSWORD }}@vargas-arts.c2sjnb5f4d57.us-east-1.rds.amazonaws.com:5432/{{{mysqlName}}}
@@ -25,7 +25,7 @@ jobs:
   deploy:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: install
         run: npm install
       - name: build

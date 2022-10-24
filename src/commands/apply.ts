@@ -110,26 +110,23 @@ const apply = async ({
     .toString()
     .split(";\n\n")
     .filter((s) => !!s);
-  return queries.length
-    ? getMysqlConnection().then(async (cxn) => {
-        await queries
-          .map((q, i, a) => async () => {
-            console.log(`Running query ${i + 1} of ${a.length}:`);
-            console.log(">", q);
-            await cxn.execute(q);
-            console.log("Done!");
-            console.log("");
-          })
-          .reduce((p, c) => p.then(c), Promise.resolve());
-        return migrate({ cxn }).then((code) => {
-          cxn.destroy();
-          return code;
-        });
+  const cxn = await getMysqlConnection();
+  if (queries.length) {
+    await queries
+      .map((q, i, a) => async () => {
+        console.log(`Running query ${i + 1} of ${a.length}:`);
+        console.log(">", q);
+        await cxn.execute(q);
+        console.log("Done!");
+        console.log("");
       })
-    : Promise.resolve().then(() => {
-        console.log("No queries to run!");
-        return 0;
-      });
+      .reduce((p, c) => p.then(c), Promise.resolve());
+  } else {
+    console.log("No mysql schema queries to run!");
+  }
+  await migrate({ cxn });
+  cxn.destroy();
+  return 0;
 };
 
 export default apply;

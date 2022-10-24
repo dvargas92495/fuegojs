@@ -517,8 +517,6 @@ const base = ({
               // hack to ensure FOREIGN KEYS are dropped before indices
               .sort()
               .map((c) => `ALTER TABLE ${table} DROP ${c}`)
-
-              .concat(consToAdd.map((c) => `ALTER TABLE ${table} ADD ${c}`))
               .concat(
                 colsToDelete.map((c) => `ALTER TABLE ${table} DROP COLUMN ${c}`)
               )
@@ -556,6 +554,7 @@ const base = ({
                     })}`;
                   })
               )
+              .concat(consToAdd.map((c) => `ALTER TABLE ${table} ADD ${c}`))
           );
         })
       )
