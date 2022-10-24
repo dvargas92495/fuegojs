@@ -367,6 +367,8 @@ const base = ({
                 ? "DATETIME(3)"
                 : typeName === "ZodBoolean"
                 ? "TINYINT(1)"
+                : typeName === "ZodObject"
+                ? "JSON"
                 : typeName,
             Null: nullable ? ("YES" as const) : ("NO" as const),
             Key: "",
