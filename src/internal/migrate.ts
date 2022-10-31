@@ -15,6 +15,7 @@ type MigrationArgs = {
   generate?: string;
   overwrite?: string | string[];
   cxn?: mysql.Connection;
+  force?: boolean;
 };
 
 const MIGRATION_REGEX = /[a-z-]+/;
@@ -25,6 +26,7 @@ const migrate = async ({
   generate,
   overwrite,
   cxn,
+  force,
 }: MigrationArgs = {}): Promise<number> => {
   const dir = appPath(path);
   if (generate) {
@@ -160,7 +162,7 @@ export const revert = (args: MigrationProps) => {
       const filesToOverwrite =
         typeof overwrite === "string"
           ? new Set([overwrite])
-          : new Set(overwrite);
+          : new Set(overwrite || []);
       const migrationsToRun = local.map((m, index) =>
         index < applied.length
           ? () => {
@@ -175,7 +177,7 @@ export const revert = (args: MigrationProps) => {
                   `Tried to run migration that had already started but failed. Please first remove migration record ${a.migration_name} before attempting to apply migrations again.`
                 );
               }
-              if (filesToOverwrite.has(m.migrationName)) {
+              if (force || filesToOverwrite.has(m.migrationName)) {
                 return connection
                   .execute(
                     `UPDATE _migrations SET checksum = ? WHERE uuid = ?`,

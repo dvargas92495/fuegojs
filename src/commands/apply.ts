@@ -124,7 +124,7 @@ const apply = async ({
   } else {
     console.log("No mysql schema queries to run!");
   }
-  await migrate({ cxn });
+  await migrate({ cxn, force: true });
   cxn.destroy();
   return 0;
 };
