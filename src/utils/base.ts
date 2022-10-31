@@ -115,7 +115,7 @@ const base = ({
       constructor(scope: Construct, name: string) {
         super(scope, name);
 
-        const allVariables = ["mysql_password"]
+        const allVariables = ["database_url", "mysql_password"]
           .concat(clerkDnsId ? ["clerk_api_key"] : [])
           .concat(variables);
         const aws_access_token = new TerraformVariable(

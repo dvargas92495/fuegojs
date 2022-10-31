@@ -2,10 +2,10 @@
 import AWS from "aws-sdk";
 import axios from "axios";
 import chalk from "chalk";
-import spawn, { sync } from "cross-spawn";
+import { spawn, execSync } from "child_process";
 import fs from "fs";
 import Mustache from "mustache";
-import mysql from "mysql";
+import mysql from "mysql2";
 import path from "path";
 import randomstring from "randomstring";
 import readline from "readline";
@@ -432,7 +432,7 @@ const main = ({ rootDirectory }: { rootDirectory: string }): Promise<void> => {
       task: () => {
         try {
           process.chdir(rootDirectory);
-          return sync("git init", { stdio: "ignore" });
+          return execSync("git init", { stdio: "ignore" });
         } catch (e) {
           console.log(chalk.red("Failed to git init"));
           console.log(e);
@@ -444,7 +444,7 @@ const main = ({ rootDirectory }: { rootDirectory: string }): Promise<void> => {
       title: "Git add",
       task: () => {
         try {
-          return sync("git add -A", { stdio: "ignore" });
+          return execSync("git add -A", { stdio: "ignore" });
         } catch (e) {
           console.log(chalk.red("Failed to git add"));
           return Promise.reject(e);
@@ -455,7 +455,7 @@ const main = ({ rootDirectory }: { rootDirectory: string }): Promise<void> => {
       title: "Git commit",
       task: () => {
         try {
-          return sync('git commit -m "Initial commit from Remix Fuego Stack"', {
+          return execSync('git commit -m "Initial commit from Remix Fuego Stack"', {
             stdio: "ignore",
           });
         } catch (e) {
@@ -505,7 +505,7 @@ const main = ({ rootDirectory }: { rootDirectory: string }): Promise<void> => {
               `Was about to deploy a sensitive workspce file. Aborting...`
             );
           }
-          return sync(`git push origin main`, { stdio: "ignore" });
+          return execSync(`git push origin main`, { stdio: "ignore" });
         } catch (e) {
           console.log(chalk.red("Failed to git push"));
           return Promise.reject(e);
@@ -597,7 +597,7 @@ const main = ({ rootDirectory }: { rootDirectory: string }): Promise<void> => {
                 { key: "aws_secret_token", env: "AWS_SECRET_ACCESS_KEY" },
                 { key: "secret", value: randomstring.generate(32) },
                 { key: "github_token", env: "GITHUB_TOKEN" },
-                { key: "mysql_password", env: "MYSQL_PASSWORD" },
+                { key: "database_url", env: `mysql://${mysqlName}:${process.env.MYSQL_PASSWORD}@vargas-arts.c2sjnb5f4d57.us-east-1.rds.amazonaws.com:5432/${mysqlName}` },
                 { key: "clerk_api_key", env: "CLERK_API_KEY" },
                 { key: "stripe_public", env: "LIVE_STRIPE_PUBLIC" },
                 { key: "stripe_secret", env: "LIVE_STRIPE_SECRET" },
