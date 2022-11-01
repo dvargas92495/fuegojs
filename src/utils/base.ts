@@ -535,7 +535,7 @@ const base = ({
                 colsToUpdate
                   .filter(
                     (c) =>
-                    // TODO - need to compare this better - length field is actual for all fields, but not expected for ints
+                      // TODO - need to compare this better - length field is actual for all fields, but not expected for ints
                       expectedTypeByField[c].Type.replace(
                         /\(\d+\)$/,
                         ""
