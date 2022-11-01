@@ -536,7 +536,10 @@ const base = ({
                   .filter(
                     (c) =>
                       expectedTypeByField[c].Type.toUpperCase() !==
-                        actualTypeByField[c].Type.toUpperCase() ||
+                        actualTypeByField[c].Type.replace(
+                          /\(\d+\)$/,
+                          ""
+                        ).toUpperCase() ||
                       expectedTypeByField[c].Null !==
                         actualTypeByField[c].Null ||
                       expectedTypeByField[c].Default !==
