@@ -535,7 +535,11 @@ const base = ({
                 colsToUpdate
                   .filter(
                     (c) =>
-                      expectedTypeByField[c].Type.toUpperCase() !==
+                    // TODO - need to compare this better - length field is actual for all fields, but not expected for ints
+                      expectedTypeByField[c].Type.replace(
+                        /\(\d+\)$/,
+                        ""
+                      ).toUpperCase() !==
                         actualTypeByField[c].Type.replace(
                           /\(\d+\)$/,
                           ""
