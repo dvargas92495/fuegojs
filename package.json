@@ -14,7 +14,7 @@
     "postversion": "git push origin main && git push --tags",
     "prebuild": "npm run lint",
     "build": "tsc",
-    "test": "playwright test"
+    "test": "playwright test --config=src/internal/playwright.config.ts"
   },
   "peerDependencies": {
     "@cdktf/provider-aws": "9.0.7",
