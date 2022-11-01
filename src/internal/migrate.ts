@@ -53,8 +53,12 @@ export const revert = (args: MigrationProps) => {
     return Promise.resolve(0);
   }
   const connection = await getMysqlConnection(cxn);
-  return connection
-    .execute(
+  const actualTableResults = await connection
+    .execute(`show tables`)
+    .then(([r]) => r as Record<string, string>[]);
+  // doing a check before create table to get around planetscale DDL block until we implement branching in our workflows
+  if (!actualTableResults.some((a) => Object.values(a)[0] === "_migrations")) {
+    await connection.execute(
       `CREATE TABLE IF NOT EXISTS _migrations (
         uuid           VARCHAR(36)  NOT NULL,
         migration_name VARCHAR(191) NOT NULL,
@@ -64,10 +68,10 @@ export const revert = (args: MigrationProps) => {
 
         PRIMARY KEY (uuid)
     )`
-    )
-    .then(() =>
-      connection.execute(`SELECT * FROM _migrations ORDER BY started_at`)
-    )
+    );
+  }
+  return connection
+    .execute(`SELECT * FROM _migrations ORDER BY started_at`)
     .then(([results]) => {
       const applied = (results || []) as {
         uuid: string;
