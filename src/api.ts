@@ -465,10 +465,12 @@ const api = ({
           app.post("/ws", (req, res) => {
             const { ConnectionId, Data } = req.body;
             const connection = localSockets[ConnectionId];
-
-            Promise.resolve(connection && connection.send(Data)).then(() =>
-              res.json({ success: true })
-            );
+            if (!connection) {
+              res.json({ success: false });
+            }
+            connection.send(Data, (err) => {
+              res.json({ success: !err });
+            });
           });
           const wss = new WebSocketServer({ port: wsPort }, () => {
             console.log(`WS server listening on port ${wsPort}...`);
