@@ -86,6 +86,7 @@ const base = ({
   variables = [],
   schema,
   backendProps = {},
+  organization = "VargasArts",
   callback,
 }: {
   projectName: string;
@@ -97,6 +98,7 @@ const base = ({
   backendProps?: {
     sizes?: Record<string, string>;
   };
+  organization?: string;
   callback?: (this: Construct) => void;
 }): void => {
   const fuegoArgs = Object.keys(process.env).filter((k) =>
@@ -257,8 +259,7 @@ const base = ({
     const stack = new MyStack(app, safeProjectName);
     new RemoteBackend(stack, {
       hostname: "app.terraform.io",
-      // TODO - parameterize the TF organization
-      organization: "VargasArts",
+      organization,
       workspaces: {
         name: safeProjectName,
       },
