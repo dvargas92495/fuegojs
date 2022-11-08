@@ -211,6 +211,18 @@ const base = ({
           });
         }
 
+        new ActionsSecret(this, "tf_aws_access_key", {
+          repository: projectName,
+          secretName: "TF_AWS_ACCESS_KEY",
+          plaintextValue: aws_access_token.value,
+        });
+
+        new ActionsSecret(this, "tf_aws_access_secret", {
+          repository: projectName,
+          secretName: "TF_AWS_ACCESS_SECRET",
+          plaintextValue: aws_secret_token.value,
+        });
+
         new ActionsSecret(this, "deploy_aws_access_key", {
           repository: projectName,
           secretName: "DEPLOY_AWS_ACCESS_KEY",
