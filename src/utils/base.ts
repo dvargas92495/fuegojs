@@ -82,7 +82,9 @@ const base = ({
   projectName,
   safeProjectName = projectName.replace(/\./g, "-"),
   clerkDnsId,
+  // @deprecated
   emailDomain,
+  emailSettings = "OFF",
   variables = [],
   schema,
   backendProps = {},
@@ -93,6 +95,7 @@ const base = ({
   safeProjectName?: string;
   clerkDnsId?: string;
   emailDomain?: string;
+  emailSettings?: "OFF" | "OUTBOUND" | "ALL";
   variables?: string[];
   schema?: Record<string, ZodObject<ZodRawShape>>;
   backendProps?: {
@@ -204,10 +207,11 @@ const base = ({
           });
         }
 
-        if (emailDomain) {
+        if (emailSettings !== "OFF" || emailDomain) {
           new AwsEmail(this, "aws_email", {
             zoneId: staticSite.get("route53_zone_id"),
-            domain: emailDomain,
+            domain: emailDomain || projectName,
+            inbound: emailSettings === "ALL",
           });
         }
 
