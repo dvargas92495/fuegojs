@@ -105,11 +105,13 @@ const apply = async ({
     }
   }
 
-  const queries = fs
-    .readFileSync(PLAN_OUT_FILE)
-    .toString()
-    .split(";\n\n")
-    .filter((s) => !!s);
+  const queries = fs.existsSync(PLAN_OUT_FILE)
+    ? fs
+        .readFileSync(PLAN_OUT_FILE)
+        .toString()
+        .split(";\n\n")
+        .filter((s) => !!s)
+    : [];
   const cxn = await getMysqlConnection();
   if (queries.length) {
     await queries
