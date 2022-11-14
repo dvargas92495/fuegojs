@@ -12,12 +12,14 @@ const apply = async ({
   organization = process.env.TERRAFORM_ORGANIZATION,
   sql,
   experimental,
+  bare,
 }: {
   domain?: string;
   workspace?: string;
   organization?: string;
   sql?: boolean;
   experimental?: boolean;
+  bare?: boolean;
 } = {}): Promise<number> => {
   if (!sql) {
     // When we are able to make non speculative plans in fuego plan, apply from here
@@ -126,7 +128,7 @@ const apply = async ({
   } else {
     console.log("No mysql schema queries to run!");
   }
-  await migrate({ cxn, force: true });
+  if (!bare) await migrate({ cxn, force: true });
   cxn.destroy();
   return 0;
 };
