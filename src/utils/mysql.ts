@@ -11,6 +11,7 @@ const createConnection = (id = v4()) => {
       if (e.message === "Too many connections") {
         Object.entries(connectionMap)
           .filter(
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore their types are bad
             ([, v]) => !v.connection.stream.destroyed
           )
