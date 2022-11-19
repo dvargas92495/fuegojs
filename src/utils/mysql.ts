@@ -6,7 +6,20 @@ const connectionMap: Record<string, mysql.Connection> = {};
 const createConnection = (id = v4()) => {
   return mysql
     .createConnection(process.env.DATABASE_URL || "")
-    .then((con) => (connectionMap[id] = con));
+    .then((con) => (connectionMap[id] = con))
+    .catch((e) => {
+      if (e.message === "Too many connections") {
+        Object.entries(connectionMap)
+          .filter(
+            // @ts-ignore their types are bad
+            ([, v]) => !v.connection.stream.destroyed
+          )
+          .forEach(([k]) => {
+            console.log("Connections still open:", k);
+          });
+      }
+      throw e;
+    });
 };
 
 const getMysqlConnection = (mysql?: mysql.Connection | string) => {

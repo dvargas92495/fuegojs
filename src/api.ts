@@ -467,6 +467,7 @@ const api = ({
             const connection = localSockets[ConnectionId];
             if (!connection) {
               res.json({ success: false });
+              return;
             }
             connection.send(Data, (err) => {
               res.json({ success: !err });
