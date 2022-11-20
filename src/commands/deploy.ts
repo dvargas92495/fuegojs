@@ -1,4 +1,6 @@
-import AWS from "aws-sdk";
+import { CloudFront } from "@aws-sdk/client-cloudfront";
+import { S3 } from "@aws-sdk/client-s3";
+import { Lambda } from "@aws-sdk/client-lambda";
 import fs from "fs";
 import mime from "mime-types";
 import {
@@ -11,9 +13,9 @@ import path from "path";
 import archiver from "archiver";
 import crypto from "crypto";
 
-const s3 = new AWS.S3();
-const cloudfront = new AWS.CloudFront();
-const lambda = new AWS.Lambda();
+const s3 = new S3({});
+const cloudfront = new CloudFront({});
+const lambda = new Lambda({});
 
 const waitForLambda = ({
   trial = 0,
@@ -26,7 +28,6 @@ const waitForLambda = ({
 }): Promise<string> => {
   return lambda
     .getFunction({ FunctionName, Qualifier })
-    .promise()
     .then((r) => r.Configuration?.State)
     .then((status) => {
       if (status === "Active") {
@@ -53,7 +54,6 @@ const waitForLambda = ({
 const waitForCloudfront = (trial = 0): Promise<string> => {
   return cloudfront
     .getDistribution({ Id: process.env.CLOUDFRONT_DISTRIBUTION_ID || "" })
-    .promise()
     .then((r) => r.Distribution?.Status)
     .then((status) => {
       if (status === "Deployed") {
@@ -99,7 +99,6 @@ const deployRemixServer = (domain: string) => {
       .getFunction({
         FunctionName,
       })
-      .promise()
       .then((l) => {
         if (sha256 === l.Configuration?.CodeSha256) {
           console.log(`No need to upload ${FunctionName}, shas match.`);
@@ -111,7 +110,6 @@ const deployRemixServer = (domain: string) => {
               Publish: true,
               ZipFile: Buffer.concat(data),
             })
-            .promise()
             .then((upd) => {
               console.log(
                 `Succesfully uploaded ${FunctionName} V${upd.Version} at ${upd.LastModified}`
@@ -122,14 +120,16 @@ const deployRemixServer = (domain: string) => {
               })
                 .then(console.log)
                 .then(() =>
-                  cloudfront
-                    .getDistribution({
-                      Id: process.env.CLOUDFRONT_DISTRIBUTION_ID || "",
-                    })
-                    .promise()
+                  cloudfront.getDistribution({
+                    Id: process.env.CLOUDFRONT_DISTRIBUTION_ID || "",
+                  })
                 )
                 .then((config) => {
-                  if (!config.Distribution)
+                  if (
+                    !config.Distribution ||
+                    !config.Distribution.DistributionConfig ||
+                    !config.Distribution.DistributionConfig.DefaultCacheBehavior
+                  )
                     throw new Error("Failed to find Distribution");
                   const DistributionConfig = {
                     ...config.Distribution.DistributionConfig,
@@ -139,14 +139,14 @@ const deployRemixServer = (domain: string) => {
                       LambdaFunctionAssociations: {
                         Quantity:
                           config.Distribution.DistributionConfig
-                            .DefaultCacheBehavior.LambdaFunctionAssociations
+                            .DefaultCacheBehavior?.LambdaFunctionAssociations
                             ?.Quantity || 0,
                         Items: (
                           config.Distribution.DistributionConfig
-                            .DefaultCacheBehavior.LambdaFunctionAssociations
+                            .DefaultCacheBehavior?.LambdaFunctionAssociations
                             ?.Items || []
                         ).map((l) =>
-                          l.LambdaFunctionARN.includes("origin-request")
+                          l.LambdaFunctionARN?.includes("origin-request")
                             ? {
                                 ...l,
                                 LambdaFunctionARN: upd.FunctionArn || "",
@@ -162,7 +162,6 @@ const deployRemixServer = (domain: string) => {
                       Id: process.env.CLOUDFRONT_DISTRIBUTION_ID || "",
                       IfMatch: config.ETag,
                     })
-                    .promise()
                     .then((r) => {
                       console.log(
                         `Updated. Current Status: ${r.Distribution?.Status}`
@@ -197,13 +196,11 @@ const deploy = ({
         ContentType: mime.lookup(Key) || undefined,
       };
       console.log(`Uploading ${p} to ${Key}...`);
-      return s3
-        .upload({
-          Key,
-          ...uploadProps,
-          Body: fs.createReadStream(p),
-        })
-        .promise();
+      return s3.putObject({
+        Key,
+        ...uploadProps,
+        Body: fs.createReadStream(p),
+      });
     })
   )
     .then(() => (impatient ? Promise.resolve() : deployRemixServer(domain)))

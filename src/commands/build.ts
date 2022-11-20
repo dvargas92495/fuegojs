@@ -34,7 +34,9 @@ const build = async (args: BuildArgs = {}): Promise<number> => {
         platform: "node",
         target: "node14",
         entryPoints: ["app/server/index.ts"],
-        external: ["aws-sdk"].concat(fuegoRemixConfig?.externals || []),
+        external: ["aws-sdk", "@aws-sdk/*"].concat(
+          fuegoRemixConfig?.externals || []
+        ),
         minify: !args.readable,
         define: getDotEnvObject(),
       })

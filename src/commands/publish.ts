@@ -3,11 +3,9 @@ import { appPath, getFuegoConfig, readDir } from "../internal/common";
 import archiver from "archiver";
 import path from "path";
 import crypto from "crypto";
-import AWS from "aws-sdk";
+import { Lambda, GetFunctionResponse } from "@aws-sdk/client-lambda";
 
-const lambda = new AWS.Lambda({
-  apiVersion: "2015-03-31",
-});
+const lambda = new Lambda({});
 
 const getFunction = ({
   FunctionName,
@@ -15,12 +13,11 @@ const getFunction = ({
 }: {
   FunctionName: string;
   trial?: number;
-}): Promise<AWS.Lambda.GetFunctionResponse> =>
+}): Promise<GetFunctionResponse> =>
   lambda
     .getFunction({
       FunctionName,
     })
-    .promise()
     .catch((e) => {
       if (trial < 100) {
         console.warn(
@@ -102,7 +99,6 @@ const publish = ({
                             Publish: true,
                             ZipFile: Buffer.concat(data),
                           })
-                          .promise()
                           .then(
                             (upd) =>
                               `Succesfully uploaded ${FunctionName} at ${upd.LastModified}`

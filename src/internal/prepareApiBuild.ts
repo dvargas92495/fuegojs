@@ -14,7 +14,7 @@ const prepareApiBuild = (outputDir: string): Promise<Partial<BuildOptions>> =>
       bundle: true,
       outdir: appPath(outputDir),
       platform: "node" as const,
-      external: ["aws-sdk", "canvas"],
+      external: ["aws-sdk", "canvas", "@aws-sdk/*"],
       define: getDotEnvObject(),
     };
     const { functionFileDependencies = null } = getFuegoConfig();

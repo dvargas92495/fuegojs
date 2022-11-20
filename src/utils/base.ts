@@ -3,7 +3,6 @@ import {
   App,
   TerraformStack,
   RemoteBackend,
-  TerraformHclModule,
   TerraformVariable,
 } from "cdktf";
 import { AwsProvider } from "@cdktf/provider-aws";
@@ -12,6 +11,7 @@ import { AwsServerlessBackend } from "@dvargas92495/aws-serverless-backend";
 import { AwsClerk } from "@dvargas92495/aws-clerk";
 import { AwsEmail } from "@dvargas92495/aws-email";
 import { AwsWebsocket } from "@dvargas92495/aws-websocket";
+import { AwsStaticSite } from "@dvargas92495/aws-static-site";
 import fs from "fs";
 import getMysqlConnection from "./mysql";
 import { ZodObject, ZodRawShape, ZodString, ZodNumber } from "zod";
@@ -154,23 +154,17 @@ const base = async ({
           owner: process.env.GITHUB_REPOSITORY_OWNER,
         });
 
-        // TODO: figure out how to move this to json for type bindings
-        // fails on: The child module requires an additional configuration for provider
-        const staticSite = new TerraformHclModule(this, "aws_static_site", {
-          source: "dvargas92495/static-site/aws",
-          version: "3.6.7",
+        const staticSite = new AwsStaticSite(this, "aws_static_site", {
           providers: [
             {
               moduleAlias: "us-east-1",
               provider: aws,
             },
           ],
-          variables: {
-            origin_memory_size: 5120,
-            origin_timeout: 20,
-            domain: projectName,
-            secret: secret.value,
-          },
+          originMemorySize: 5120,
+          originTimeout: 20,
+          domain: projectName,
+          secret: secret.value,
         });
 
         const allPaths = readDir("api").map((f) =>
@@ -202,14 +196,14 @@ const base = async ({
 
         if (clerkDnsId) {
           new AwsClerk(this, "aws_clerk", {
-            zoneId: staticSite.get("route53_zone_id"),
+            zoneId: staticSite.route53ZoneIdOutput,
             clerkId: clerkDnsId,
           });
         }
 
         if (emailSettings !== "OFF" || emailDomain) {
           new AwsEmail(this, "aws_email", {
-            zoneId: staticSite.get("route53_zone_id"),
+            zoneId: staticSite.route53ZoneIdOutput,
             domain: emailDomain || projectName,
             inbound: emailSettings === "ALL",
           });
@@ -230,13 +224,13 @@ const base = async ({
         new ActionsSecret(this, "deploy_aws_access_key", {
           repository: projectName,
           secretName: "DEPLOY_AWS_ACCESS_KEY",
-          plaintextValue: staticSite.get("deploy-id"),
+          plaintextValue: staticSite.deployIdOutput,
         });
 
         new ActionsSecret(this, "deploy_aws_access_secret", {
           repository: projectName,
           secretName: "DEPLOY_AWS_ACCESS_SECRET",
-          plaintextValue: staticSite.get("deploy-secret"),
+          plaintextValue: staticSite.deploySecretOutput,
         });
 
         new ActionsSecret(this, "lambda_aws_access_key", {
@@ -254,7 +248,7 @@ const base = async ({
         new ActionsSecret(this, "cloudfront_distribution_id", {
           repository: projectName,
           secretName: "CLOUDFRONT_DISTRIBUTION_ID",
-          plaintextValue: staticSite.get("cloudfront_distribution_id"),
+          plaintextValue: staticSite.cloudfrontDistributionIdOutput,
         });
         allVariables.forEach((v) => {
           const tf_secret = new TerraformVariable(this, v, {

@@ -1,5 +1,7 @@
 #!/usr/bin/env node
-import AWS from "aws-sdk";
+import { Route53Domains } from "@aws-sdk/client-route-53-domains";
+import { Route53 } from "@aws-sdk/client-route-53";
+import { IAM } from "@aws-sdk/client-iam";
 import axios from "axios";
 import chalk from "chalk";
 import { spawn, execSync } from "child_process";
@@ -17,15 +19,9 @@ type Task = {
 };
 
 const main = ({ rootDirectory }: { rootDirectory: string }): Promise<void> => {
-  AWS.config.credentials = new AWS.SharedIniFileCredentials({
-    profile: "davidvargas",
-  });
-  const iam = new AWS.IAM({ apiVersion: "2010-05-08" });
-  const route53 = new AWS.Route53({ apiVersion: "2013-04-01" });
-  const domains = new AWS.Route53Domains({
-    apiVersion: "2014-05-15",
-  });
-  const rds = new AWS.RDS({ apiVersion: "2014-10-31" });
+  const iam = new IAM({ apiVersion: "2010-05-08" });
+  const route53 = new Route53({ apiVersion: "2013-04-01" });
+  const domains = new Route53Domains({});
   const githubOpts = {
     headers: {
       Authorization: `token ${process.env.GITHUB_TOKEN}`,
@@ -47,11 +43,13 @@ const main = ({ rootDirectory }: { rootDirectory: string }): Promise<void> => {
     let finished = false;
     let props: { Marker?: string } = {};
     while (!finished) {
-      const { HostedZones, IsTruncated, NextMarker } = await route53
-        .listHostedZones(props)
-        .promise();
+      const {
+        HostedZones = [],
+        IsTruncated,
+        NextMarker,
+      } = await route53.listHostedZones(props);
       const zone = HostedZones.find((i) => i.Name === `${DomainName}.`);
-      if (zone) {
+      if (zone?.Id) {
         return zone.Id.replace(/\/hostedzone\//, "");
       }
       finished = !IsTruncated;
@@ -61,42 +59,35 @@ const main = ({ rootDirectory }: { rootDirectory: string }): Promise<void> => {
     return null;
   };
 
-  const checkAvailability = (): Promise<string> =>
+  const checkAvailability = (): Promise<string | undefined> =>
     domains
       .checkDomainAvailability({ DomainName })
-      .promise()
       .then((r) =>
         r.Availability === "PENDING" ? checkAvailability() : r.Availability
       );
 
-  const checkDomainStatus = (OperationId: string): Promise<void> =>
-    domains
-      .getOperationDetail({ OperationId })
-      .promise()
-      .then((d) => {
-        if (d.Status === "IN_PROGRESS" || d.Status === "SUBMITTED") {
-          console.log(
-            chalk.yellow(
-              "Checking domain registration again at",
-              new Date().toJSON()
-            )
-          );
-          return new Promise((resolve) =>
-            setTimeout(() => resolve(checkDomainStatus(OperationId)), 30000)
-          );
-        } else if (d.Status === "SUCCESSFUL") {
-          console.log(
-            chalk.green(
-              "Domain successfully registered at",
-              new Date().toJSON()
-            )
-          );
-          return;
-        } else {
-          console.log(chalk.red(JSON.stringify(d)));
-          throw new Error("Failed to register domain. aborting...");
-        }
-      });
+  const checkDomainStatus = (OperationId?: string): Promise<void> =>
+    domains.getOperationDetail({ OperationId }).then((d) => {
+      if (d.Status === "IN_PROGRESS" || d.Status === "SUBMITTED") {
+        console.log(
+          chalk.yellow(
+            "Checking domain registration again at",
+            new Date().toJSON()
+          )
+        );
+        return new Promise((resolve) =>
+          setTimeout(() => resolve(checkDomainStatus(OperationId)), 30000)
+        );
+      } else if (d.Status === "SUCCESSFUL") {
+        console.log(
+          chalk.green("Domain successfully registered at", new Date().toJSON())
+        );
+        return;
+      } else {
+        console.log(chalk.red(JSON.stringify(d)));
+        throw new Error("Failed to register domain. aborting...");
+      }
+    });
 
   const checkGhStatus = (id: string): Promise<void> =>
     axios
@@ -159,7 +150,6 @@ const main = ({ rootDirectory }: { rootDirectory: string }): Promise<void> => {
                   OnlyAvailable: true,
                   SuggestionCount: 10,
                 })
-                .promise()
                 .then((s) => {
                   throw new Error(
                     `Domain ${DomainName} is not available and not owned (${r}), try one of these:\n${s.SuggestionsList?.map(
@@ -210,7 +200,6 @@ const main = ({ rootDirectory }: { rootDirectory: string }): Promise<void> => {
                 DomainName,
                 DurationInYears: 1,
               })
-              .promise()
               .then((r) => {
                 console.log(
                   chalk.green(
@@ -228,53 +217,58 @@ const main = ({ rootDirectory }: { rootDirectory: string }): Promise<void> => {
     },
     {
       title: "Create RDS DB",
-      task: () =>
-        rds
-          .describeDBInstances({ DBInstanceIdentifier: "vargas-arts" })
-          .promise()
-          .then((r) => {
-            if (!r.DBInstances?.length)
-              throw new Error("Could not find main RDS instance");
-            const { Address, Port } = r.DBInstances[0].Endpoint || {};
-            const connection = mysql.createConnection({
-              host: Address,
-              port: Port,
-              user: "dvargas92495",
-              password: process.env.RDS_MASTER_PASSWORD,
-            });
-            connection.connect();
-            process.env.MYSQL_PASSWORD = randomstring.generate(16);
-            process.env.MYSQL_HOST = Address;
-            process.env.MYSQL_PORT = `${Port}`;
-            return new Promise((resolve) =>
-              connection.query(`CREATE DATABASE ${mysqlName}`, resolve)
-            )
-              .then(
-                () =>
-                  new Promise((resolve) =>
-                    connection.query(
-                      `CREATE USER '${mysqlName}'@'%' IDENTIFIED BY '${process.env.MYSQL_PASSWORD}'`,
-                      resolve
+      task: () => {
+        /*rds
+            .describeDBInstances({ DBInstanceIdentifier: "vargas-arts" })
+            .promise()
+            .then((r) => {
+              if (!r.DBInstances?.length)
+                throw new Error("Could not find main RDS instance");
+              const { Address, Port } = r.DBInstances[0].Endpoint || {};
+              const connection = mysql.createConnection({
+                host: Address,
+                port: Port,
+                user: "dvargas92495",
+                password: process.env.RDS_MASTER_PASSWORD,
+              });
+              connection.connect();
+              process.env.MYSQL_PASSWORD = randomstring.generate(16);
+              process.env.MYSQL_HOST = Address;
+              process.env.MYSQL_PORT = `${Port}`;
+              return new Promise((resolve) =>
+                connection.query(`CREATE DATABASE ${mysqlName}`, resolve)
+              )
+                .then(
+                  () =>
+                    new Promise((resolve) =>
+                      connection.query(
+                        `CREATE USER '${mysqlName}'@'%' IDENTIFIED BY '${process.env.MYSQL_PASSWORD}'`,
+                        resolve
+                      )
                     )
-                  )
-              )
-              .then(
-                () =>
-                  new Promise((resolve) =>
-                    connection.query(
-                      `GRANT ALL PRIVILEGES ON ${mysqlName} . * TO '${mysqlName}'@'%'`,
-                      resolve
+                )
+                .then(
+                  () =>
+                    new Promise((resolve) =>
+                      connection.query(
+                        `GRANT ALL PRIVILEGES ON ${mysqlName} . * TO '${mysqlName}'@'%'`,
+                        resolve
+                      )
                     )
-                  )
-              )
-              .then(
-                () =>
-                  new Promise((resolve) =>
-                    connection.query(`FLUSH PRIVILEGES`, resolve)
-                  )
-              )
-              .then(() => connection.end());
-          }),
+                )
+                .then(
+                  () =>
+                    new Promise((resolve) =>
+                      connection.query(`FLUSH PRIVILEGES`, resolve)
+                    )
+                )
+                .then(() => connection.end());
+            }),*/
+        console.log(
+          "TODO! Still need to set up prod database now that we dont use RDS"
+        );
+        return Promise.resolve();
+      },
     },
     {
       title: "Create local DB",
@@ -455,9 +449,12 @@ const main = ({ rootDirectory }: { rootDirectory: string }): Promise<void> => {
       title: "Git commit",
       task: () => {
         try {
-          return execSync('git commit -m "Initial commit from Remix Fuego Stack"', {
-            stdio: "ignore",
-          });
+          return execSync(
+            'git commit -m "Initial commit from Remix Fuego Stack"',
+            {
+              stdio: "ignore",
+            }
+          );
         } catch (e) {
           console.log(chalk.red("Failed to git commit"));
           return Promise.reject(e);
@@ -519,39 +516,33 @@ const main = ({ rootDirectory }: { rootDirectory: string }): Promise<void> => {
           .createUser({
             UserName: safeProjectName,
           })
-          .promise()
           .then(() =>
             Promise.all([
-              iam
-                .addUserToGroup({
-                  UserName: safeProjectName,
-                  GroupName: "static-site-managers",
-                })
-                .promise(),
+              iam.addUserToGroup({
+                UserName: safeProjectName,
+                GroupName: "static-site-managers",
+              }),
               ...[
                 "arn:aws:iam::aws:policy/AWSLambda_FullAccess",
                 "arn:aws:iam::aws:policy/AmazonAPIGatewayAdministrator",
                 "arn:aws:iam::aws:policy/AmazonDynamoDBFullAccess",
                 "arn:aws:iam::aws:policy/AmazonSESFullAccess",
               ].map((PolicyArn) =>
-                iam
-                  .attachUserPolicy({
-                    UserName: safeProjectName,
-                    PolicyArn,
-                  })
-                  .promise()
+                iam.attachUserPolicy({
+                  UserName: safeProjectName,
+                  PolicyArn,
+                })
               ),
             ])
           )
-          .then(() =>
-            iam.createAccessKey({ UserName: safeProjectName }).promise()
-          )
+          .then(() => iam.createAccessKey({ UserName: safeProjectName }))
           .then((creds) => {
-            process.env.AWS_ACCESS_KEY_ID = creds.AccessKey.AccessKeyId;
-            process.env.AWS_SECRET_ACCESS_KEY = creds.AccessKey.SecretAccessKey;
+            process.env.AWS_ACCESS_KEY_ID = creds.AccessKey?.AccessKeyId;
+            process.env.AWS_SECRET_ACCESS_KEY =
+              creds.AccessKey?.SecretAccessKey;
             fs.appendFileSync(
               path.resolve(`${process.env.HOME}/.aws/credentials`),
-              `[${safeProjectName}]\naws_access_key_id = ${creds.AccessKey.AccessKeyId}\naws_secret_access_key = ${creds.AccessKey.SecretAccessKey}\n`
+              `[${safeProjectName}]\naws_access_key_id = ${creds.AccessKey?.AccessKeyId}\naws_secret_access_key = ${creds.AccessKey?.SecretAccessKey}\n`
             );
             console.log(
               chalk.green("Successfully created keys for", safeProjectName)
@@ -597,7 +588,10 @@ const main = ({ rootDirectory }: { rootDirectory: string }): Promise<void> => {
                 { key: "aws_secret_token", env: "AWS_SECRET_ACCESS_KEY" },
                 { key: "secret", value: randomstring.generate(32) },
                 { key: "github_token", env: "GITHUB_TOKEN" },
-                { key: "database_url", env: `mysql://${mysqlName}:${process.env.MYSQL_PASSWORD}@vargas-arts.c2sjnb5f4d57.us-east-1.rds.amazonaws.com:5432/${mysqlName}` },
+                {
+                  key: "database_url",
+                  env: `mysql://${mysqlName}:${process.env.MYSQL_PASSWORD}@vargas-arts.c2sjnb5f4d57.us-east-1.rds.amazonaws.com:5432/${mysqlName}`,
+                },
                 { key: "clerk_api_key", env: "CLERK_API_KEY" },
                 { key: "stripe_public", env: "LIVE_STRIPE_PUBLIC" },
                 { key: "stripe_secret", env: "LIVE_STRIPE_SECRET" },
