@@ -1,10 +1,5 @@
 import { Construct } from "constructs";
-import {
-  App,
-  TerraformStack,
-  RemoteBackend,
-  TerraformVariable,
-} from "cdktf";
+import { App, TerraformStack, RemoteBackend, TerraformVariable } from "cdktf";
 import { AwsProvider } from "@cdktf/provider-aws";
 import { GithubProvider, ActionsSecret } from "@cdktf/provider-github";
 import { AwsServerlessBackend } from "@dvargas92495/aws-serverless-backend";
