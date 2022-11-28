@@ -1,7 +1,8 @@
 import { Construct } from "constructs";
 import { App, TerraformStack, RemoteBackend, TerraformVariable } from "cdktf";
-import { AwsProvider } from "@cdktf/provider-aws";
-import { GithubProvider, ActionsSecret } from "@cdktf/provider-github";
+import { AwsProvider } from "@cdktf/provider-aws/lib/provider";
+import { GithubProvider } from "@cdktf/provider-github/lib/provider";
+import { ActionsSecret } from "@cdktf/provider-github/lib/actions-secret";
 import { AwsServerlessBackend } from "@dvargas92495/aws-serverless-backend";
 import { AwsClerk } from "@dvargas92495/aws-clerk";
 import { AwsEmail } from "@dvargas92495/aws-email";
@@ -295,10 +296,10 @@ const base = async ({
     const tablesToUpdate: Record<string, ZodObject<ZodRawShape>> = {};
     const expectedTables = Object.keys(schema);
     actualTables
+      .filter((t) => !/^_/.test(t))
       .map((t) => {
         return camelCase(t);
       })
-      .filter((t) => t !== "migrations")
       .map((t) => pluralize(t, 1))
       .forEach((t) => {
         if (!expectedTables.includes(t)) {
@@ -370,7 +371,7 @@ const base = async ({
                 : typeName === "ZodNumber"
                 ? getIntegerType(shape as ZodNumber)
                 : typeName === "ZodDate"
-                ? "DATETIME(3)"
+                ? "DATETIME"
                 : typeName === "ZodBoolean"
                 ? "TINYINT(1)"
                 : typeName === "ZodObject"
@@ -385,6 +386,8 @@ const base = async ({
               ? ""
               : typeName === "ZodNumber" || typeName === "ZodBoolean"
               ? "0"
+              : typeName === "ZodDate"
+              ? "CURRENT_TIMESTAMP"
               : null,
           };
         }),
