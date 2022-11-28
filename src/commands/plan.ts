@@ -6,7 +6,6 @@ const plan = async ({ sql }: { sql?: boolean }): Promise<number> => {
   if (fs.existsSync("./node_modules/@cdktf/provider-aws/lib")) {
     fs.readdirSync("./node_modules/@cdktf/provider-aws/lib").forEach((dir) => {
       const index = `./node_modules/@cdktf/provider-aws/lib/${dir}/index.js`;
-      console.log(dir, index);
       if (
         fs.existsSync(`./node_modules/@cdktf/provider-aws/lib/${dir}/index.js`)
       ) {

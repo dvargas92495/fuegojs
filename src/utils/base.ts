@@ -1,6 +1,7 @@
 import { Construct } from "constructs";
 import { App, TerraformStack, RemoteBackend, TerraformVariable } from "cdktf";
 import { AwsProvider } from "@cdktf/provider-aws/lib/provider";
+import { CloudfrontCachePolicy } from "@cdktf/provider-aws/lib/cloudfront-cache-policy";
 import { GithubProvider } from "@cdktf/provider-github/lib/provider";
 import { ActionsSecret } from "@cdktf/provider-github/lib/actions-secret";
 import { AwsServerlessBackend } from "@dvargas92495/aws-serverless-backend";
@@ -150,6 +151,19 @@ const base = async ({
           owner: process.env.GITHUB_REPOSITORY_OWNER,
         });
 
+        const cachePolicy = new CloudfrontCachePolicy(this, "cache_policy", {
+          name: `${safeProjectName}-cache-policy`,
+          comment: `Caching for ${projectName}`,
+          defaultTtl: 1,
+          maxTtl: 31536000,
+          minTtl: 1,
+          parametersInCacheKeyAndForwardedToOrigin: {
+            cookiesConfig: { cookieBehavior: "none" },
+            headersConfig: { headerBehavior: "none" },
+            queryStringsConfig: { queryStringBehavior: "all" },
+          },
+        });
+
         const staticSite = new AwsStaticSite(this, "aws_static_site", {
           providers: [
             {
@@ -161,6 +175,7 @@ const base = async ({
           originTimeout: 20,
           domain: projectName,
           secret: secret.value,
+          cachePolicyId: cachePolicy.id,
         });
 
         const allPaths = readDir("api").map((f) =>
