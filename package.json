@@ -25,7 +25,7 @@
     "@dvargas92495/aws-clerk": "^0.1.0",
     "@dvargas92495/aws-email": "^2.1.0",
     "@dvargas92495/aws-serverless-backend": "^2.5.6",
-    "@dvargas92495/aws-static-site": "^3.6.8",
+    "@dvargas92495/aws-static-site": "3.6.7",
     "@dvargas92495/aws-websocket": "^1.2.2",
     "@playwright/test": "^1.25.2",
     "@remix-run/dev": ">=1 <1.7.0",
