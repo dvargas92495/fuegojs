@@ -34,7 +34,10 @@ const build = async (args: BuildArgs = {}): Promise<number> => {
         platform: "node",
         target: "node14",
         entryPoints: ["app/server/index.ts"],
-        external: ["aws-sdk", "@aws-sdk/*"].concat(
+        external: [
+          "aws-sdk", 
+          // "@aws-sdk/*" - when node18 is live on Lambda@Edge
+        ].concat(
           fuegoRemixConfig?.externals || []
         ),
         minify: !args.readable,
