@@ -92,14 +92,23 @@ const postinstall = (): Promise<number> => {
         jsonFiles.length,
         "package.jsons to remove `type:module`..."
       );
-      jsonFiles.forEach((jsonFile) => {
-        const packageJson = JSON.parse(fs.readFileSync(jsonFile).toString());
-        if (packageJson.type === "module") {
-          delete packageJson.type;
-          fs.writeFileSync(jsonFile, JSON.stringify(packageJson, null, 4));
-          console.log("overwrote", jsonFile);
-        }
-      });
+      jsonFiles
+        .filter((j) => /package\.json$/.test(j))
+        .forEach((jsonFile) => {
+          try {
+            const packageJson = JSON.parse(
+              fs.readFileSync(jsonFile).toString()
+            );
+            if (packageJson.type === "module") {
+              delete packageJson.type;
+              fs.writeFileSync(jsonFile, JSON.stringify(packageJson, null, 4));
+              console.log("overwrote", jsonFile);
+            }
+          } catch (e) {
+            console.error("Failed to overwrite", jsonFile);
+            console.error(e);
+          }
+        });
 
       // Remove Hack once https://github.com/remix-run/remix/pull/1841 is merged
       if (fuegoRemixConfig.externals) {
