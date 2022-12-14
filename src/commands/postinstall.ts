@@ -45,7 +45,18 @@ const postinstall = (): Promise<number> => {
         : config;
     })
     .reduce(
-      (p, c) => ({ ...p, ...c }), // TODO safe merging
+      (p, c) => ({
+        ...p,
+        ...c,
+        remix: {
+          ...p.remix,
+          ...c.remix,
+          modulesToTranspile: [
+            ...(p.remix?.modulesToTranspile || []),
+            ...(c.remix?.modulesToTranspile || []),
+          ],
+        },
+      }),
       (packageJson?.fuego || {}) as FuegoConfig
     );
   console.log("Fuego config:\n", JSON.stringify(fuegoConfig, null, 4));
