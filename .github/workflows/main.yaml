@@ -23,11 +23,6 @@ jobs:
         run: npm install
       - name: build
         run: npm run build
-      - name: test
-        run: npm t
-        env:
-          NODE_ENV: test
-          DEBUG: true
       - name: authenticate
         run: echo '//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}' > ~/.npmrc
       - name: prepare
