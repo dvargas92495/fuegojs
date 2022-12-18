@@ -590,9 +590,7 @@ ${columns.map((c) => `  ${outputColumn(c)},`).join("\n")}
 
   ${[
     primary && `PRIMARY KEY (${primary})`,
-    ...uniques.map(
-      (uc) => `UNIQUE INDEX UC_${uc.join("_")} (${uc.join(",")})`
-    ),
+    ...uniques.map((uc) => `UNIQUE INDEX UC_${uc.join("_")} (${uc.join(",")})`),
     ...indices.map((uc) => `INDEX IX_${uc.join("_")} (${uc.join(",")})`),
   ]
     .filter((c) => !!c)
