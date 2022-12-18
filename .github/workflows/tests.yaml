@@ -1,0 +1,23 @@
+name: Run Full Tests Suite
+on:
+  pull_request:
+  workflow_dispatch:
+  push:
+    branches: main
+    paths:
+      - "tests/**"
+      - ".github/workflows/tests.yaml"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v3
+      - name: install
+        run: npm install
+      - name: Install playwright
+        run: npx playwright install
+      - name: setup mysql
+        run: sudo systemctl start mysql.service
+      - name: tests
+        run: npm t

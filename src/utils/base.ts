@@ -11,7 +11,7 @@ import { AwsWebsocket } from "@dvargas92495/aws-websocket";
 import { AwsStaticSite } from "@dvargas92495/aws-static-site";
 import fs from "fs";
 import getMysqlConnection from "./mysql";
-import { ZodObject, ZodRawShape, ZodString, ZodNumber } from "zod";
+import { z, ZodObject, ZodRawShape, ZodString, ZodNumber } from "zod";
 import { camelCase, snakeCase } from "change-case";
 import pluralize from "pluralize";
 import { PLAN_OUT_FILE, readDir } from "../internal/common";
@@ -28,11 +28,20 @@ type Column = {
   Default?: string | null;
 };
 
-type Constraint = {
-  COLUMN_NAME: string;
-  CONSTRAINT_NAME: string;
-  REFERENCED_COLUMN_NAME: string | null;
-  REFERENCED_TABLE_NAME: string | null;
+type Index = {
+  Table: string;
+  Non_unique: 0 | 1;
+  Key_name: string;
+  Seq_in_index: 1;
+  Column_name: string;
+};
+
+const safeJsonParse = (s = "{}") => {
+  try {
+    return JSON.parse(s || "{}");
+  } catch (e) {
+    return {};
+  }
 };
 
 // https://dev.mysql.com/doc/refman/8.0/en/integer-types.html
@@ -342,27 +351,26 @@ const base = async ({
         /primary/i.test(s.shape[col].description || "")
       );
 
-      const uniques = shapeKeys
-        .filter((col) => /unique/i.test(s.shape[col].description || ""))
-        .map((e) => snakeCase(e));
+      const tableMetadata = z
+        .object({
+          uniques: z.string().array().array().optional().default([]),
+        })
+        .parse(safeJsonParse(s.description));
 
-      const foreigns = Object.keys(s.shape)
-        .filter((col) => /foreign/i.test(s.shape[col].description || ""))
-        .map((e) => snakeCase(e))
-        .map((key) => {
-          const parts = key.split("_");
-          return {
-            key,
-            table: pluralize(parts.slice(0, -1).join("_")),
-            ref: parts.slice(-1)[0],
-          };
-        });
+      const uniques = shapeKeys
+        .filter((col) => /^unique$/i.test(s.shape[col].description || ""))
+        .map((e) => [snakeCase(e)])
+        .concat(tableMetadata.uniques);
+
+      const indices = shapeKeys
+        .filter((col) => /^index$/i.test(s.shape[col].description || ""))
+        .map((e) => [snakeCase(e)]);
 
       return {
         constraints: {
           primary: primary && snakeCase(primary),
           uniques,
-          foreigns,
+          indices,
         },
         columns: shapeKeys.map((columnName) => {
           const shape = s.shape[columnName];
@@ -414,25 +422,15 @@ const base = async ({
         Promise.all([
           // interpolating is incorrect sql for show columns
           cxn.execute(`SHOW COLUMNS FROM ${table}`),
-          cxn
-            .execute(
-              `select COLUMN_NAME, CONSTRAINT_NAME, REFERENCED_COLUMN_NAME, REFERENCED_TABLE_NAME 
-          from information_schema.KEY_COLUMN_USAGE 
-          where TABLE_NAME = ? and TABLE_SCHEMA = ?`,
-              [table, dbname]
-            )
-            .catch(() => {
-              console.log("cant query information_schema");
-              return [];
-            }),
-        ]).then(([[cols], [cons]]) => {
+          cxn.execute(`SHOW INDEXES FROM ${table}`),
+        ]).then(([[cols], [inds]]) => {
           const actualColumns = cols as Column[];
-          const actualConstraints = cons as Constraint[];
+          const actualIndices = inds as Index[];
 
           const colsToDelete: string[] = [];
           const colsToAdd: string[] = [];
           const colsToUpdate: string[] = [];
-          const consToDelete: string[] = []; // TODO
+          const consToDelete: string[] = [];
           const consToAdd: string[] = [];
 
           const expectedColumns = Object.keys(tablesToUpdate[table].shape);
@@ -463,132 +461,115 @@ const base = async ({
               }
             });
 
-          const uniqsToDrop = new Set();
-          actualConstraints.forEach((con) => {
-            if (con.REFERENCED_COLUMN_NAME !== null) {
-              if (
-                !expectedColumnInfo.constraints.foreigns.some(
-                  (f) =>
-                    con.COLUMN_NAME === f.key &&
-                    con.CONSTRAINT_NAME ===
-                      `FK_${table}_${f.key}_${f.table}_${f.ref}` &&
-                    con.REFERENCED_COLUMN_NAME === f.ref &&
-                    con.REFERENCED_TABLE_NAME === f.table
+          const indsToDrop = new Set();
+          const expectedInds = new Set(
+            expectedColumnInfo.constraints.uniques
+              .map((u) => `UC_${u.join("_")}`)
+              .concat(
+                expectedColumnInfo.constraints.indices.map(
+                  (i) => `IX_${i.join("_")}`
                 )
-              ) {
-                consToDelete.push(`FOREIGN KEY ${con.CONSTRAINT_NAME}`);
-              }
-            } else if (con.CONSTRAINT_NAME === "PRIMARY") {
-              if (expectedColumnInfo.constraints.primary !== con.COLUMN_NAME) {
+              )
+          );
+          actualIndices.forEach((con) => {
+            if (con.Key_name === "PRIMARY") {
+              if (expectedColumnInfo.constraints.primary !== con.Column_name) {
                 consToDelete.push(`PRIMARY KEY`);
               }
             } else {
-              // for now, we assume a unique index, even though regular indices are a thing
               if (
-                `UC_${expectedColumnInfo.constraints.uniques.join("_")}` !==
-                  con.CONSTRAINT_NAME &&
-                !uniqsToDrop.has(con.CONSTRAINT_NAME)
+                !expectedInds.has(con.Key_name) &&
+                !indsToDrop.has(con.Key_name)
               ) {
-                consToDelete.push(`INDEX ${con.CONSTRAINT_NAME}`);
-                // each key in the UQ will have its own entry
-                uniqsToDrop.add(con.CONSTRAINT_NAME);
+                consToDelete.push(`INDEX ${con.Key_name}`);
+                indsToDrop.add(con.Key_name);
               }
             }
           });
 
-          expectedColumnInfo.constraints.foreigns.forEach((f) => {
-            if (
-              !actualConstraints.some(
-                (con) =>
-                  con.COLUMN_NAME === f.key &&
-                  con.CONSTRAINT_NAME ===
-                    `FK_${table}_${f.key}_${f.table}_${f.ref}` &&
-                  con.REFERENCED_COLUMN_NAME === f.ref &&
-                  con.REFERENCED_TABLE_NAME === f.table
-              )
-            ) {
-              consToAdd.push(
-                `CONSTRAINT FK_${table}_${f.key}_${f.table}_${f.ref} FOREIGN KEY (${f.key}) REFERENCES ${f.table}(${f.ref})`
-              );
-            }
-          });
           if (
             expectedColumnInfo.constraints.primary &&
-            !actualConstraints.some(
+            !actualIndices.some(
               (con) =>
-                con.COLUMN_NAME === expectedColumnInfo.constraints.primary &&
-                con.CONSTRAINT_NAME === "PRIMARY"
+                con.Column_name === expectedColumnInfo.constraints.primary &&
+                con.Key_name === "PRIMARY"
             )
           ) {
             consToAdd.push(
               `PRIMARY KEY (${expectedColumnInfo.constraints.primary})`
             );
           }
-          if (
-            expectedColumnInfo.constraints.uniques.length &&
-            !actualConstraints.some(
-              (con) =>
-                `UC_${expectedColumnInfo.constraints.uniques.join("_")}` ===
-                con.CONSTRAINT_NAME
+          expectedColumnInfo.constraints.uniques.forEach((uc) => {
+            if (
+              !actualIndices.some(
+                (con) => `UC_${uc.join("_")}` === con.Key_name
+              )
+            ) {
+              consToAdd.push(
+                `CREATE UNIQUE INDEX IX_${uc.join("_")} on ${table} (${uc.join(
+                  ","
+                )})`
+              );
+            }
+          });
+          expectedColumnInfo.constraints.indices.forEach((ix) => {
+            if (
+              !actualIndices.some(
+                (con) => `IX_${ix.join("_")}` === con.Key_name
+              )
+            ) {
+              consToAdd.push(
+                `CREATE INDEX IX_${ix.join("_")} on ${table} (${ix.join(",")})`
+              );
+            }
+          });
+          return consToDelete
+            .sort()
+            .map((c) => `ALTER TABLE ${table} DROP ${c}`)
+            .concat(
+              colsToDelete.map((c) => `ALTER TABLE ${table} DROP COLUMN ${c}`)
             )
-          ) {
-            consToAdd.push(
-              `CONSTRAINT UC_${expectedColumnInfo.constraints.uniques.join(
-                "_"
-              )} UNIQUE (${expectedColumnInfo.constraints.uniques.join(",")})`
-            );
-          }
-          return (
-            consToDelete
-              // hack to ensure FOREIGN KEYS are dropped before indices
-              .sort()
-              .map((c) => `ALTER TABLE ${table} DROP ${c}`)
-              .concat(
-                colsToDelete.map((c) => `ALTER TABLE ${table} DROP COLUMN ${c}`)
+            .concat(
+              colsToAdd.map(
+                (c) =>
+                  `ALTER TABLE ${table} ADD ${outputColumn({
+                    Field: c,
+                    ...expectedTypeByField[c],
+                  })}`
               )
-              .concat(
-                colsToAdd.map(
+            )
+            .concat(
+              colsToUpdate
+                .filter(
                   (c) =>
-                    `ALTER TABLE ${table} ADD ${outputColumn({
-                      Field: c,
-                      ...expectedTypeByField[c],
-                    })}`
-                )
-              )
-              .concat(
-                colsToUpdate
-                  .filter(
-                    (c) =>
-                      // TODO - need to compare this better - length field is actual for all fields, but not expected for ints
-                      expectedTypeByField[c].Type.replace(
+                    // TODO - need to compare this better - length field is actual for all fields, but not expected for ints
+                    expectedTypeByField[c].Type.replace(
+                      /\(\d+\)/,
+                      ""
+                    ).toUpperCase() !==
+                      actualTypeByField[c].Type.replace(
                         /\(\d+\)/,
                         ""
-                      ).toUpperCase() !==
-                        actualTypeByField[c].Type.replace(
-                          /\(\d+\)/,
-                          ""
-                        ).toUpperCase() ||
-                      expectedTypeByField[c].Null !==
-                        actualTypeByField[c].Null ||
-                      expectedTypeByField[c].Default !==
-                        actualTypeByField[c].Default
-                  )
-                  .map((c) => {
-                    if (process.env.DEBUG)
-                      console.log(
-                        "Column diff expected:",
-                        JSON.stringify(expectedTypeByField[c], null, 4),
-                        "actual:",
-                        JSON.stringify(actualTypeByField[c], null, 4)
-                      );
-                    return `ALTER TABLE ${table} MODIFY ${outputColumn({
-                      Field: c,
-                      ...expectedTypeByField[c],
-                    })}`;
-                  })
-              )
-              .concat(consToAdd.map((c) => `ALTER TABLE ${table} ADD ${c}`))
-          );
+                      ).toUpperCase() ||
+                    expectedTypeByField[c].Null !== actualTypeByField[c].Null ||
+                    expectedTypeByField[c].Default !==
+                      actualTypeByField[c].Default
+                )
+                .map((c) => {
+                  if (process.env.DEBUG)
+                    console.log(
+                      "Column diff expected:",
+                      JSON.stringify(expectedTypeByField[c], null, 4),
+                      "actual:",
+                      JSON.stringify(actualTypeByField[c], null, 4)
+                    );
+                  return `ALTER TABLE ${table} MODIFY ${outputColumn({
+                    Field: c,
+                    ...expectedTypeByField[c],
+                  })}`;
+                })
+            )
+            .concat(consToAdd);
         })
       )
     ).then((cols) => cols.flat());
@@ -602,19 +583,17 @@ const base = async ({
         Object.entries(tablesToCreate).map(([k, s]) => {
           const {
             columns,
-            constraints: { primary, uniques, foreigns },
+            constraints: { primary, uniques, indices },
           } = getTableInfo(s);
           return `CREATE TABLE IF NOT EXISTS ${k} (
 ${columns.map((c) => `  ${outputColumn(c)},`).join("\n")}
-  
+
   ${[
     primary && `PRIMARY KEY (${primary})`,
-    uniques.length &&
-      `CONSTRAINT UC_${uniques.join("_")} UNIQUE (${uniques.join(",")})`,
-    ...foreigns.map(
-      ({ ref, table, key }) =>
-        `FOREIGN KEY FK_${k}_${key}_${table}_${ref} (${key}) REFERENCES ${table}(${ref})`
+    ...uniques.map(
+      (uc) => `UNIQUE INDEX UC_${uc.join("_")} (${uc.join(",")})`
     ),
+    ...indices.map((uc) => `INDEX IX_${uc.join("_")} (${uc.join(",")})`),
   ]
     .filter((c) => !!c)
     .join(",\n  ")}

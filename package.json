@@ -14,7 +14,8 @@
     "postversion": "git push origin main && git push --tags",
     "prebuild": "npm run lint",
     "build": "tsc",
-    "test": "playwright test --config=src/internal/playwright.config.ts"
+    "test": "c8 --all --include src playwright test --config=src/internal/playwright.config.ts",
+    "blah": "--exclude src/types.ts --exclude node_modules --exclude-after-remap"
   },
   "peerDependencies": {
     "@aws-sdk/client-cloudfront": "^3.0.0",
@@ -61,7 +62,8 @@
     "@types/mime-types": "^2.1.1",
     "@types/pluralize": "0.0.29",
     "@types/rimraf": "^3.0.2",
-    "@types/uuid": "^8.3.4"
+    "@types/uuid": "^8.3.4",
+    "c8": "^7.12.0"
   },
   "dependencies": {
     "archiver": "^5.3.0",

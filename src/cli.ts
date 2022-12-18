@@ -5,7 +5,7 @@ import deploy from "./commands/deploy";
 import dev from "./commands/dev";
 import compile from "./commands/compile";
 import publish from "./commands/publish";
-import api from "./api";
+import api from "./commands/api";
 import postinstall from "./commands/postinstall";
 import apply from "./commands/apply";
 import plan from "./commands/plan";

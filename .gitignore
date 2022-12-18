@@ -5,3 +5,4 @@ out
 .env
 .gen
 playwright-report
+coverage
