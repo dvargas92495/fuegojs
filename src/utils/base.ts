@@ -506,7 +506,7 @@ const base = async ({
               )
             ) {
               consToAdd.push(
-                `CREATE UNIQUE INDEX IX_${uc.join("_")} on ${table} (${uc.join(
+                `CREATE UNIQUE INDEX UC_${uc.join("_")} on ${table} (${uc.join(
                   ","
                 )})`
               );
@@ -591,7 +591,7 @@ ${columns.map((c) => `  ${outputColumn(c)},`).join("\n")}
   ${[
     primary && `PRIMARY KEY (${primary})`,
     ...uniques.map((uc) => `UNIQUE INDEX UC_${uc.join("_")} (${uc.join(",")})`),
-    ...indices.map((uc) => `INDEX IX_${uc.join("_")} (${uc.join(",")})`),
+    ...indices.map((ix) => `INDEX IX_${ix.join("_")} (${ix.join(",")})`),
   ]
     .filter((c) => !!c)
     .join(",\n  ")}

@@ -38,7 +38,7 @@ test("schema with indices", async () => {
   };
   await base({ schema, projectName: dbname });
   const plan = fs.readFileSync("out/apply-sql.txt").toString();
-  expect(plan).toBe(`CREATE TABLE IF NOT EXISTS entities (
+  expect(plan).toEqual(`CREATE TABLE IF NOT EXISTS entities (
   uuid  VARCHAR(36)  NOT NULL DEFAULT "",
   plain  VARCHAR(128)  NOT NULL DEFAULT "",
   uniq  VARCHAR(128)  NOT NULL DEFAULT "",
