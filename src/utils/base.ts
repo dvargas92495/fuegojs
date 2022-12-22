@@ -354,6 +354,7 @@ const base = async ({
       const tableMetadata = z
         .object({
           uniques: z.string().array().array().optional().default([]),
+          indices: z.string().array().array().optional().default([]),
         })
         .parse(safeJsonParse(s.description));
 
@@ -364,7 +365,8 @@ const base = async ({
 
       const indices = shapeKeys
         .filter((col) => /^index$/i.test(s.shape[col].description || ""))
-        .map((e) => [snakeCase(e)]);
+        .map((e) => [snakeCase(e)])
+        .concat(tableMetadata.indices);
 
       return {
         constraints: {
