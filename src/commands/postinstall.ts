@@ -158,7 +158,7 @@ const postinstall = (): Promise<number> => {
       if (remixConfigServerBuildPath.startsWith("app")) {
         const compilerFile = "./node_modules/@remix-run/dev/dist/compiler.js";
         const compiler = fs.readFileSync(compilerFile).toString();
-        const ignored = `/${remixConfigServerBuildPath.replace(/\//g, "\\/")}/`;
+        const ignored = `/${path.dirname(remixConfigServerBuildPath.replace(/\//g, "\\/"))}/`;
         fs.writeFileSync(
           compilerFile,
           compiler.replace(

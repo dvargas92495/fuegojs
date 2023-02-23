@@ -1,5 +1,7 @@
 # 🔥 FuegoJS 🔥
 
+[![Test coverage](https://codecov.io/gh/dvargas92495/fuegojs/branch/main/graph/badge.svg)](https://codecov.io/gh/dvargas92495/fuegojs)
+
 Opinionated server-side rendering web framework built on [Remix](https://remix.run/) for [AWS](https://aws.amazon.com/), using [Terraform](https://www.terraform.io/). The goal is to make your full stack web application and your experience developing it _blazing_ fast! All configuration come with opinionated defaults.
 
 **Project is still under heavy development. APIs are subject to change and there are bugs. Lots of them.**.
