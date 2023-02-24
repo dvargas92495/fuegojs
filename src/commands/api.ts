@@ -100,12 +100,17 @@ const api = ({
   );
   return prepareApiBuild(out).then((opts) => {
     const app = express();
-    app.use(express.json());
-    app.use(
-      express.urlencoded({
-        extended: true,
-      })
-    );
+    app.use(function (req, _, next) {
+      let data = "";
+      req.setEncoding("utf8");
+      req.on("data", function (chunk) {
+        data += chunk;
+      });
+      req.on("end", function () {
+        req.body = data;
+        next();
+      });
+    });
     const entries = readDir(path).filter((f) => entryRegex.test(f));
     const apiCount = entries.length;
     let currentCount = 0;
@@ -150,7 +155,7 @@ const api = ({
                         errorType: "HANDLER_NOT_FOUND",
                       });
                   }
-                  const { headers, body: payload, params, url, ip } = req;
+                  const { headers, body, params, url, ip } = req;
                   console.log(`Received Request ${method} ${route}`);
                   const searchParams = Array.from(
                     new URL(
@@ -166,7 +171,7 @@ const api = ({
                     ])
                   );
                   const event = {
-                    body: JSON.stringify(payload),
+                    body,
                     headers: simpleHeaders,
                     httpMethod: method,
                     isBase64Encoded: false, // TODO hook up
@@ -333,7 +338,10 @@ const api = ({
                   });
                   new Promise((resolve) =>
                     setTimeout(
-                      () => resolve(handler(event, context, () => ({}))),
+                      () =>
+                        resolve(
+                          handler(JSON.parse(event), context, () => ({}))
+                        ),
                       1
                     )
                   )
@@ -463,7 +471,7 @@ const api = ({
           );
         if (wsEntries.length) {
           app.post("/ws", (req, res) => {
-            const { ConnectionId, Data } = req.body;
+            const { ConnectionId, Data } = JSON.parse(req.body);
             const connection = localSockets[ConnectionId];
             if (!connection) {
               res.json({ success: false });

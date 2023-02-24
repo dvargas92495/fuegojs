@@ -24,7 +24,7 @@ test.skip("mysql connect", async () => {
 
 test("schema with indices", async () => {
   process.env.FUEGO_ARGS_SQL = "true";
-  process.env.DATABASE_URL = `mysql://root:root@localhost:3306/${dbname}`;
+  process.env.DATABASE_URL = `mysql://root:root@127.0.0.1:3306/${dbname}`;
   const schema = {
     entity: z
       .object({

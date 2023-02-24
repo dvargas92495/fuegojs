@@ -1,10 +1,10 @@
 # 🔥 FuegoJS 🔥
 
-[![Test coverage](https://codecov.io/gh/dvargas92495/fuegojs/branch/main/graph/badge.svg)](https://codecov.io/gh/dvargas92495/fuegojs)
+[![Test coverage](https://codecov.io/gh/dvargas92495/fuegojs/branch/main/graph/badge.svg)](https://codecov.io/gh/dvargas92495/fuegojs) [![npm](https://img.shields.io/github/v/release/dvargas92495/fuegojs)](https://www.npmjs.com/fuegojs)
 
 Opinionated server-side rendering web framework built on [Remix](https://remix.run/) for [AWS](https://aws.amazon.com/), using [Terraform](https://www.terraform.io/). The goal is to make your full stack web application and your experience developing it _blazing_ fast! All configuration come with opinionated defaults.
 
-**Project is still under heavy development. APIs are subject to change and there are bugs. Lots of them.**.
+**Project is still under heavy development. APIs are subject to change and there are still bugs.**.
 
 The package exposes its commands as both a CLI and as a module to be imported in your script files. It's core commands could be thought of as the following matrix:
 
