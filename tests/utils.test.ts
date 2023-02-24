@@ -48,7 +48,9 @@ test("schema with indices", async () => {
   UNIQUE INDEX UC_uniq (uniq),
   UNIQUE INDEX UC_first_second (first,second),
   INDEX IX_plain (plain)
-)`);
+) ENGINE InnoDB,
+  CHARSET utf8mb4,
+  COLLATE utf8mb4_unicode_ci;`);
 });
 
 test.afterAll(() => {
