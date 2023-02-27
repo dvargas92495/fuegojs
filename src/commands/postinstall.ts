@@ -139,10 +139,6 @@ const postinstall = (): Promise<number> => {
               "external: externals,",
               `external: externals.concat(${inject}),`
             )
-            .replace(
-              "ignoreInitial: true,",
-              "ignoreInitial: true,\n      ignored: /app\\/server\\//,"
-            )
         );
         console.log(
           "hacked modules",

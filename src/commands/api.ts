@@ -88,7 +88,7 @@ const api = ({
   process.env.NODE_ENV = process.env.NODE_ENV || "development";
 
   const entryRegex = new RegExp(
-    `^${path}[\\\\/]((ws[/\\\\][a-z0-9-]+)|([a-z0-9-]+[/\\\\])*(get|post|put|delete)|[a-z0-9-]+)\\.[tj]s$`
+    `^${path}[\\\\/]((ws[/\\\\][a-z0-9-]+)|(:?[a-z0-9-]+[/\\\\])*(get|post|put|delete)|[a-z0-9-]+)\\.[tj]s$`
   );
   const wsRegex = new RegExp(`^${path}[\\\\/]ws[/\\\\][a-z0-9-]+\\.[tj]s$`);
   console.log(
@@ -553,7 +553,8 @@ const api = ({
       };
 
       const closeWsServer = startWebSocketServer();
-      app.use((req, res) =>
+      app.use((req, res) => {
+        console.error(`Route not found: ${req.method} - ${req.path}`);
         res
           .header("Access-Control-Allow-Origin", "*")
           .header(
@@ -565,8 +566,8 @@ const api = ({
             currentRoute: `${req.method} - ${req.path}`,
             error: "Route not found.",
             statusCode: 404,
-          })
-      );
+          });
+      });
       const appServer = app.listen(port, () => {
         console.log(`API server listening on port ${port}...`);
         if (tunnel) {

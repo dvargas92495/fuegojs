@@ -3,7 +3,6 @@ import fs from "fs";
 
 const globalSetup = async () => {
   dotenv.config();
-  console.log("envo", process.env.DATABASE_URL);
 
   process.env.NODE_ENV = process.env.NODE_ENV || "test";
   if (process.env.DEBUG || process.env.PWDEBUG)
