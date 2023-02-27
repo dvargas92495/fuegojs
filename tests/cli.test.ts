@@ -5,14 +5,11 @@ import axios from "axios";
 import WebSocket from "ws";
 import { test, expect } from "@playwright/test";
 
-const logs: { data: string; time: number }[] = [];
 let api: ChildProcessWithoutNullStreams;
 
 test.setTimeout(12000);
-test.skip("fuego api", async () => {
-  const startTime = process.hrtime.bigint();
-  const log = (data = "") =>
-    logs.push({ data, time: Number(process.hrtime.bigint() - startTime) });
+test("fuego api", async () => {
+  const log = (...data) => process.env.DEBUG && console.log(...data);
   const root = `/tmp/${v4()}`;
   const path = `${root}/api`;
   const out = `${root}/build`;
@@ -22,6 +19,14 @@ test.skip("fuego api", async () => {
   fs.writeFileSync(
     `${path}/test/post.ts`,
     `export const handler = () => ({statusCode: 200, body: JSON.stringify({success: true})})`
+  );
+  fs.mkdirSync(`${path}/test/:id`);
+  fs.writeFileSync(
+    `${path}/test/:id/post.ts`,
+    `export const handler = (event) => ({
+      statusCode: 200, 
+      body: JSON.stringify({success: true, params: event.pathParameters})
+    })`
   );
   fs.mkdirSync(`${path}/ws`);
   fs.writeFileSync(
@@ -78,7 +83,7 @@ export const handler = (event: {
   });`
   );
   const logCallbacks: { test: string; f: (a?: unknown) => unknown }[] = [];
-  log("TEST: spawn fuego");
+  log("spawn fuego");
   /* 
   Get this to work
   const esbuildApi = spawn("npx", [
@@ -125,64 +130,69 @@ export const handler = (event: {
         },
       });
     });
-  log("TEST: wait for servers to be online");
-  await Promise.all([
-    awaitLog(`API server listening on port 3003...\n`),
-    awaitLog(`WS server listening on port 3004...\n`),
-  ]);
-  log("TEST: send an api req");
+  await test.step("wait for servers to be online", async () => {
+    await Promise.all([
+      awaitLog(`API server listening on port 3003...\n`),
+      awaitLog(`WS server listening on port 3004...\n`),
+    ]);
+  });
 
-  const response = await axios
-    .post("http://localhost:3003/test")
-    .then((r) => r.data)
-    .catch((e) => ({ success: false, error: e.response.data }));
-  expect(response).toEqual({ success: true });
+  await test.step("send an api req", async () => {
+    const response = await axios
+      .post("http://localhost:3003/test")
+      .then((r) => r.data)
+      .catch((e) => ({ success: false, error: e.response.data }));
+    expect(response).toEqual({ success: true });
+  });
 
-  log("TEST: update a file");
-  const update = awaitLog(`Rebuilt ${path}/test/post.ts\n`);
-  fs.writeFileSync(
-    `${path}/test/post.ts`,
-    `export const handler = () => ({statusCode: 200, body: JSON.stringify({success: true, foo: "bar"})})`
-  );
-  await update;
-  log("TEST: check the update");
-  const newResponse = await axios
-    .post("http://localhost:3003/test")
-    .then((r) => r.data)
-    .catch((e) => ({ success: false, error: e.response.data }));
-  expect(newResponse).toEqual({ success: true, foo: "bar" });
+  await test.step("update a file", async () => {
+    const update = awaitLog(`Rebuilt ${path}/test/post.ts\n`);
+    fs.writeFileSync(
+      `${path}/test/post.ts`,
+      `export const handler = () => ({statusCode: 200, body: JSON.stringify({success: true, foo: "bar"})})`
+    );
+    await update;
+  });
 
-  log("TEST: starting the websocket");
+  await test.step("check the update", async () => {
+    const newResponse = await axios
+      .post("http://localhost:3003/test")
+      .then((r) => r.data)
+      .catch((e) => ({ success: false, error: e.response.data }));
+    expect(newResponse).toEqual({ success: true, foo: "bar" });
+  });
+
   const wsClient = new WebSocket("ws://localhost:3004");
-  await new Promise((resolve) => wsClient.on("open", resolve));
-  await new Promise((resolve) => setTimeout(resolve, 1000));
-  const onConnectProof = fs.existsSync(`${root}/connected`);
-  expect(onConnectProof).toBeTruthy();
+  await test.step("starting the websocket", async () => {
+    await new Promise((resolve) => wsClient.on("open", resolve));
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+    const onConnectProof = fs.existsSync(`${root}/connected`);
+    expect(onConnectProof).toBeTruthy();
+  });
 
-  log("TEST: send a ws message");
-  wsClient.send(JSON.stringify({ action: "sendmessage", data: "hello" }));
-  const wsResponse = await new Promise((resolve) =>
-    wsClient.on("message", resolve)
-  );
-  expect(wsResponse).toBe(`Received hello`);
+  await test.step("send a ws message", async () => {
+    wsClient.send(JSON.stringify({ action: "sendmessage", data: "hello" }));
+    const wsResponse = await new Promise((resolve) =>
+      wsClient.on("message", resolve)
+    );
+    expect(wsResponse).toBe(`Received hello`);
+  });
 
-  log("TEST: Test a file change");
+  await test.step("create a path param handler", async () => {
+    const param = v4();
+    const newResponse = await axios
+      .post(`http://localhost:3003/test/${param}`)
+      .then((r) => r.data)
+      .catch((e) => ({ success: false, error: e.response.data }));
+    expect(newResponse).toEqual({ success: true, params: { id: param } });
+  });
+
+  // Test adding a route after the api server is running
+  // Test removing a route after the api server is running
   // Test WebSocket file change
   // Test proper disconnection on kill (calling on disconnect)
 }); // TODO: just spinning up the api/ws server takes 9 seconds on GH actions
 
 test.afterAll(() => {
   if (api) api.kill("SIGINT");
-  if (process.env.DEBUG) {
-    console.log(
-      logs
-        .map(
-          (l) =>
-            `${l.data.replace(/\n/g, "\\n")} (${(l.time / 1000000000).toFixed(
-              3
-            )}s)`
-        )
-        .join("\n")
-    );
-  }
 });
