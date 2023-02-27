@@ -11,7 +11,6 @@
     "lint": "eslint . --ext .ts,.tsx",
     "preversion": "npm run lint",
     "version": "npm run format && git add -A src",
-    "postversion": "git push origin main && git push --tags",
     "prebuild": "npm run lint",
     "build": "tsc",
     "test": "c8 --reporter=lcov --reporter=text --all --include src playwright test --config=src/internal/playwright.config.ts",
