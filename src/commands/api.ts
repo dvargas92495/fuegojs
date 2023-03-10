@@ -460,99 +460,27 @@ const api = ({
         });
     }).then(() => {
       const port = 3003;
-      const wsPort = port + 1;
-      const startWebSocketServer = () => {
-        const wsEntries = entries
-          .filter((f) => wsRegex.test(f))
-          .map((f) =>
-            appPath(
-              f.replace(new RegExp(`^${path}`), out).replace(/\.[tj]s$/, "")
-            )
-          );
-        if (wsEntries.length) {
-          app.post("/ws", (req, res) => {
-            const { ConnectionId, Data } = JSON.parse(req.body);
-            const connection = localSockets[ConnectionId];
-            if (!connection) {
-              res.json({ success: false });
-              return;
-            }
-            connection.send(Data, (err) => {
-              res.json({ success: !err });
-            });
+      const wsEntries = entries
+        .filter((f) => wsRegex.test(f))
+        .map((f) =>
+          appPath(
+            f.replace(new RegExp(`^${path}`), out).replace(/\.[tj]s$/, "")
+          )
+        );
+      // TODO - move this to chokidar loop above somehow
+      if (wsEntries.length) {
+        app.post("/ws", (req, res) => {
+          const { ConnectionId, Data } = JSON.parse(req.body);
+          const connection = localSockets[ConnectionId];
+          if (!connection) {
+            res.json({ success: false });
+            return;
+          }
+          connection.send(Data, (err) => {
+            res.json({ success: !err });
           });
-          const wss = new WebSocketServer({ port: wsPort }, () => {
-            console.log(`WS server listening on port ${wsPort}...`);
-          });
-          wss.on("connection", (ws) => {
-            const connectionId = v4();
-            console.log("new ws connection", connectionId);
-            // const messageHandlers = wsEntries.filter(
-            //   (w) =>
-            //     !/onconnect$/.test(w) &&
-            //     !/ondisconnect$/.test(w)
-            // );
-            ws.on("message", (data) => {
-              console.log("new message from", connectionId);
-              const body = data.toString();
-              const action = JSON.parse(body).action;
-              const filePath = wsEntries.find((f) =>
-                f.endsWith(`/ws/${action}`)
-              );
-              if (filePath) {
-                import(filePath).then(({ handler }) => {
-                  delete require.cache[filePath];
-                  handler(
-                    {
-                      body,
-                      requestContext: { connectionId },
-                    },
-                    { awsRequestId: v4() }
-                  );
-                });
-              }
-            });
-            ws.on("close", (a: number, b: Buffer) => {
-              console.log("client closing...", a, b.toString());
-              removeLocalSocket(connectionId);
-              const filePath = wsEntries.find((f) =>
-                f.endsWith(`/ws/ondisconnect`)
-              );
-              if (filePath) {
-                import(filePath).then(({ handler }) => {
-                  delete require.cache[filePath];
-                  handler(
-                    {
-                      requestContext: { connectionId },
-                      body: JSON.stringify([a, b]),
-                    },
-                    { awsRequestId: v4() }
-                  );
-                });
-              }
-            });
-            addLocalSocket(connectionId, ws);
-            const filePath = wsEntries.find((f) => f.endsWith(`/ws/onconnect`));
-            if (filePath) {
-              import(filePath).then(({ handler }) => {
-                delete require.cache[filePath];
-                handler(
-                  { requestContext: { connectionId }, body: "" },
-                  { awsRequestId: v4() }
-                );
-              });
-            }
-          });
-          return () =>
-            new Promise<void>((innerResolve) => {
-              wss.on("close", innerResolve);
-              wss.close();
-            });
-        }
-        return () => Promise.resolve();
-      };
-
-      const closeWsServer = startWebSocketServer();
+        });
+      }
       app.use((req, res) => {
         console.error(`Route not found: ${req.method} - ${req.path}`);
         res
@@ -583,6 +511,77 @@ const api = ({
             });
         }
       });
+      const startWebSocketServer = () => {
+        const wss = new WebSocketServer({ server: appServer }, () => {
+          console.log(`WS server listening on port ${port}...`);
+        });
+        wss.on("connection", (ws) => {
+          const connectionId = v4();
+          console.log("new ws connection", connectionId);
+          // const messageHandlers = wsEntries.filter(
+          //   (w) =>
+          //     !/onconnect$/.test(w) &&
+          //     !/ondisconnect$/.test(w)
+          // );
+          ws.on("message", (data) => {
+            console.log("new message from", connectionId);
+            const body = data.toString();
+            const action = JSON.parse(body).action;
+            const filePath = wsEntries.find((f) => f.endsWith(`/ws/${action}`));
+            if (filePath) {
+              import(filePath).then(({ handler }) => {
+                delete require.cache[filePath];
+                handler(
+                  {
+                    body,
+                    requestContext: { connectionId },
+                  },
+                  { awsRequestId: v4() }
+                );
+              });
+            }
+          });
+          ws.on("close", (a: number, b: Buffer) => {
+            console.log("client closing...", a, b.toString());
+            removeLocalSocket(connectionId);
+            const filePath = wsEntries.find((f) =>
+              f.endsWith(`/ws/ondisconnect`)
+            );
+            if (filePath) {
+              import(filePath).then(({ handler }) => {
+                delete require.cache[filePath];
+                handler(
+                  {
+                    requestContext: { connectionId },
+                    body: JSON.stringify([a, b]),
+                  },
+                  { awsRequestId: v4() }
+                );
+              });
+            }
+          });
+          addLocalSocket(connectionId, ws);
+          const filePath = wsEntries.find((f) => f.endsWith(`/ws/onconnect`));
+          if (filePath) {
+            import(filePath).then(({ handler }) => {
+              delete require.cache[filePath];
+              handler(
+                { requestContext: { connectionId }, body: "" },
+                { awsRequestId: v4() }
+              );
+            });
+          }
+        });
+        return () =>
+          new Promise<void>((innerResolve) => {
+            wss.on("close", innerResolve);
+            wss.close();
+          });
+      };
+
+      const closeWsServer = wsEntries.length
+        ? startWebSocketServer()
+        : Promise.resolve;
       return new Promise((resolve) => {
         const close = () =>
           Promise.all([
